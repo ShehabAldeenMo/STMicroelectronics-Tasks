@@ -1,23 +1,24 @@
 # Q&A
-1. Write a C program consists of 2 C files, one file contains a function and one or more global variables
-   (used in this function), and the second one contains the main function and uses the function defined in
-   the first file.
+<span style="color: red"> 1. Write a C program consists of 2 C files, one file contains a function and one or more global variables (used in this function), and the second one contains the main function and uses the function defined in the first file.</span>
 
-<u>Underlined Commands:- </u>
+
+
+**Commands**
 ```
 $ vim file1.c
 $ vim file1.h
 $ vim file2.c
 $ gcc -static -o Session2_Task1 file1.c file2.c
 ```
-<Description>
+**Description**
    
 + Write into file1.c, file1.h, file2.c. Compile files to generate Session2_Task1 into executable file.
     
 ![Screenshot from 2024-07-16 19-34-45](https://github.com/user-attachments/assets/2ef68618-cc9e-436e-86c1-dc881dab6c38)
 
 2. Take screenshots of the symbol table for the object files and for the generated Executable.
-<Commands>
+
+**Commands**
 ```
 $ gcc -static -c file1.c -o file1.o
 $ gcc -static -c file2.c -o file2.o
