@@ -3,7 +3,7 @@
    (used in this function), and the second one contains the main function and uses the function defined in
    the first file.
 
-<u> Commands:- </u>
+<u>Underlined Commands:- </u>
 ```
 $ vim file1.c
 $ vim file1.h
