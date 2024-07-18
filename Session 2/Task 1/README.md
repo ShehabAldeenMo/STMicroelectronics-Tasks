@@ -1,10 +1,10 @@
-# Questions
+# Q&A
 1. Write a C program consists of 2 C files, one file contains a function and one or more global variables
    (used in this function), and the second one contains the main function and uses the function defined in
    the first file.
 
-**Answer** 
 <Commands>
+   
 ```
 $ vim file1.c
 $ vim file1.h
