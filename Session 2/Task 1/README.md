@@ -3,7 +3,7 @@
    (used in this function), and the second one contains the main function and uses the function defined in
    the first file.
 
-<Commands>
+<u>Commands
    
 ```
 $ vim file1.c
@@ -12,6 +12,7 @@ $ vim file2.c
 $ gcc -static -o Session2_Task1 file1.c file2.c
 ```
 <Description>
+   
 + Write into file1.c, file1.h, file2.c. Compile files to generate Session2_Task1 into executable file.
     
 ![Screenshot from 2024-07-16 19-34-45](https://github.com/user-attachments/assets/2ef68618-cc9e-436e-86c1-dc881dab6c38)
