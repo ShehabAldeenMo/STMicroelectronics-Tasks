@@ -25,7 +25,7 @@ int main (int argc, char *argv[]){
 	return 0 ;
 }
 
-/*===================================== Functions Implementations ======================================= */
+/*================================== Functions Implementations ============================= */
 void ChooseTable (const char* FilePath){
 	/* buffering user input */
 	char option ; 
@@ -112,6 +112,7 @@ void Print_SectionHeader(const char* FilePath){
                i, &shStrTab[sectionHeaders[i].sh_name],
                sectionHeaders[i].sh_type, sectionHeaders[i].sh_addr,
                sectionHeaders[i].sh_offset);
+
      	       printf("     %016lx  %016lx  %c%c%c%c%c  %3d  %3d  %3lu\n",
                sectionHeaders[i].sh_size, sectionHeaders[i].sh_entsize,
                (sectionHeaders[i].sh_flags & SHF_WRITE) ? 'W' : ' ',
