@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "file2.h" 
+#include "file1.h" 
 
 
 int Global_FirsTNumber, Global_SecondNumber;
