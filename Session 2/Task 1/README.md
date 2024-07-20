@@ -2,8 +2,6 @@
 
 **Q1. Write a C program consists of 2 C files, one file contains a function and one or more global variables (used in this function), and the second one contains the main function and uses the function defined in the first file.**
 
-                                                _**Answer**_
-
 **Commands**
 ```
 $ vim file1.c
@@ -50,7 +48,7 @@ $ size Session2_Task1
 ```
 
 **Illustration** 
-+ Generate the size of each section in object files.
++ Generate the size of each section (.text, .bss, .data) in object files.
 
 ![Screenshot from 2024-07-16 19-38-58](https://github.com/user-attachments/assets/530643d8-5128-4bf8-ac07-322d7dbfc843)
 
@@ -78,6 +76,64 @@ exec) text : number, data: number**
 $ size file1.o > sizes.txt
 $ size file2.o >> sizes.txt
 $ size Session2_Task1 >> sizes.txt
+$ awk 'NR==2 {print "file1) text: " $1 ", data: " $2}
+       NR==4 {print "file2) text: " $1 ", data: " $2}
+       NR==6 {print "exec)  text: " $1 ", data: " $2}' sizes.txt
 ```
+
+**Illustration**
++ Use first command to create sizes.txt file which store the output of size command in.
++ Use awk commend to select specific rows and columns from this file to display (Explaination of awk will be representated in next).
+
+![Screenshot from 2024-07-20 14-44-44](https://github.com/user-attachments/assets/554b1add-b239-43c1-bf78-7729d9f61762)
+
+--------------------------------------------------------------------------------------------------------------------
+
+Explaination of awk:-
+---------------------
++ Why do we use awk ?
+--> It's used to display some elements in specific format or edit on them.
+
++ How to use it ?
+1. To display the whole file.
+
+> [!NOTE] 
+> It's used to refer to speific colume in FileName.txt. By default, space ' ' is regarded as separation between two columns. which $0 refer to whole file $1 refer to column 1 .. etc.
+
+![Screenshot from 2024-07-20 15-16-17](https://github.com/user-attachments/assets/8faf391b-06a4-43f1-998a-6293b74ed675)
+
+2. To display specific column.
++ make random file and use in testing
+![Screenshot from 2024-07-20 15-08-02](https://github.com/user-attachments/assets/e588d281-2f00-4bd1-97c0-a678ec8b2eac)
+
+3. Piping
+![Screenshot from 2024-07-20 15-15-10](https://github.com/user-attachments/assets/2f06a998-9dce-432c-b3c7-63b584fe72ea)
+
+4. We can select the last column only in file.
+![Screenshot from 2024-07-20 15-19-55](https://github.com/user-attachments/assets/fad2d7f3-3478-4213-8eb5-06991b7088d4)
+
+5. We can search on specific word and print this line.
+> [!NOTE] 
+> word*, means print any line is fill with this begining "word".
+
+![Screenshot from 2024-07-20 15-23-56](https://github.com/user-attachments/assets/b6089b1a-3c7c-4499-9688-44cbbe786749)
+
+6. Change space ' ' to be ':' or any symbol that separate between different columns.
+![Screenshot from 2024-07-20 15-29-54](https://github.com/user-attachments/assets/959e5fe9-014c-42b9-a8e7-9d9811b66058)
+
++ Change the letter of space
+![Screenshot from 2024-07-20 15-32-06](https://github.com/user-attachments/assets/dc9c6b9f-45a5-427e-b36e-f0695a51cc04)
+
+7. Change column with word
+![Screenshot from 2024-07-20 15-37-12](https://github.com/user-attachments/assets/9e0f12ec-2f00-421a-9ea6-1ba80d900cde)
+
+
+8. Display Speific line in txt file
+![Screenshot from 2024-07-20 15-41-56](https://github.com/user-attachments/assets/9c4a122e-c27e-4b93-9653-faff989b8af3)
+
+
+
+
+
 
 
