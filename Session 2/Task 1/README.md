@@ -2,7 +2,7 @@
 
 **Q1. Write a C program consists of 2 C files, one file contains a function and one or more global variables (used in this function), and the second one contains the main function and uses the function defined in the first file.**
 
--------------------------------------------(Answer)----------------------------------------------------------------
+                                                _**Answer**_
 
 **Commands**
 ```
