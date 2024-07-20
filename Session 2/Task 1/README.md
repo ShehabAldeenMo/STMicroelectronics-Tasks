@@ -118,7 +118,7 @@ Explaination of awk:-
 
 ![Screenshot from 2024-07-20 15-23-56](https://github.com/user-attachments/assets/b6089b1a-3c7c-4499-9688-44cbbe786749)
 
-6. Change space ' ' to be ':' or any symbol that separate between different columns.
+6. Change space '   ' to be ':' or any symbol that separate between different columns.
 ![Screenshot from 2024-07-20 15-29-54](https://github.com/user-attachments/assets/959e5fe9-014c-42b9-a8e7-9d9811b66058)
 
 + Change the letter of space
