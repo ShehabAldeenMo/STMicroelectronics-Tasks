@@ -79,14 +79,26 @@ int main() {
                 }
             }
             else if (strcmp(token,cp) == COPY_VALID){
-                token = strtok(NULL, ",");       // to continue tokenizing from the previous point
-                strcpy(Arguments[SECOND_ARGUMENT],token) ;
-                printf("%s\n",Arguments[SECOND_ARGUMENT]);
-                token = strtok(NULL, ",");       // to continue tokenizing from the previous point
-                strcpy(Arguments[THIRD_ARGUMENT], token );
-                printf("%s\n",Arguments[THIRD_ARGUMENT]);
+                /* Handle first path */
+                while (token != NULL){
+                    ArgCounter++;
+                    token = strtok(NULL, ",");       // to continue tokenizing from the previous point
 
-                //Shellio_CopyFile (Arguments[SECOND_ARGUMENT],Arguments[THIRD_ARGUMENT]);
+                    if (token != NULL){
+                        strcpy(Arguments[ArgCounter],token);
+                        strncpy(Arguments[ArgCounter],token, MAX_CHARACHTERS_OF_ONE_ARGUMENTS - 1) ;
+                        Arguments[ArgCounter][MAX_CHARACHTERS_OF_ONE_ARGUMENTS - 1] = '\0'; // ensure null termination
+                    }
+                }
+
+                /* copy function call */
+                if (ArgCounter == 3 ){
+                    Shellio_CopyFile (Arguments[SECOND_ARGUMENT],Arguments[THIRD_ARGUMENT]);
+                }
+                /* To print help if number of arguments aren't equall 3 */
+                else {
+                    HelpCommand = RAISED ;
+                }                
             }
             /* if it's not echo command or newline. means want help */
             else { 
