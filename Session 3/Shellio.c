@@ -1,17 +1,17 @@
-#include <stdio.h>
-#include <string.h>
+/*===================================  Includes ==========================================*/
+#include "Shellio.h"
 
-#define MAXSIZE     200
-#define EXIT         0
-#define NOT_EXIT     1
-
-
+/*===================================  Main Code ==========================================*/
 int main() {
-    char str[MAXSIZE] = {0} ;   // buffer of input command
-    char *delimiters = " ,.!0"; // Delimiters are space, comma, period, and exclamation mark
-    char *token ;               // to store each word into string
-    char *exit = "exit" ;       // exit keyword to left shellio
-    char ExitFlag = NOT_EXIT ;  // flag to ensure that the user wants to exit
+    /* Initiliazations */
+    char str[MAXSIZE] = {0} ;          // buffer of input command
+    char *delimiters = " 0";           // Delimiters are space, comma, period, and exclamation mark
+    char *token ;                      // to store each word into string
+    char *exit = "exit" ;              // exit keyword to left shellio
+    char ExitFlag = NOT_EXIT ;         // flag to ensure that the user wants to exit
+    char *clear = "clear";             // clear keyword to clear shellio screen
+    char ClearFlag = NOT_CLEARED ;     // flag to ensure that the user wants to exit
+    char ArgCounter = 0 ;              // counter of input arguments to shellio
 
     do {
         /* Enter your commend */
@@ -34,15 +34,30 @@ int main() {
 
         // Subsequent calls to strtok
         while (token != NULL) {
-            ExitFlag = strcmp (token,exit);
-            printf("%s\n", token);
+            ExitFlag  = strcmp (token,exit);
+            ClearFlag = strcmp (token,clear);
             token = strtok(NULL, delimiters);
+            ArgCounter++;
         }
 
-        // clear string buffer
-        memset (str,0,sizeof(str)-1);
+        // print goodby with exit command then exit
+        if (ExitFlag == EXIT && ArgCounter == 1){
+            printf("Good Bye\n");
+            break ;
+        }
+        // clear screen with clear command
+        else if (ClearFlag == CLEARED && ArgCounter == 1){
+            system("clear");
+        }
+        else {
+           // printf("%s\n",str);
+        }
+        
+        // clear string buffer and counter of arguments
+        memset (str,0, sizeof(str) );
+        ArgCounter = 0 ;
 
-    }while(ExitFlag != EXIT);
+    }while(1);
 
     return 0;
 }
