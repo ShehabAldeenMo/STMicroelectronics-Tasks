@@ -1,6 +1,8 @@
 # Shellio 
-## 1. Description
-Shellio is a simple, custom command-line shell designed to interact with users through a terminal interface. It provides a basic environment for entering and processing commands. Here’s an overview of its features and functionality:
+## Description
+Shellio is a simple, custom command-line shell designed to interact with users through a terminal interface. It provides a basic environment for entering and processing commands.
+
+## 1. Functions
 
 **1.1 Prompt Display:**
 Shellio displays a prompt (Shellio > ) to indicate that it is ready to accept user input.
