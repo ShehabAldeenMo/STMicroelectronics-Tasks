@@ -9,6 +9,7 @@
 /*==================================  Definations =========================================*/
 #define PATH_MAX              1024
 #define MAX_COPIED_CONTENT    1024
+#define EXIST                  0
 
 typedef unsigned char uint8;
 

@@ -93,7 +93,12 @@ int main() {
 
                 /* copy function call */
                 if (ArgCounter == 3 ){
-                    Shellio_CopyFile (Arguments[SECOND_ARGUMENT],Arguments[THIRD_ARGUMENT]);
+                    if (strcmp(Arguments[SECOND_ARGUMENT],Arguments[THIRD_ARGUMENT])) {
+                        Shellio_CopyFile (Arguments[SECOND_ARGUMENT],Arguments[THIRD_ARGUMENT]);    
+                    }
+                    else {
+                        printf("Impossible to creat new file in the same directory with the same src file name\n");
+                    }
                 }
                 /* To print help if number of arguments aren't equall 3 */
                 else {
@@ -120,3 +125,9 @@ int main() {
 
     return 0;
 }
+
+
+/*
+
+cp /home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt,/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt
+ */

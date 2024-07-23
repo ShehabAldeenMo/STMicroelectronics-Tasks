@@ -21,13 +21,28 @@ void Shellio_EchoInput(const char* Copy_Statment){
 void Shellio_CopyFile (const char* Copy_1st_Path,const char* Copy_2nd_Path ){
 	/* Open file */
     FILE* SrcFile = fopen(Copy_1st_Path,"r");
-    FILE* DesFile = fopen(Copy_2nd_Path,"wb");
+    FILE DesFile[PATH_MAX] = {0} ;
 
     /* Check if isn't opened  */
-    if (SrcFile == NULL || DesFile == NULL ){
-        perror("fopen() error");
+    if (SrcFile == NULL ){
+        perror("Src fopen() error");
         return;
     }
+
+    if (access(Copy_2nd_Path, F_OK) == EXIST){
+        DesFile = fopen(Copy_2nd_Path,"wb");
+
+        /* Check if isn't opened  */
+        if (DesFile == NULL ){
+            perror("fopen() error");
+            return;
+        }
+    }
+    else {
+        char* SrcFileName = basename(strdup(Copy_1st_Path));  // Use strdup to avoid modifying the original path
+
+    }
+    
 
     /* structure of elf header*/
     uint8 Buffer[MAX_COPIED_CONTENT];
