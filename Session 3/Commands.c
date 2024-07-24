@@ -19,42 +19,48 @@ void Shellio_EchoInput(const char* Copy_Statment){
 }
 
 void Shellio_CopyFile (const char* Copy_1st_Path,const char* Copy_2nd_Path ){
-	/* Open file */
+    /* Try to open source and destination files */
     FILE* SrcFile = fopen(Copy_1st_Path,"r");
-    FILE DesFile[PATH_MAX] = {0} ;
+    FILE* DesFile = fopen(Copy_2nd_Path,"wb"); // if the user give file name that didn't exist. "wb" is attribute to create this name. 
 
-    /* Check if isn't opened  */
+    /* To use these buffers in creation destintion file with the same name of source */
+    char SrcFileName[MAX_FILE_NAME];
+    char ConcatenatedDesFile [PATH_MAX];
+
+    /* Terminate this operation if the source file isn't existed */
     if (SrcFile == NULL ){
         perror("Src fopen() error");
         return;
     }
 
-    if (access(Copy_2nd_Path, F_OK) == EXIST){
-        DesFile = fopen(Copy_2nd_Path,"wb");
+    /* If the destination file name didn't pass or directory is unfound */
+    if (DesFile == NULL ){
+        /* copy base name of source file to create destination file with the same name */
+        strcpy (SrcFileName, basename(strdup(Copy_1st_Path) ) ) ;  // Use strdup to avoid modifying the original path
+        snprintf(ConcatenatedDesFile, PATH_MAX, "%s/%s", Copy_2nd_Path, SrcFileName);
+        DesFile = fopen(ConcatenatedDesFile,"wb");
 
-        /* Check if isn't opened  */
+        /* Terminate this operation if the destination file name is created but the Concatenated path of directory isn't correct */
         if (DesFile == NULL ){
-            perror("fopen() error");
+            printf("Given path of directory isn't correct\n");
+            perror("Destination fopen() error");
             return;
         }
-    }
-    else {
-        char* SrcFileName = basename(strdup(Copy_1st_Path));  // Use strdup to avoid modifying the original path
 
     }
-    
 
-    /* structure of elf header*/
+    /* Buffering copied info from source file  */    
     uint8 Buffer[MAX_COPIED_CONTENT];
 
-    /* reading file */
+    /* read source file content */
     size_t ret_Size = fread(Buffer, 1 , sizeof(Buffer), SrcFile) ;
+
+    /* write into destination file */
     while ( ret_Size > 0 ){
         fwrite(Buffer, 1, ret_Size, DesFile);
         ret_Size = fread(Buffer, 1 , sizeof(Buffer), SrcFile) ;
     }
 
-    /* Close both of files */
     fclose(SrcFile);
     fclose(DesFile);
 }
