@@ -51,7 +51,7 @@ int main() {
 
         /* Subsequent calls to strtok */ 
         while (token != NULL && ArgCounter < MAX_ARGUMENTS && strcmp (token,"echo") != ECHO_PASS 
-            && strcmp (token,"cp") != COPY_VALID && strcmp (token,"mv") != MV_PASS  ) {
+            && strcmp (token,"cp") != COPY_PASS && strcmp (token,"mv") != MV_PASS  ) {
             strcpy(Arguments[ArgCounter],token);    // to store token in this buffer
             token = strtok(NULL, delimiters);       // to continue tokenizing from the previous point
             ArgCounter++;                           // to count number of arguments
@@ -69,10 +69,10 @@ int main() {
                 system("clear");
             }
             /* get absolute path of current working directory */
-            else if (strcmp (Arguments[FIRST_ARGUMENT],"pwd") == PWD_CORRECT ){
+            else if (strcmp (Arguments[FIRST_ARGUMENT],"pwd") == PWD_PASS ){
                 Shellio_GetPath();
             }
-            else if (strcmp (Arguments[FIRST_ARGUMENT],"help") == HELP_VALID){
+            else if (strcmp (Arguments[FIRST_ARGUMENT],"help") == HELP_PASS){
                 Shellio_Help ();
             }
             else {
@@ -91,7 +91,7 @@ int main() {
                     HelpCommand = RAISED ;
                 }
             }
-            else if (strcmp(token,"cp") == COPY_VALID || strcmp(token,"mv") == MV_PASS){
+            else if (strcmp(token,"cp") == COPY_PASS || strcmp(token,"mv") == MV_PASS){
                 Shellio_MoveFile (strcmp(token,"mv"));
 
                 /* Handle first path */

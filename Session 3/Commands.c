@@ -23,26 +23,24 @@ static char GlobalMoveForcedFlag = CLEARED ;
 static char GlobalMoveOperation = MOVE_FAILED ;
 
 /*===========================  Functions Implementations ======================*/
-void Shellio_GetPath(){
+void Shellio_GetPath() {
     /* Buffer of path */
-    uint8 cwd[PATH_MAX];
+    uint8 cwd[MAX_PATH];  // Array to store the current working directory path, with a maximum size defined by PATH_MAX
 
     /* to get our working directory */
-    if (getcwd(cwd, sizeof(cwd)) != NULL) {
-        printf("Current working directory: %s\n", cwd);
+    if (getcwd(cwd, sizeof(cwd)) != NULL) {  // Attempt to get the current working directory, storing it in cwd
+        printf("Current working directory: %s\n", cwd);  // If successful, print the current working directory path
     } else {
-        perror("getcwd() error");
+        perror("getcwd() error");  // If unsuccessful, print an error message indicating the failure
     }
 }
 
-void Shellio_EchoInput(const char* Copy_Statment){
-    if (Copy_Statment != NULL){
-        printf("%s\n",Copy_Statment);
+void Shellio_EchoInput(const char* Copy_Statment) {
+    if (Copy_Statment != NULL) {  // Check if the input string is not NULL
+        printf("%s\n", Copy_Statment);  // Print the input string followed by a newline
+    } else {
+        printf("There is no input\n");  // Print an error message if the input string is NULL
     }
-    else {
-        printf("There is no input\n");
-    }
-    
 }
 
 void Shellio_CopyFile (const char* Copy_1st_Path,const char* Copy_2nd_Path ){
@@ -56,21 +54,24 @@ void Shellio_CopyFile (const char* Copy_1st_Path,const char* Copy_2nd_Path ){
     FILE* SrcFile = fopen(Copy_1st_Path,"r");
     FILE* DesFile = NULL ;
 
-    /* Terminate this operation if the source file isn't existed */
+    /* Terminate this operation if the source file does not exist */
     if (SrcFile == NULL ){
         perror("Src fopen() error");
         return;
     }
 
-    /* To check that the destination file attribute in append or overwrite mode */
+    /* Determine how to open the destination file based on global flags */
     if (GlobalAppendFlag == SET){
-        DesFile = fopen(Copy_2nd_Path,"a+"); // if the user give file name that didn't exist. "a+" is attribute to create this name or if tis already exist will append to it
+        /* Open destination file in append mode, create it if it doesn't exist */
+        DesFile = fopen(Copy_2nd_Path,"a+"); 
     }
     else if ( GlobalMoveOperation == MOVE_PASS ){
-        DesFile = fopen(Copy_2nd_Path,"r+b"); // if the user give file name that didn't exist. "wb" is attribute to create this name.
+        /* Attempt to open destination file in read/write mode */
+        DesFile = fopen(Copy_2nd_Path,"r+b"); 
 
         if (DesFile == NULL || GlobalMoveForcedFlag == SET){
-            DesFile = fopen(Copy_2nd_Path,"wb"); // if the user give file name that didn't exist. "wb" is attribute to create this name.
+            /* Open destination file in write mode, create it if it doesn't exist */
+            DesFile = fopen(Copy_2nd_Path,"wb"); 
         }
         else {
             printf ("Error :: Destination File is already existed\n");
@@ -79,34 +80,35 @@ void Shellio_CopyFile (const char* Copy_1st_Path,const char* Copy_2nd_Path ){
         }
     }
     else {
-        DesFile = fopen(Copy_2nd_Path,"wb"); // if the user give file name that didn't exist. "wb" is attribute to create this name. 
+        /* Open destination file in write mode, create it if it doesn't exist */
+        DesFile = fopen(Copy_2nd_Path,"wb"); 
     }
 
-    /* To use these buffers in creation destintion file with the same name of source */
+    /* Buffers used for handling file content */
     char SrcFileName[MAX_FILE_NAME];
-    char ConcatenatedDesFile [PATH_MAX];
+    char ConcatenatedDesFile [MAX_PATH];
 
-    /* If the destination file name didn't pass or directory is unfound */
+    /* If the destination file name was not provided or directory was incorrect */
     if (DesFile == NULL ){
-        /* copy base name of source file to create destination file with the same name */
+        /* Copy base name of source file to create destination file with the same name */
         strcpy (SrcFileName, basename(strdup(Copy_1st_Path) ) ) ;  // Use strdup to avoid modifying the original path
         snprintf(ConcatenatedDesFile, PATH_MAX, "%s/%s", Copy_2nd_Path, SrcFileName);
 
-        /* Check if the source file is differnt from destination file */
+        /* Check if the source file is different from the destination file */
         if (strcmp(Copy_1st_Path,ConcatenatedDesFile) == SAME ) {
             printf("Error :: Source and Destination files are same \n");  
             return ; 
         }
 
-        /* To check that the destination file attribute in append or overwrite mode */
+        /* Re-open the destination file with the proper mode */
         if (GlobalAppendFlag == SET){
-            DesFile = fopen(ConcatenatedDesFile,"a+"); // if the user give file name that didn't exist. "a+" is attribute to create this name or if tis already exist will append to it
+            DesFile = fopen(ConcatenatedDesFile,"a+"); // Append mode
         }
         else {
-            DesFile = fopen(ConcatenatedDesFile,"wb"); // if the user give file name that didn't exist. "wb" is attribute to create this name. 
+            DesFile = fopen(ConcatenatedDesFile,"wb"); // Write mode     
         }
 
-        /* Terminate this operation if the destination file name is created but the Concatenated path of directory isn't correct */
+        /* Terminate operation if the destination file could not be created */
         if (DesFile == NULL ){
             printf("Given path of directory isn't correct\n");
             perror("Destination fopen() error");
@@ -115,23 +117,23 @@ void Shellio_CopyFile (const char* Copy_1st_Path,const char* Copy_2nd_Path ){
 
     }
 
-    /* Buffering copied info from source file  */    
+    /* Buffer for reading file content */   
     uint8 Buffer[MAX_COPIED_CONTENT];
 
-    /* read source file content */
+    /* Read content from the source file */
     size_t ret_Size = fread(Buffer, 1 , sizeof(Buffer), SrcFile) ;
 
-    /* write into destination file */
+    /* Write content to the destination file */
     while ( ret_Size > 0 ){
         fwrite(Buffer, 1, ret_Size, DesFile);
         ret_Size = fread(Buffer, 1 , sizeof(Buffer), SrcFile) ;
     }
 
-    /* Close whole files */
+    /* Close the source and destination files */
     fclose(SrcFile);
     fclose(DesFile);
 
-    // Delete the source file
+    /* Delete the source file if the move operation flag is set */
     if (GlobalMoveOperation == MOVE_PASS){
         if (remove(Copy_1st_Path) != 0) {
             perror("Error deleting source file");
@@ -146,25 +148,30 @@ void Shellio_CopyFile (const char* Copy_1st_Path,const char* Copy_2nd_Path ){
 }
 
 
-void Shellio_FileOption (const char* Copy_Option ){
+void Shellio_FileOption(const char* Copy_Option) {
     /* Check on our option */
-    if ( strcmp (Copy_Option,"-a") == SAME ){
-        GlobalAppendFlag = SET ;
+    if (strcmp(Copy_Option, "-a") == SAME) {
+        /* Set flag to append to the destination file */
+        GlobalAppendFlag = SET;
     }
-    else if (strcmp (Copy_Option,"-f") == SAME ) {
-        GlobalMoveForcedFlag = SET ;
+    else if (strcmp(Copy_Option, "-f") == SAME) {
+        /* Set flag to force move operation */
+        GlobalMoveForcedFlag = SET;
     }
     else {
-        printf("uncorrect option%s\n",Copy_Option);
+        /* Print error if the option is not recognized */
+        printf("uncorrect option%s\n", Copy_Option);
     }
 }
 
-void Shellio_MoveFile     (const char Copy_MoveFlag ){
-    if (Copy_MoveFlag == MOVE_PASS){
-        GlobalMoveOperation = MOVE_PASS ;
+void Shellio_MoveFile(const char Copy_MoveFlag) {
+    if (Copy_MoveFlag == MOVE_PASS) {
+        /* Set flag to indicate move operation is allowed */
+        GlobalMoveOperation = MOVE_PASS;
     }
     else {
-        GlobalMoveOperation = MOVE_FAILED ;
+        /* Set flag to indicate move operation is not allowed */
+        GlobalMoveOperation = MOVE_FAILED;
     }
 }
 

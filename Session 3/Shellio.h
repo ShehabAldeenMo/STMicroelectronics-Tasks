@@ -36,13 +36,10 @@
 #define FOURTH_ARGUMENT                       3
 #define RAISED                                1
 #define NEWLINE_INPUT                         11
-#define PWD_CORRECT                           0
+#define PWD_PASS                              0
 #define ECHO_PASS                             0
 #define MV_PASS                               0
-#define STDERROR                              2
-#define STDOUT                                1
-#define STDIN                                 0
-#define COPY_VALID                            0
-#define HELP_VALID                            0
+#define COPY_PASS                             0
+#define HELP_PASS                             0
 
 #endif /* Header Guard */
