@@ -30,31 +30,31 @@ Shellio is a custom command-line shell designed for basic file operations and te
   + Prints the specified message to the terminal.
 
 + `clear`
-`+ Clears the terminal screen.
+  + Clears the terminal screen.
 
 + `exit`
-`+ Exits the Shellio terminal.
+  + Exits the Shellio terminal.
 
 + `help`
-Displays information about available commands.
+  + Displays information about available commands.
 
 ## Function Descriptions
-+ Shellio_GetPath
++ **Shellio_GetPath:**
 Retrieves and prints the current working directory using the getcwd system call. If the directory cannot be retrieved, an error message is printed.
 
-+ Shellio_EchoInput
++ **Shellio_EchoInput:**
 Outputs a given string to the standard output. This simulates the echo command in a shell, printing the input string followed by a newline.
 
-+ Shellio_CopyFile
++ **Shellio_CopyFile:**
 Copies the content of a source file to a destination file. It supports both appending to the destination file or overwriting it based on global flags. If the move operation flag is set, the source file is deleted after copying.
 
-+ Shellio_FileOption
++ **Shellio_FileOption:**
 Sets global flags based on the file operation option provided by the user. This function handles options like append (-a) and forced overwrite (-f) for file operations.
 
-+ Shellio_MoveFile
++ **Shellio_MoveFile:**
 Sets the global flag for moving a file. This function indicates whether the current operation is a move operation.
 
-+ Shellio_Help
++ **Shellio_Help:**
 Displays a help menu with information on available commands in Shellio. It prints usage instructions for various Shellio commands.
 
 ## Examples
@@ -80,7 +80,8 @@ mv /path/to/source.txt,-f,/path/to/destination.txt
 
 + Printing a message:
 ```
-echo "Hello, Shellio!"
+echo Hello, Shellio!
+```
 
 + Clear Screen:
 ```
