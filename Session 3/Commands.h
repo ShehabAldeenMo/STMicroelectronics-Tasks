@@ -24,7 +24,7 @@
 #include <sys/stat.h>
 
 /*==================================  Definations ===========================*/
-#define PATH_MAX              1024
+#define MAX_PATH              1024
 #define MAX_COPIED_CONTENT    1024
 #define EXIST                  0
 #define MAX_FILE_NAME         256
