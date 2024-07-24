@@ -33,6 +33,8 @@
 #define SET                    1
 #define MOVE_PASS              0
 #define MOVE_FAILED            1
+#define VALID                  1
+#define INVALID                0
 
 typedef unsigned char uint8;
 
@@ -101,9 +103,9 @@ void Shellio_CopyFile     (const char* Copy_1st_Path,const char* Copy_2nd_Path )
  * Parameter In/Out : None
  * Input            : 
  *    - Copy_Option: The option string (e.g., "-a" for append, "-f" for forced overwrite) (input).
- * Return           : None
+ * Return           : Status of checking
  */
-void Shellio_FileOption   (const char* Copy_Option );
+char Shellio_FileOption   (const char* Copy_Option );
 
 /*
  * Name             : Shellio_MoveFile
