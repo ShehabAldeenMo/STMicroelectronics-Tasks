@@ -1,20 +1,30 @@
-/*===================================  Includes ==========================================*/
+/*============================================================================
+ * @file name      : Shellio.c
+ * @Author         : Shehab aldeen mohammed
+ * Github          : https://github.com/ShehabAldeenMo
+ * LinkdIn         : https://www.linkedin.com/in/shehab-aldeen-mohammed/
+ *
+ =============================================================================
+ * @Notes:
+ * Shellio is a simple, custom command-line shell designed to interact with users through a terminal interface. 
+ * It provides a basic environment for entering and processing commands. Few commands: pwd, cp, mv, exit, clear,
+ * echo.
+ ******************************************************************************
+ ==============================================================================
+*/
+
+/*===================================  Includes ===============================*/
 #include "Shellio.h"
 
-/*===================================  Main Code ==========================================*/
+/*===================================  Main Code ==============================*/
 int main() {
     /* Initiliazations */
     char str[MAXSIZE] = {0} ;          // buffer of input command
     char *delimiters = " 0";           // Delimiters are space, comma, period, and exclamation mark
     char *token ;                      // to store each word into string
-    char *exit = "exit" ;              // exit keyword to left shellio
-    char *clear = "clear";             // clear keyword to clear shellio screen
     char ArgCounter = 0 ;              // counter of input arguments to shellio to check on the number of arguments
     uint8 Arguments[MAX_ARGUMENTS][MAX_CHARACHTERS_OF_ONE_ARGUMENTS] 
                     = {0} ;            // store commands
-    char *pwd = "pwd" ;                // get absolute current working directory
-    char *echo = "echo" ;              // to store echo keyword that used in check on conditions
-    char *cp = "cp" ;                  // to store copy command
     char HelpCommand = CLEARED ;       // to ensure that help statment display or not
     char NewLineOperator = 0 ;         // Use it to check about newline command
 
@@ -40,8 +50,8 @@ int main() {
         token = strtok(str, delimiters);
 
         /* Subsequent calls to strtok */ 
-        while (token != NULL && ArgCounter < 3 && strcmp (token,echo) != ECHO_PASS 
-            && strcmp (token,cp) != COPY_VALID ) {
+        while (token != NULL && ArgCounter < MAX_ARGUMENTS && strcmp (token,"echo") != ECHO_PASS 
+            && strcmp (token,"cp") != COPY_VALID && strcmp (token,"mv") != MV_PASS  ) {
             strcpy(Arguments[ArgCounter],token);    // to store token in this buffer
             token = strtok(NULL, delimiters);       // to continue tokenizing from the previous point
             ArgCounter++;                           // to count number of arguments
@@ -50,17 +60,20 @@ int main() {
         /* To check on commands with one argument */
         if (ArgCounter == 1){
             /* print goodby then exit */ 
-            if (strcmp (Arguments[FIRST_ARGUMENT],exit) == EXIT){
+            if (strcmp (Arguments[FIRST_ARGUMENT],"exit") == EXIT){
                 printf("Good Bye\n");
                 break ;
             }
             /* clear screen with clear command */ 
-            else if (strcmp (Arguments[FIRST_ARGUMENT],clear) == CLEARED){
+            else if (strcmp (Arguments[FIRST_ARGUMENT],"clear") == CLEARED){
                 system("clear");
             }
             /* get absolute path of current working directory */
-            else if (strcmp (Arguments[FIRST_ARGUMENT],pwd) == PWD_CORRECT ){
+            else if (strcmp (Arguments[FIRST_ARGUMENT],"pwd") == PWD_CORRECT ){
                 Shellio_GetPath();
+            }
+            else if (strcmp (Arguments[FIRST_ARGUMENT],"help") == HELP_VALID){
+                Shellio_Help ();
             }
             else {
                 HelpCommand = RAISED ;
@@ -69,7 +82,7 @@ int main() {
         /* Any other case */
         else if ( NewLineOperator != NEWLINE_INPUT) {
             /* Check on echo command */
-            if (strcmp(token,echo) == ECHO_PASS ){
+            if (strcmp(token,"echo") == ECHO_PASS ){
                 token = strtok(NULL, "");       // to continue tokenizing from the previous point
                 if ( token != NULL) {
                     Shellio_EchoInput(token);
@@ -78,7 +91,9 @@ int main() {
                     HelpCommand = RAISED ;
                 }
             }
-            else if (strcmp(token,cp) == COPY_VALID){
+            else if (strcmp(token,"cp") == COPY_VALID || strcmp(token,"mv") == MV_PASS){
+                Shellio_MoveFile (strcmp(token,"mv"));
+
                 /* Handle first path */
                 while (token != NULL){
                     ArgCounter++;
@@ -92,13 +107,12 @@ int main() {
                 }
 
                 /* copy function call */
-                if (ArgCounter == 3 ){
-                    if (strcmp(Arguments[SECOND_ARGUMENT],Arguments[THIRD_ARGUMENT])) {
-                        Shellio_CopyFile (Arguments[SECOND_ARGUMENT],Arguments[THIRD_ARGUMENT]);    
-                    }
-                    else {
-                        printf("Impossible to creat new file in the same directory with the same src file name\n");
-                    }
+                if (ArgCounter ==  ( MAX_ARGUMENTS -1 )  ){
+                    Shellio_CopyFile (Arguments[SECOND_ARGUMENT],Arguments[THIRD_ARGUMENT]);  
+                }
+                else if (ArgCounter == MAX_ARGUMENTS ){
+                    Shellio_FileOption (Arguments[THIRD_ARGUMENT]);  // to lift our static flag
+                    Shellio_CopyFile (Arguments[SECOND_ARGUMENT],Arguments[FOURTH_ARGUMENT]); // to make our option 
                 }
                 /* To print help if number of arguments aren't equall 3 */
                 else {
@@ -129,5 +143,11 @@ int main() {
 
 /*
 
-    cp /home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt,/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt
+cp /home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/copiedfile.txt,/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt
+ 
+cp /home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt,-a,/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt
+
+mv /home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt,/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt
+
+mv /home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/copiedfile.txt,-f,/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt
  */
