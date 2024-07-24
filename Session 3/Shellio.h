@@ -41,5 +41,7 @@
 #define MV_PASS                               0
 #define COPY_PASS                             0
 #define HELP_PASS                             0
+#define VALID                                 1
+#define INVALID                               0
 
 #endif /* Header Guard */

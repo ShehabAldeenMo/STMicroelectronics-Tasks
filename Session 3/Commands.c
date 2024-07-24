@@ -92,7 +92,7 @@ void Shellio_CopyFile (const char* Copy_1st_Path,const char* Copy_2nd_Path ){
     if (DesFile == NULL ){
         /* Copy base name of source file to create destination file with the same name */
         strcpy (SrcFileName, basename(strdup(Copy_1st_Path) ) ) ;  // Use strdup to avoid modifying the original path
-        snprintf(ConcatenatedDesFile, PATH_MAX, "%s/%s", Copy_2nd_Path, SrcFileName);
+        snprintf(ConcatenatedDesFile, MAX_PATH, "%s/%s", Copy_2nd_Path, SrcFileName);
 
         /* Check if the source file is different from the destination file */
         if (strcmp(Copy_1st_Path,ConcatenatedDesFile) == SAME ) {
@@ -148,20 +148,28 @@ void Shellio_CopyFile (const char* Copy_1st_Path,const char* Copy_2nd_Path ){
 }
 
 
-void Shellio_FileOption(const char* Copy_Option) {
+char Shellio_FileOption(const char* Copy_Option) {
+    /* to return status of function */
+    char Local_Status = INVALID ;
+
     /* Check on our option */
-    if (strcmp(Copy_Option, "-a") == SAME) {
+    if (strcmp(Copy_Option, "-a") == SAME  ) {
         /* Set flag to append to the destination file */
         GlobalAppendFlag = SET;
+        Local_Status = VALID ;
     }
-    else if (strcmp(Copy_Option, "-f") == SAME) {
+    else if (strcmp(Copy_Option, "-f") == SAME && GlobalMoveOperation == MOVE_PASS )  {
         /* Set flag to force move operation */
         GlobalMoveForcedFlag = SET;
+        Local_Status = VALID ;
     }
     else {
         /* Print error if the option is not recognized */
         printf("uncorrect option%s\n", Copy_Option);
+        Local_Status = INVALID ;
     }
+
+    return Local_Status;
 }
 
 void Shellio_MoveFile(const char Copy_MoveFlag) {

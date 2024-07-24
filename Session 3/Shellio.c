@@ -57,6 +57,7 @@ int main() {
             ArgCounter++;                           // to count number of arguments
         }
 
+
         /* To check on commands with one argument */
         if (ArgCounter == 1){
             /* print goodby then exit */ 
@@ -80,7 +81,7 @@ int main() {
             }
         }
         /* Any other case */
-        else if ( NewLineOperator != NEWLINE_INPUT) {
+        else if ( NewLineOperator != NEWLINE_INPUT && token != NULL ) {
             /* Check on echo command */
             if (strcmp(token,"echo") == ECHO_PASS ){
                 token = strtok(NULL, "");       // to continue tokenizing from the previous point
@@ -100,7 +101,6 @@ int main() {
                     token = strtok(NULL, ",");       // to continue tokenizing from the previous point
 
                     if (token != NULL){
-                        strcpy(Arguments[ArgCounter],token);
                         strncpy(Arguments[ArgCounter],token, MAX_CHARACHTERS_OF_ONE_ARGUMENTS - 1) ;
                         Arguments[ArgCounter][MAX_CHARACHTERS_OF_ONE_ARGUMENTS - 1] = '\0'; // ensure null termination
                     }
@@ -111,8 +111,10 @@ int main() {
                     Shellio_CopyFile (Arguments[SECOND_ARGUMENT],Arguments[THIRD_ARGUMENT]);  
                 }
                 else if (ArgCounter == MAX_ARGUMENTS ){
-                    Shellio_FileOption (Arguments[THIRD_ARGUMENT]);  // to lift our static flag
-                    Shellio_CopyFile (Arguments[SECOND_ARGUMENT],Arguments[FOURTH_ARGUMENT]); // to make our option 
+                    char Status = Shellio_FileOption (Arguments[THIRD_ARGUMENT]);  // to lift our static flag
+                    if (Status == VALID){
+                        Shellio_CopyFile (Arguments[SECOND_ARGUMENT],Arguments[FOURTH_ARGUMENT]); // to make our option 
+                    }
                 }
                 /* To print help if number of arguments aren't equall 3 */
                 else {
@@ -142,12 +144,31 @@ int main() {
 
 
 /*
+1- Source file isn't correct
+cp /home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/Shehab.txt,/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt
 
-cp /home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/copiedfile.txt,/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt
+2- Same sourc and destination
+cp /home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt,/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt
+
+3- Normally copy
+cp /home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt,/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/copiedfile.txt
+cp /home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt,/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3
+
+4- Wrong destination
+cp /home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt,/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Wrong
+
+5- Append
+cp /home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt,-a,/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/copiedfile.txt
+
+6- Wrong option
+cp /home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt,-f,/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/copiedfile.txt
+
+7- mv with different directory
+mv /home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt,/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/file.txt
  
-cp /home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt,-a,/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt
+8- mv with forced option on file
+mv /home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/copiedfile.txt,-f,/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/file.txt
 
-mv /home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt,/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt
-
-mv /home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/copiedfile.txt,-f,/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt
- */
+9- mv with no forced option on file
+mv /home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/fileMove.txt,/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/file.txt
+*/
