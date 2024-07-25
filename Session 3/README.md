@@ -105,3 +105,32 @@ pwd
 
 ## Video 
 For more information, refer to the [ShellioTestCases](https://drive.google.com/file/d/1wJAq7QXJoAl7TZVi0Dk8HUw0kK-VkAMP/view?usp=sharing) video.
+
+## Build Instruction 
+To build the Shellio project, please follow the steps below. This section outlines the necessary dependencies, commands, and configurations required for a successful build.
+
+**Build Steps**
+1. Clone the Repository:
+First, clone the repository to your local machine using Git:
+```
+git clone https://github.com/ShehabAldeenMo/Shellio.git
+cd Shellio
+```
+
+2. Compilation:
+Compile the project using GCC. Navigate to the project directory and use the following command:
+```
+gcc -o shellio Shellio.c
+```
+
+3. Running the Shell:
+After successful compilation, you can run the shell by executing:
+```
+./shellio
+```
+
+**Configuration**
+No specific configuration is required for this project. However, ensure that you have the necessary permissions to execute and access the required files.
+
+> Notes
+If you encounter any issues during the build process, please check that all dependencies are correctly installed and that your compiler version is compatible with the project code.
