@@ -132,5 +132,5 @@ After successful compilation, you can run the shell by executing:
 **Configuration**
 No specific configuration is required for this project. However, ensure that you have the necessary permissions to execute and access the required files.
 
-> Notes
-If you encounter any issues during the build process, please check that all dependencies are correctly installed and that your compiler version is compatible with the project code.
+> [!NOTE] 
+> If you encounter any issues during the build process, please check that all dependencies are correctly installed and that your compiler version is compatible with the project code.
