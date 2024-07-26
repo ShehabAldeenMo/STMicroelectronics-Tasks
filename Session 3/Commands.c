@@ -18,13 +18,42 @@
 
 
 /*===========================  Local File Variables ===========================*/
+/* A flag indicating whether the append mode is set for file operations.
+ * CLEARED indicates the flag is not set, while a different value indicates it is set.*/
 static char GlobalAppendFlag           = CLEARED     ;
+
+/* A flag indicating whether the move operation should force overwrite.
+ * CLEARED indicates the flag is not set, while a different value indicates it is set.*/ 
 static char GlobalMoveForcedFlag       = CLEARED     ;
+
+/* A flag indicating the current status of a move operation.
+ * MOVE_FAILED indicates the operation has not started or failed, while a different value indicates a successful operation.*/
 static char GlobalMoveOperation        = MOVE_FAILED ;
+
+/* A global pointer used to track the current position in the input string during parsing.
+ * Points to the character in the string currently being processed.*/
 static uint8* Ptr_GlobalGetParsingPath = NULL        ;
 
 /*===================  Local File Functions Prototypes ========================*/
+/*
+ * Name             : GetParsedPath
+ * Description      : Parses and returns the next path from the input string, moving the global parsing pointer forward.
+ *                    This function extracts the path enclosed in double quotes (") and advances Ptr_GlobalGetParsingPath.
+ * Parameter In/Out : None
+ * Input            : None
+ * Return           : uint8* - Returns a pointer to the next parsed path or NULL if no path is found.
+ */
 static uint8* GetParsedPath(void);
+
+/*
+ * Name             : my_printf
+ * Description      : A custom printf function for formatted output in Shellio.
+ *                    This function allows formatted output similar to the standard printf function.
+ * Parameter In/Out : None
+ * Input            : format (const char*) - A format string containing the text to be written, optionally with format specifiers.
+ *                    ... - Additional arguments to be formatted according to the format specifiers in the format string.
+ * Return           : void
+ */
 static void my_printf(const char *format, ...) ;
 
 
@@ -300,15 +329,16 @@ static void my_printf(const char *format, ...) {
     va_end(args);
 }
 
-void Shellio_ParsingPath (uint8* ptr_ArgCounter,uint8* Ptr_1st_Path,uint8* Ptr_Option, 
+uint8* Shellio_ParsingPath (uint8* ptr_ArgCounter,uint8* Ptr_1st_Path,
                                     uint8* Ptr_2nd_Path, uint8* Copy_token){
     /* buffer the return from GetParsedPath() */
     uint8 *Buf ;
+    static uint8 Option[3]; // tp prevent danglying pointer
 
     /* Set global pointer to the input of mv function or cp function */
     if (Copy_token == NULL){
         my_printf ("Error In Passing Pathes\n");
-        return ;
+        return NULL ;
     }
     Ptr_GlobalGetParsingPath = Copy_token ;
 
@@ -316,17 +346,15 @@ void Shellio_ParsingPath (uint8* ptr_ArgCounter,uint8* Ptr_1st_Path,uint8* Ptr_O
     strcpy(Buf , GetParsedPath() );
     if (Buf == NULL){
         printf("Error In Passing Paths\n");
-        return ;
+        return NULL;
     }
-    strcpy ( Ptr_1st_Path ,Buf);    
-    *ptr_ArgCounter++;  // counting parameters
-
-    printf("First Path : %s\n",Ptr_1st_Path);
+    strcpy ( Ptr_1st_Path ,Buf);   
+    (*ptr_ArgCounter)++;  // counting parameters
 
     /* To discard the second double quote of given path(")*/
     if (*Ptr_GlobalGetParsingPath != '"'){
         printf("Error In Passing Paths");
-        return ;
+        return NULL;
     }
     Ptr_GlobalGetParsingPath++;
     
@@ -334,37 +362,39 @@ void Shellio_ParsingPath (uint8* ptr_ArgCounter,uint8* Ptr_1st_Path,uint8* Ptr_O
     /* To discard spaces between two paths till reached to the second path*/
     while (*Ptr_GlobalGetParsingPath != '"' && *Ptr_GlobalGetParsingPath != '\0'){
         if ( *Ptr_GlobalGetParsingPath++ == '-' ){
-            snprintf(Ptr_Option, 3, "-%c", *Ptr_GlobalGetParsingPath);
-        }
-        else {
-            Ptr_Option = NULL ;
+            snprintf(Option, 3, "-%c",*Ptr_GlobalGetParsingPath);
+            (*ptr_ArgCounter)++;  // counting parameters
         }
     }
-
-    printf("Option: %s\n",Ptr_Option);
-    *ptr_ArgCounter++;  // counting parameters
 
     /* if you are exit loop because of '\0' */
     if (*Ptr_GlobalGetParsingPath != '"'){
         printf("Error In Passing Paths");
-        return ;
+        return NULL;
     }
 
     /* Get second path*/
     strcpy ( Buf , GetParsedPath() );
+    if (Buf == NULL){
+        printf("Error In Passing Paths\n");
+        return NULL;
+    }
     strcpy ( Ptr_2nd_Path , Buf );
-    *ptr_ArgCounter++;  // counting parameters
+    (*ptr_ArgCounter)++;  // counting parameters
 
-    printf("Second Path : %s\n",Ptr_2nd_Path);
-
-    while(1);
+    return Option ;
 }
 
 static uint8* GetParsedPath(void){
     /* buffer of stored path*/
     static uint8* Path = NULL ; // static to prevent dangling pointer
 
-    while ((*Ptr_GlobalGetParsingPath != '"') && (*Ptr_GlobalGetParsingPath != '\0')){
+    if (Ptr_GlobalGetParsingPath == NULL) {
+        my_printf("Error: Ptr_GlobalGetParsingPath is NULL\n");
+        return NULL;
+    }
+
+    while ( (*Ptr_GlobalGetParsingPath) != '"' && (*Ptr_GlobalGetParsingPath) != '\0') {
         Ptr_GlobalGetParsingPath++;
     }
 

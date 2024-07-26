@@ -44,7 +44,7 @@
 #define STDOUT                                1
 #define STDERR                                2
 #define FD_INVALID                           -1
-#define MAX_ARGUMENTS                         4
+#define MAX_ARGUMENTS                         3
 #define MAX_CHARACHTERS_OF_ONE_ARGUMENTS     128
 
 
@@ -141,7 +141,18 @@ void Shellio_MoveFile     (const char  Copy_MoveFlag );
  */
 void Shellio_Help         ();
 
-void Shellio_ParsingPath (uint8* ptr_ArgCounter,uint8* Ptr_1st_Path,uint8* Ptr_Option, 
-                                    uint8* Ptr_2nd_Path, uint8* Copy_token);
+
+/*
+ * Name             : Shellio_ParsingPath
+ * Description      : Parses input arguments for commands in Shellio, extracting paths and options.
+ *                    This function extracts the source and destination paths from a given input string,
+ *                    and optionally identifies any command-line options (e.g., "-a") included in the input.
+ * Parameter In/Out : ptr_ArgCounter (uint8*) - In/Out - Pointer to a counter tracking the number of arguments parsed.
+ *                    Ptr_1st_Path (uint8*)   - In/Out - Pointer to a buffer where the first parsed path will be stored.
+ *                    Ptr_2nd_Path (uint8*)   - In/Out - Pointer to a buffer where the second parsed path will be stored.
+ * Input            : Copy_token (uint8*) - Input string containing the paths and optional parameters to be parsed.
+ * Return           : uint8* - Returns a pointer to any option identified in the input string, or NULL if no option is found.
+ */
+uint8* Shellio_ParsingPath (uint8* ptr_ArgCounter,uint8* Ptr_1st_Path, uint8* Ptr_2nd_Path, uint8* Copy_token);
 
 #endif /* Header Gaurd */
