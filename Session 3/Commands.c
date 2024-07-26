@@ -68,6 +68,9 @@ void Shellio_CopyFile (const char* Copy_1st_Path,const char* Copy_2nd_Path ){
         return ; 
     }
 
+    /* To check that our file is already move to the diserd directory */
+    uint8 Suc_Move = CLEARED ;
+
     /* Try to open source */
     int FD_SrcFile = open(Copy_1st_Path, O_RDONLY);
 
@@ -185,16 +188,21 @@ void Shellio_CopyFile (const char* Copy_1st_Path,const char* Copy_2nd_Path ){
             perror("Error in writing in file ");  // Print the input string followed by a newline
             close(FD_SrcFile);
             close(FD_DesFile);
+            Suc_Move = CLEARED ;
             break ;
         }
         else if (Write_Size < Read_Size) {
             // Not all bytes were written; handle the partial write
             fprintf(stderr, "write_to_stdout: Partial write occurred. Expected %zd, wrote %zd\n", Read_Size, Write_Size);
+            Suc_Move = CLEARED ;
+            break ;
         }
         else {
             write(STDOUT, "\n",1);
+            Suc_Move = SET ;
         }
 
+        /* Read file content */
         Read_Size = Read_Size = read(FD_SrcFile, Buffer, sizeof(Buffer));
     }
 
@@ -203,15 +211,15 @@ void Shellio_CopyFile (const char* Copy_1st_Path,const char* Copy_2nd_Path ){
     close(FD_DesFile);
 
     /* Delete the source file if the move operation flag is set */
-    if (GlobalMoveOperation == MOVE_PASS){
-        if (remove(Copy_1st_Path) != 0) {
-            perror("Error deleting source file\n");
+    if (GlobalMoveOperation == MOVE_PASS && Suc_Move == SET ){
+        if (unlink(Copy_1st_Path) == -1) {
+            perror("Error deleting file");
         }
     }
 
     /* Clear whole flags */
-    GlobalAppendFlag = CLEARED ;
-    GlobalMoveOperation = MOVE_FAILED ;
+    GlobalAppendFlag     = CLEARED ;
+    GlobalMoveOperation  = MOVE_FAILED ;
     GlobalMoveForcedFlag = CLEARED ;
 }
 
