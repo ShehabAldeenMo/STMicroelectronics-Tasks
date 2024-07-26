@@ -81,9 +81,9 @@ int main() {
             }
         }
         /* Any other case */
-        else if ( NewLineOperator != NEWLINE_INPUT && token != NULL ) {
+        else if ( NewLineOperator != NEWLINE_INPUT) {
             /* Check on echo command */
-            if (strcmp(token,"echo") == ECHO_PASS ){
+            if ( token != NULL  && strcmp(token,"echo") == ECHO_PASS ){
                 token = strtok(NULL, "");       // to continue tokenizing from the previous point
                 if ( token != NULL) {
                     Shellio_EchoInput(token);
@@ -92,7 +92,7 @@ int main() {
                     HelpCommand = RAISED ;
                 }
             }
-            else if (strcmp(token,"cp") == COPY_PASS || strcmp(token,"mv") == MV_PASS){
+            else if ( token != NULL && (strcmp(token,"cp") == COPY_PASS || strcmp(token,"mv") == MV_PASS) ){
                 Shellio_MoveFile (strcmp(token,"mv"));
 
                 /* Handle first path */
