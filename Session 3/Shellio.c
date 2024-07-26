@@ -95,20 +95,14 @@ int main() {
             else if ( token != NULL && (strcmp(token,"cp") == COPY_PASS || strcmp(token,"mv") == MV_PASS) ){
                 Shellio_MoveFile (strcmp(token,"mv"));
 
-                /* Handle first path */
-                while (token != NULL){
-                    ArgCounter++;
-                    token = strtok(NULL, ",");       // to continue tokenizing from the previous point
-
-                    if (token != NULL){
-                        strncpy(Arguments[ArgCounter],token, MAX_CHARACHTERS_OF_ONE_ARGUMENTS - 1) ;
-                        Arguments[ArgCounter][MAX_CHARACHTERS_OF_ONE_ARGUMENTS - 1] = '\0'; // ensure null termination
-                    }
-                }
+                /* mv or cp command*/
+                token = strtok (NULL , "");
+                Shellio_ParsingPath(&ArgCounter,Arguments[SECOND_ARGUMENT], Arguments[THIRD_ARGUMENT] , 
+                            Arguments[FOURTH_ARGUMENT], token);
 
                 /* copy function call */
                 if (ArgCounter ==  ( MAX_ARGUMENTS -1 )  ){
-                    Shellio_CopyFile (Arguments[SECOND_ARGUMENT],Arguments[THIRD_ARGUMENT]);  
+                    Shellio_CopyFile (Arguments[SECOND_ARGUMENT],Arguments[FOURTH_ARGUMENT]);  
                 }
                 else if (ArgCounter == MAX_ARGUMENTS ){
                     char Status = Shellio_FileOption (Arguments[THIRD_ARGUMENT]);  // to lift our static flag
@@ -144,6 +138,11 @@ int main() {
 
 
 /*
+
+
+cp "Shehab/Mohamamed Abdallah" "Shreha"
+cp "Shehab/Mohamamed Abdallah" -a "Shehab"
+
 1- Source file isn't correct
 cp /home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/Shehab.txt,/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt
 

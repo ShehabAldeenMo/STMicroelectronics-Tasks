@@ -29,22 +29,23 @@
 
 
 /*==================================  Definations ===========================*/
-#define MAX_PATH              1024
-#define MAX_COPIED_CONTENT    1024
-#define EXIST                  0
-#define MAX_FILE_NAME         256
-#define SAME                   0
-#define CLEARED                0
-#define SET                    1
-#define MOVE_PASS              0
-#define MOVE_FAILED            1
-#define VALID                  1
-#define INVALID                0
-#define STDIN                  0
-#define STDOUT                 1
-#define STDERR                 2
-#define FD_INVALID            -1
-
+#define MAX_PATH                             1024
+#define MAX_COPIED_CONTENT                   1024
+#define EXIST                                 0
+#define MAX_FILE_NAME                        256
+#define SAME                                  0
+#define CLEARED                               0
+#define SET                                   1
+#define MOVE_PASS                             0
+#define MOVE_FAILED                           1
+#define VALID                                 1
+#define INVALID                               0
+#define STDIN                                 0
+#define STDOUT                                1
+#define STDERR                                2
+#define FD_INVALID                           -1
+#define MAX_ARGUMENTS                         4
+#define MAX_CHARACHTERS_OF_ONE_ARGUMENTS     128
 
 
 typedef unsigned char uint8;
@@ -140,6 +141,7 @@ void Shellio_MoveFile     (const char  Copy_MoveFlag );
  */
 void Shellio_Help         ();
 
-void my_printf(const char *format, ...) ;
+void Shellio_ParsingPath (uint8* ptr_ArgCounter,uint8* Ptr_1st_Path,uint8* Ptr_Option, 
+                                    uint8* Ptr_2nd_Path, uint8* Copy_token);
 
 #endif /* Header Gaurd */

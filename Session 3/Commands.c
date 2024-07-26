@@ -18,9 +18,15 @@
 
 
 /*===========================  Local File Variables ===========================*/
-static char GlobalAppendFlag      = CLEARED     ;
-static char GlobalMoveForcedFlag  = CLEARED     ;
-static char GlobalMoveOperation   = MOVE_FAILED ;
+static char GlobalAppendFlag           = CLEARED     ;
+static char GlobalMoveForcedFlag       = CLEARED     ;
+static char GlobalMoveOperation        = MOVE_FAILED ;
+static uint8* Ptr_GlobalGetParsingPath = NULL        ;
+
+/*===================  Local File Functions Prototypes ========================*/
+static uint8* GetParsedPath(void);
+static void my_printf(const char *format, ...) ;
+
 
 /*===========================  Functions Implementations ======================*/
 void Shellio_GetPath() {
@@ -287,9 +293,108 @@ void Shellio_Help (){
     Shellio_EchoInput("-------------------------------------------------------------------------------\n");
 }
 
-void my_printf(const char *format, ...) {
+static void my_printf(const char *format, ...) {
     va_list args;
     va_start(args, format);
     vprintf(format, args);
     va_end(args);
+}
+
+void Shellio_ParsingPath (uint8* ptr_ArgCounter,uint8* Ptr_1st_Path,uint8* Ptr_Option, 
+                                    uint8* Ptr_2nd_Path, uint8* Copy_token){
+    /* buffer the return from GetParsedPath() */
+    uint8 *Buf ;
+
+    /* Set global pointer to the input of mv function or cp function */
+    if (Copy_token == NULL){
+        my_printf ("Error In Passing Pathes\n");
+        return ;
+    }
+    Ptr_GlobalGetParsingPath = Copy_token ;
+
+    /* Get first path*/
+    strcpy(Buf , GetParsedPath() );
+    if (Buf == NULL){
+        printf("Error In Passing Paths\n");
+        return ;
+    }
+    strcpy ( Ptr_1st_Path ,Buf);    
+    *ptr_ArgCounter++;  // counting parameters
+
+    printf("First Path : %s\n",Ptr_1st_Path);
+
+    /* To discard the second double quote of given path(")*/
+    if (*Ptr_GlobalGetParsingPath != '"'){
+        printf("Error In Passing Paths");
+        return ;
+    }
+    Ptr_GlobalGetParsingPath++;
+    
+
+    /* To discard spaces between two paths till reached to the second path*/
+    while (*Ptr_GlobalGetParsingPath != '"' && *Ptr_GlobalGetParsingPath != '\0'){
+        if ( *Ptr_GlobalGetParsingPath++ == '-' ){
+            snprintf(Ptr_Option, 3, "-%c", *Ptr_GlobalGetParsingPath);
+        }
+        else {
+            Ptr_Option = NULL ;
+        }
+    }
+
+    printf("Option: %s\n",Ptr_Option);
+    *ptr_ArgCounter++;  // counting parameters
+
+    /* if you are exit loop because of '\0' */
+    if (*Ptr_GlobalGetParsingPath != '"'){
+        printf("Error In Passing Paths");
+        return ;
+    }
+
+    /* Get second path*/
+    strcpy ( Buf , GetParsedPath() );
+    strcpy ( Ptr_2nd_Path , Buf );
+    *ptr_ArgCounter++;  // counting parameters
+
+    printf("Second Path : %s\n",Ptr_2nd_Path);
+
+    while(1);
+}
+
+static uint8* GetParsedPath(void){
+    /* buffer of stored path*/
+    static uint8* Path = NULL ; // static to prevent dangling pointer
+
+    while ((*Ptr_GlobalGetParsingPath != '"') && (*Ptr_GlobalGetParsingPath != '\0')){
+        Ptr_GlobalGetParsingPath++;
+    }
+
+    /* if the coming charachter if (")*/
+    if ((*Ptr_GlobalGetParsingPath) == '"'){
+        Ptr_GlobalGetParsingPath++; // to discard (")
+    }
+    else if (*Ptr_GlobalGetParsingPath == '\0'){
+        my_printf("Error In Passing Paths");
+        return NULL ;
+    }
+
+    /* Allocate memory for path */
+    Path = malloc(strlen(Ptr_GlobalGetParsingPath) + 1); // Allocate memory for the path
+
+    /* Check if memory allocation succeeded */
+    if (Path == NULL) {
+        my_printf("Memory allocation failed\n");
+        return NULL;
+    }
+
+    /* Copy characters until the next double quote or end of the string */
+    int i = 0 ;
+    while (*Ptr_GlobalGetParsingPath != '"' && *Ptr_GlobalGetParsingPath != '\0') {
+        Path[i++] = *Ptr_GlobalGetParsingPath++;
+    }
+
+    /* Null terminator */
+    Path[i] = '\0';
+
+    /* return actual path */
+    return Path;
 }
