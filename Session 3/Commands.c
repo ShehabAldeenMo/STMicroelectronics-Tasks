@@ -18,9 +18,9 @@
 
 
 /*===========================  Local File Variables ===========================*/
-static char GlobalAppendFlag = CLEARED ;
-static char GlobalMoveForcedFlag = CLEARED ;
-static char GlobalMoveOperation = MOVE_FAILED ;
+static char GlobalAppendFlag      = CLEARED     ;
+static char GlobalMoveForcedFlag  = CLEARED     ;
+static char GlobalMoveOperation   = MOVE_FAILED ;
 
 /*===========================  Functions Implementations ======================*/
 void Shellio_GetPath() {
@@ -29,59 +29,95 @@ void Shellio_GetPath() {
 
     /* to get our working directory */
     if (getcwd(cwd, sizeof(cwd)) != NULL) {  // Attempt to get the current working directory, storing it in cwd
-        printf("Current working directory: %s\n", cwd);  // If successful, print the current working directory path
+        my_printf("Current working directory: %s\n", cwd);  // If successful, print the current working directory path
     } else {
         perror("getcwd() error");  // If unsuccessful, print an error message indicating the failure
     }
 }
 
 void Shellio_EchoInput(const char* Copy_Statment) {
-    if (Copy_Statment != NULL) {  // Check if the input string is not NULL
-        printf("%s\n", Copy_Statment);  // Print the input string followed by a newline
-    } else {
-        printf("There is no input\n");  // Print an error message if the input string is NULL
+    /* Check on passing parameter */
+    if (Copy_Statment == NULL){
+        my_printf ("Null passing parameter\n");
+        return ;
+    }
+
+    /* get length of coming string */
+    size_t Loc_Count = strlen (Copy_Statment) ;
+
+    /* write operation*/
+    ssize_t ret = write(STDOUT, Copy_Statment,Loc_Count);
+    
+    /* Check on return value of sucessed written bytes on screen */
+    if (ret < 0 ) {  // Check if the input string is not NULL
+        perror("Error in writing on screen :: \n");  // Print the input string followed by a newline
+    }
+    else if (ret < Loc_Count) {
+        // Not all bytes were written; handle the partial write
+        fprintf(stderr, "write_to_stdout: Partial write occurred. Expected %zd, wrote %zd\n", Loc_Count, ret);
+    }
+    else {
+        write(STDOUT, "\n",1);
     }
 }
 
 void Shellio_CopyFile (const char* Copy_1st_Path,const char* Copy_2nd_Path ){
     /* Check if the source file is differnt from destination file */
     if (strcmp(Copy_1st_Path,Copy_2nd_Path) == SAME ) {
-        printf("Error :: Source and Destination files are same \n");  
+        my_printf("Error :: Source and Destination files are same \n");  
         return ; 
     }
 
-    /* Try to open source and destination files */
-    FILE* SrcFile = fopen(Copy_1st_Path,"r");
-    FILE* DesFile = NULL ;
+    /* Try to open source */
+    int FD_SrcFile = open(Copy_1st_Path, O_RDONLY);
 
     /* Terminate this operation if the source file does not exist */
-    if (SrcFile == NULL ){
-        perror("Src fopen() error");
+    if (FD_SrcFile == FD_INVALID) {
+        perror("Source file open() error");
         return;
     }
+
+    int FD_DesFile = FD_INVALID ;
+
+    // Determine how to open the destination file
+    mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH; // Default permissions
 
     /* Determine how to open the destination file based on global flags */
     if (GlobalAppendFlag == SET){
         /* Open destination file in append mode, create it if it doesn't exist */
-        DesFile = fopen(Copy_2nd_Path,"a+"); 
+        FD_DesFile = open(Copy_2nd_Path, O_RDWR | O_CREAT | O_APPEND , mode);
+
+        /* Terminate this operation if the destination file does not exist */
+        if (FD_DesFile == FD_INVALID ) {
+            perror("Destination file open() error");
+            close(FD_SrcFile);
+            return;
+        }        
     }
     else if ( GlobalMoveOperation == MOVE_PASS ){
         /* Attempt to open destination file in read/write mode */
-        DesFile = fopen(Copy_2nd_Path,"r+b"); 
+        FD_DesFile = open(Copy_2nd_Path, O_RDWR , mode);
 
-        if (DesFile == NULL || GlobalMoveForcedFlag == SET){
-            /* Open destination file in write mode, create it if it doesn't exist */
-            DesFile = fopen(Copy_2nd_Path,"wb"); 
+        /* Open destination file in write mode, create it if it doesn't exist */
+        if (FD_DesFile == FD_INVALID || GlobalMoveForcedFlag == SET){
+            FD_DesFile = open(Copy_2nd_Path, O_WRONLY | O_CREAT | O_TRUNC, mode);
+
+            /* Terminate this operation if the destination file does not exist */
+            if (FD_DesFile == FD_INVALID ) {
+                perror("Destination file open() error");
+                close(FD_SrcFile);
+                return;
+            } 
         }
         else {
-            printf ("Error :: Destination File is already existed\n");
-            fclose(SrcFile);
+            my_printf ("Error :: Destination File is already existed\n");
+            close(FD_SrcFile);
             return ;
         }
     }
     else {
-        /* Open destination file in write mode, create it if it doesn't exist */
-        DesFile = fopen(Copy_2nd_Path,"wb"); 
+        /* I will check on it in next situation */
+        FD_DesFile = open(Copy_2nd_Path, O_WRONLY | O_CREAT | O_TRUNC, mode);
     }
 
     /* Buffers used for handling file content */
@@ -89,29 +125,45 @@ void Shellio_CopyFile (const char* Copy_1st_Path,const char* Copy_2nd_Path ){
     char ConcatenatedDesFile [MAX_PATH];
 
     /* If the destination file name was not provided or directory was incorrect */
-    if (DesFile == NULL ){
+    if (FD_DesFile == FD_INVALID ){
         /* Copy base name of source file to create destination file with the same name */
         strcpy (SrcFileName, basename(strdup(Copy_1st_Path) ) ) ;  // Use strdup to avoid modifying the original path
         snprintf(ConcatenatedDesFile, MAX_PATH, "%s/%s", Copy_2nd_Path, SrcFileName);
 
         /* Check if the source file is different from the destination file */
         if (strcmp(Copy_1st_Path,ConcatenatedDesFile) == SAME ) {
-            printf("Error :: Source and Destination files are same \n");  
+            my_printf("Error :: Source and Destination files are same \n");  
             return ; 
         }
 
         /* Re-open the destination file with the proper mode */
         if (GlobalAppendFlag == SET){
-            DesFile = fopen(ConcatenatedDesFile,"a+"); // Append mode
+            /* Open destination file in append mode, create it if it doesn't exist */
+            FD_DesFile = open(Copy_2nd_Path, O_RDWR | O_CREAT | O_APPEND , mode);
+
+            /* Terminate this operation if the destination file does not exist */
+            if (FD_DesFile == FD_INVALID ) {
+                perror("Destination file open() error");
+                close(FD_SrcFile);
+                return;
+            }         
         }
         else {
-            DesFile = fopen(ConcatenatedDesFile,"wb"); // Write mode     
+            FD_DesFile = open(ConcatenatedDesFile, O_WRONLY | O_CREAT | O_TRUNC, mode);
+
+            /* Terminate this operation if the destination file does not exist */
+            if (FD_DesFile == FD_INVALID ) {
+                perror("Destination file open() error");
+                close(FD_SrcFile);
+                return;
+            }        
         }
 
         /* Terminate operation if the destination file could not be created */
-        if (DesFile == NULL ){
-            printf("Given path of directory isn't correct\n");
+        if (FD_DesFile == FD_INVALID ){
+            my_printf("Given path of directory isn't correct\n");
             perror("Destination fopen() error");
+            close(FD_SrcFile);
             return;
         }
 
@@ -121,25 +173,41 @@ void Shellio_CopyFile (const char* Copy_1st_Path,const char* Copy_2nd_Path ){
     uint8 Buffer[MAX_COPIED_CONTENT];
 
     /* Read content from the source file */
-    size_t ret_Size = fread(Buffer, 1 , sizeof(Buffer), SrcFile) ;
+    ssize_t Read_Size = read(FD_SrcFile, Buffer, sizeof(Buffer));
 
     /* Write content to the destination file */
-    while ( ret_Size > 0 ){
-        fwrite(Buffer, 1, ret_Size, DesFile);
-        ret_Size = fread(Buffer, 1 , sizeof(Buffer), SrcFile) ;
+    while ( Read_Size > 0 ){
+        /* write operation*/
+        ssize_t Write_Size = write(FD_DesFile, Buffer,Read_Size);
+        
+        /* Check on return value of sucessed written bytes in file */
+        if (Write_Size < 0 ) {  // Check if the input string is not NULL
+            perror("Error in writing in file ");  // Print the input string followed by a newline
+            close(FD_SrcFile);
+            close(FD_DesFile);
+            break ;
+        }
+        else if (Write_Size < Read_Size) {
+            // Not all bytes were written; handle the partial write
+            fprintf(stderr, "write_to_stdout: Partial write occurred. Expected %zd, wrote %zd\n", Read_Size, Write_Size);
+        }
+        else {
+            write(STDOUT, "\n",1);
+        }
+
+        Read_Size = Read_Size = read(FD_SrcFile, Buffer, sizeof(Buffer));
     }
 
     /* Close the source and destination files */
-    fclose(SrcFile);
-    fclose(DesFile);
+    close(FD_SrcFile);
+    close(FD_DesFile);
 
     /* Delete the source file if the move operation flag is set */
     if (GlobalMoveOperation == MOVE_PASS){
         if (remove(Copy_1st_Path) != 0) {
-            perror("Error deleting source file");
+            perror("Error deleting source file\n");
         }
     }
-
 
     /* Clear whole flags */
     GlobalAppendFlag = CLEARED ;
@@ -165,7 +233,7 @@ char Shellio_FileOption(const char* Copy_Option) {
     }
     else {
         /* Print error if the option is not recognized */
-        printf("uncorrect option%s\n", Copy_Option);
+        my_printf("uncorrect option%s\n", Copy_Option);
         Local_Status = INVALID ;
     }
 
@@ -184,29 +252,36 @@ void Shellio_MoveFile(const char Copy_MoveFlag) {
 }
 
 void Shellio_Help (){
-    printf("-------------------------------------------------------------------------------\n");
-    printf("-------------------------------------------------------------------------------\n");
-    printf("pwd :: Display the current working directory\n");
-    printf("-------------------------------------------------------------------------------\n");
-    printf("cp  :: Copy file1 in path1 to to file2 in path2\n");
-    printf("cp PathOffile1,PathOffile2\n");
-    printf("cp PathOffile1,-a,PathOffile2\n");
-    printf("-> case file2 name isn't determinted, will create one with file1 name\n");
-    printf("-> case file2 name is given but unallocated, will create one with disred name\n");
-    printf("-> use -a to append to copied file\n");
-    printf("-------------------------------------------------------------------------------\n");
-    printf("mv  :: move file1 in path1 to to file2 in path2\n");
-    printf("mv PathOffile1,PathOffile2\n");
-    printf("mv PathOffile1,-f,PathOffile2\n");
-    printf("-> case file2 name isn't determinted, will create one with file1 name\n");
-    printf("-> case file2 name is given but unallocated, will create one with disred name\n");
-    printf("-> use -f to overwrite on existed file\n");
-    printf("-------------------------------------------------------------------------------\n");
-    printf("echo :: print on shellio termial\n");
-    printf("-------------------------------------------------------------------------------\n");
-    printf("clear:: clears shellio termial\n");
-    printf("-------------------------------------------------------------------------------\n");
-    printf("exit :: leave shellio terminal\n");
-    printf("-------------------------------------------------------------------------------\n");
-    printf("-------------------------------------------------------------------------------\n");
+    Shellio_EchoInput("-------------------------------------------------------------------------------\n");
+    Shellio_EchoInput("-------------------------------------------------------------------------------\n");
+    Shellio_EchoInput("pwd :: Display the current working directory\n");
+    Shellio_EchoInput("-------------------------------------------------------------------------------\n");
+    Shellio_EchoInput("cp  :: Copy file1 in path1 to to file2 in path2\n");
+    Shellio_EchoInput("cp PathOffile1,PathOffile2\n");
+    Shellio_EchoInput("cp PathOffile1,-a,PathOffile2\n");
+    Shellio_EchoInput("-> case file2 name isn't determinted, will create one with file1 name\n");
+    Shellio_EchoInput("-> case file2 name is given but unallocated, will create one with disred name\n");
+    Shellio_EchoInput("-> use -a to append to copied file\n");
+    Shellio_EchoInput("-------------------------------------------------------------------------------\n");
+    Shellio_EchoInput("mv  :: move file1 in path1 to to file2 in path2\n");
+    Shellio_EchoInput("mv PathOffile1,PathOffile2\n");
+    Shellio_EchoInput("mv PathOffile1,-f,PathOffile2\n");
+    Shellio_EchoInput("-> case file2 name isn't determinted, will create one with file1 name\n");
+    Shellio_EchoInput("-> case file2 name is given but unallocated, will create one with disred name\n");
+    Shellio_EchoInput("-> use -f to overwrite on existed file\n");
+    Shellio_EchoInput("-------------------------------------------------------------------------------\n");
+    Shellio_EchoInput("echo :: print on shellio termial\n");
+    Shellio_EchoInput("-------------------------------------------------------------------------------\n");
+    Shellio_EchoInput("clear:: clears shellio termial\n");
+    Shellio_EchoInput("-------------------------------------------------------------------------------\n");
+    Shellio_EchoInput("exit :: leave shellio terminal\n");
+    Shellio_EchoInput("-------------------------------------------------------------------------------\n");
+    Shellio_EchoInput("-------------------------------------------------------------------------------\n");
+}
+
+void my_printf(const char *format, ...) {
+    va_list args;
+    va_start(args, format);
+    vprintf(format, args);
+    va_end(args);
 }

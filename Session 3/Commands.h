@@ -22,6 +22,11 @@
 #include <string.h>
 #include <libgen.h>
 #include <sys/stat.h>
+#include <sys/syscall.h> 
+#include <sys/types.h>
+#include <fcntl.h>
+#include <stdarg.h>
+
 
 /*==================================  Definations ===========================*/
 #define MAX_PATH              1024
@@ -35,8 +40,15 @@
 #define MOVE_FAILED            1
 #define VALID                  1
 #define INVALID                0
+#define STDIN                  0
+#define STDOUT                 1
+#define STDERR                 2
+#define FD_INVALID            -1
+
+
 
 typedef unsigned char uint8;
+typedef unsigned int  uint16;
 
 /*==========================  Functions Prototypes ===========================*/
 
@@ -127,5 +139,7 @@ void Shellio_MoveFile     (const char  Copy_MoveFlag );
  * Return           : None
  */
 void Shellio_Help         ();
+
+void my_printf(const char *format, ...) ;
 
 #endif /* Header Gaurd */
