@@ -103,9 +103,6 @@ help
 pwd
 ```
 
-## Video 
-For more information, refer to the [ShellioTestCases](https://drive.google.com/file/d/1YvGFvpgqC-HBiqhc71-UJhNKyu2XEvZ4/view?usp=sharing) video.
-
 ## Build Instruction 
 To build the Shellio project, please follow the steps below. This section outlines the necessary dependencies, commands, and configurations required for a successful build.
 
@@ -134,3 +131,7 @@ No specific configuration is required for this project. However, ensure that you
 
 > [!NOTE] 
 > If you encounter any issues during the build process, please check that all dependencies are correctly installed and that your compiler version is compatible with the project code.
+
+
+## Video 
+For more information, refer to the [ShellioTestCases](https://drive.google.com/file/d/1YvGFvpgqC-HBiqhc71-UJhNKyu2XEvZ4/view?usp=sharing) video.
