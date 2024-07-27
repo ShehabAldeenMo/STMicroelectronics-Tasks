@@ -17,12 +17,12 @@ Shellio is a custom command-line shell designed for basic file operations and te
 + `pwd`
   + Displays the current working directory.
 
-+ `cp <source>,<destination>[,-a]`
++ `cp "source" "destination"[-a]`
   + Copies the file from the source path to the destination path.
   + Use -a to append to the destination file if it exists.
   + If the destination is a directory and the file name is not provided, the source file’s name is used.
 
-+ `mv <source>,<destination>[,-f]`
++ `mv "source" "destination"[-f]`
   + Moves the file from the source path to the destination path.
   + Use -f to forcefully overwrite the destination file if it exists.
 
