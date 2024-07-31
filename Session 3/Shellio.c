@@ -48,6 +48,7 @@ int main() {
 
         /* Initial call to strtok */ 
         token = strtok(str, delimiters);
+        ArgCounter = 0;
 
         /* Subsequent calls to strtok */ 
         while (token != NULL && ArgCounter < MAX_ARGUMENTS && strcmp (token,"echo") != ECHO_PASS 
@@ -83,7 +84,7 @@ int main() {
         /* Any other case */
         else if ( NewLineOperator != NEWLINE_INPUT) {
             /* Check on echo command */
-            if ( token != NULL  && strcmp(token,"echo") == ECHO_PASS ){
+            if (strcmp(token,"echo") == ECHO_PASS ){
                 token = strtok(NULL, "");       // to continue tokenizing from the previous point
                 if ( token != NULL) {
                     Shellio_EchoInput(token);
@@ -92,7 +93,7 @@ int main() {
                     HelpCommand = RAISED ;
                 }
             }
-            else if ( token != NULL && (strcmp(token,"cp") == COPY_PASS || strcmp(token,"mv") == MV_PASS) ){
+            else if (strcmp(token,"cp") == COPY_PASS || strcmp(token,"mv") == MV_PASS) {
                 Shellio_MoveFile (strcmp(token,"mv"));
 
                 /* mv or cp command*/
@@ -131,6 +132,7 @@ int main() {
         
         /* clear all flags and buffers */
         memset (str,0, sizeof(str) );
+        memset(Arguments, 0, sizeof(Arguments));
         ArgCounter = 0 ;
         HelpCommand = CLEARED ; 
 
@@ -138,37 +140,3 @@ int main() {
 
     return 0;
 }
-
-
-/*
-
-1- Source file isn't correct
-cp "/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/Shehab.txt" "/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt"
-
-2- Same sourc and destination
-cp "/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt" "/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt"
-
-3- Normally copy
-cp "/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt" "/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/copiedfile.txt"
-cp "/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt" "/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3"
-
-4- Wrong destination
-cp "/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt" "/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Wrong/hgv"
-
-5- Append
-cp "/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt" -a "/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/copiedfile.txt"
-
-6- Wrong option
-cp "/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt" -f "/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/copiedfile.txt"
-
-7- mv with different directory
-mv "/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt" "/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/file.txt"
- 
-8- mv with forced option on file
-    mv "/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/copiedfile.txt" -f "/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/file.txt"
-
-9- mv with no forced option on file
-mv "/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/fileMove.txt" "/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/file.txt"
-
-
-*/
