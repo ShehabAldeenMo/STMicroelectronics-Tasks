@@ -27,6 +27,7 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include <stdarg.h>
+#include <sys/wait.h>
 
 /*==================================  Definitions ===========================*/
 #define MAX_PATH                             1024
@@ -51,6 +52,31 @@
 #define FIRST_ARGUMENT                        0
 #define SECOND_ARGUMENT                       1
 #define THIRD_ARGUMENT                        2
+#define MAX_STACK_SIZE                        10
+#define MAX_ARGS                              5
+#define MAXSIZE                              512
+#define EXIT                                  0
+#define NOT_EXIT                              1
+#define CLEARED                               0
+#define NOT_CLEARED                           1
+#define RAISED                                1
+#define NEWLINE_INPUT                         11
+#define PWD_PASS                              0
+#define ECHO_PASS                             0
+#define MV_PASS                               0
+#define COPY_PASS                             0
+#define CD_PASS                               0
+#define TYPE_PASS                             0
+#define ENV_PASS                              0
+#define HELP_PASS                             0
+#define VALID                                 1
+#define INVALID                               0
+#define EQUALED                               0
+#define SUCCESS                               1
+#define FAILED                                0
+#define INVALID_ID                           -1
+
+
 
 typedef unsigned char uint8;
 typedef unsigned int  uint16;
@@ -184,5 +210,109 @@ void Shellio_Clear();
  */
 void Shellio_Copy();
 
+/*
+ * Name             : Shellio_PrintEnvVar
+ * Description      : Retrieves and prints the value of an environment variable specified by `copy_token`.
+ *                    If the environment variable does not exist, it prints an error message.
+ *                    Updates the process history with the status of the operation.
+ * Input            : copy_token - A string representing the environment variable to be retrieved.
+ * Output           : None
+ * Return           : None
+ * Notes            : The process history is updated with either SUCCESS or FAILED based on the outcome.
+ */
+void Shellio_PrintEnvVar(uint8* copy_token);
+
+/*
+ * Name             : Shellio_TypeCommand
+ * Description      : Determines whether the given token is a built-in command or an external command.
+ *                    Compares the token against predefined built-in command names and prints the result.
+ *                    Checks if the token is an external command using the `SearchOnCommand` function.
+ * Input            : None
+ * Output           : None
+ * Return           : None
+ * Notes            : The function does not execute the command, only identifies its type.
+ */
+void Shellio_TypeCommand();
+
+/*
+ * Name             : Shellio_PrintEnv
+ * Description      : Prints all the environment variables available in the shell.
+ *                    Iterates through the environment variables and prints each one.
+ *                    Updates the process history with the status of the operation.
+ * Input            : None
+ * Output           : None
+ * Return           : None
+ * Notes            : The function retrieves the environment variables from the global 'environ' array.
+ */
+void Shellio_PrintEnv();
+
+/*
+ * Name             : Shellio_ChangeDir
+ * Description      : Changes the current working directory to the directory specified by the token.
+ *                    Handles errors if the directory change fails.
+ * Input            : None
+ * Output           : None
+ * Return           : None
+ * Notes            : The function uses the `chdir` system call to change the directory.
+ */
+void Shellio_ChangeDir();
+
+/*
+ * Name             : Shellio_Phist
+ * Description      : Prints the process history, showing the commands executed and their status.
+ *                    Iterates through the process history stack and prints each entry.
+ * Input            : None
+ * Output           : None
+ * Return           : None
+ * Notes            : The process history stack is managed using an array of pointers.
+ */
+void Shellio_Phist();
+
+/*
+ * Name             : setSharedString
+ * Description      : Sets the shared string used for various operations in the shell.
+ *                    Duplicates the input string `str` and stores it in the global `sharedString` variable.
+ * Input            : str - The string to be set as the shared string.
+ * Output           : None
+ * Return           : None
+ * Notes            : The function uses `strdup` to duplicate the input string.
+ */
+void setSharedString (const uint8 * str);
+
+/*
+ * Name             : cleanSharedString
+ * Description      : Frees the memory allocated for the shared string.
+ *                    Ensures that the shared string is properly cleaned up after use to prevent memory leaks.
+ * Input            : None
+ * Output           : None
+ * Return           : None
+ * Notes            : This function should be called whenever the shared string is no longer needed.
+ */
+void cleanSharedString();
+
+/*
+ * Name             : pushProcessHistory
+ * Description      : Pushes a new entry into the process history stack.
+ *                    Creates a new process history entry with the command and status.
+ *                    Manages the stack size, removing the oldest entry if the stack is full.
+ * Input            : command - The command executed.
+ *                    status  - The status of the command execution (SUCCESS or FAILED).
+ * Output           : None
+ * Return           : None
+ * Notes            : The function dynamically allocates memory for the new history entry.
+ */
+void pushProcessHistory(const uint8 *command, uint8 status) ;
+
+/*
+ * Name             : Shellio_ExecExternalCommands
+ * Description      : Executes external commands by forking a new process and using execvp.
+ *                    Constructs the arguments array and handles quotation marks in paths.
+ *                    Manages the child process and waits for its completion.
+ * Input            : token - The command and its arguments to be executed.
+ * Output           : None
+ * Return           : None
+ * Notes            : The function updates the process history based on the success or failure of the command execution.
+ */
+void Shellio_ExecExternalCommands(uint8 *token);
 
 #endif /* Header Guard */

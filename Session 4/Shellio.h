@@ -34,6 +34,9 @@
 #define ECHO_PASS                             0
 #define MV_PASS                               0
 #define COPY_PASS                             0
+#define CD_PASS                               0
+#define TYPE_PASS                             0
+#define ENV_PASS                              0
 #define HELP_PASS                             0
 #define VALID                                 1
 #define INVALID                               0

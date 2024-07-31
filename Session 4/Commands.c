@@ -33,6 +33,35 @@ static char GlobalMoveOperation        = MOVE_FAILED ;
  * Points to the character in the string currently being processed.*/
 static uint8* Ptr_GlobalGetParsingPath = NULL        ;
 
+
+/*
+ * Name             : ProcessHistory Structure and Related Globals
+ * Description      : Defines the structure for storing process history entries and
+ *                    declares global variables related to process history management.
+ *                    - ProcessHistory: A structure that holds command and status information.
+ *                    - PtrProcessHistory: An array of pointers to ProcessHistory structures,
+ *                      representing the global stack for storing process history.
+ *                    - processCounter: A counter for tracking the number of elements in the stack.
+ *                    - sharedString: A pointer to a string used for various operations in the shell.
+ *                    - environ: A pointer to the environment variables.
+ * */
+
+// Define the structure for process history
+typedef struct {
+    uint8 *command;
+    uint8 status;
+} ProcessHistory;
+
+// Global stack and counter
+ProcessHistory *PtrProcessHistory[MAX_STACK_SIZE];
+uint8 processCounter = 0;
+
+// pointer to string
+uint8 *sharedString = NULL;
+
+extern char **environ;
+
+
 /*===================  Local File Functions Prototypes ========================*/
 /*
  * Name             : GetParsedPath
@@ -56,6 +85,33 @@ static uint8* GetParsedPath(void);
 static void my_printf(const char *format, ...) ;
 
 
+
+/*
+ * Name             : cleanupProcessHistory
+ * Description      : Cleans up the process history by freeing all allocated memory.
+ *                    Iterates through the process history stack and frees each command string
+ *                    and its associated memory.
+ * Input            : None
+ * Output           : None
+ * Return           : None
+ * Notes            : This function should be called when the process history is no longer needed
+ *                    to prevent memory leaks.
+ */
+static void cleanupProcessHistory() ;
+
+/*
+ * Name             : SearchOnCommand
+ * Description      : Searches for an external command in the directories specified in the PATH environment variable.
+ *                    Checks if the command exists and is executable.
+ * Input            : token - The command to search for.
+ * Output           : None
+ * Return           : SUCCESS if the command is found and executable, otherwise FAILED.
+ * Notes            : The function uses the `access` system call to check the executability of the command.
+ */
+static uint8 SearchOnCommand (uint8 * token);
+
+
+
 /*===========================  Functions Implementations ======================*/
 void Shellio_GetPath() {
     const char *delimiters = " 0";  // Delimiters are space and tab characters
@@ -66,16 +122,21 @@ void Shellio_GetPath() {
 
     /* Check if there is any additional input after the 'pwd' command */
     if (token != NULL) {
-        printf("command not found\nEnter 'help' to know Shellio commands\n");
+        printf("command not found\nEnter 'assist' to know Shellio commands\n");
+        pushProcessHistory(sharedString, FAILED);
+        cleanSharedString();
         return;
     }
 
     /* Get the current working directory */
     if (getcwd(cwd, sizeof(cwd)) != NULL) {  // Attempt to get the current working directory, storing it in cwd
         my_printf("Current working directory: %s\n", cwd);  // If successful, print the current working directory path
+        pushProcessHistory(sharedString, SUCCESS);
     } else {
         perror("getcwd() error");  // If unsuccessful, print an error message indicating the failure
     }
+
+    cleanSharedString();
 }
 
 
@@ -85,7 +146,9 @@ void Shellio_EchoInput() {
 
     /* if command equals null, means that there is no input with. So, We should print error message*/
     if (token == NULL){
-        printf("command not found\nEnter (help) to know Shellio Commands\n");
+        printf("command not found\nEnter (assist) to know Shellio Commands\n");
+        pushProcessHistory(sharedString, FAILED);
+        cleanSharedString();
         return ;
     }
 
@@ -98,20 +161,27 @@ void Shellio_EchoInput() {
     /* Check on return value of sucessed written bytes on screen */
     if (ret < 0 ) {  // Check if the input string is not NULL
         perror("Error in writing on screen :: \n");  // Print the input string followed by a newline
+        pushProcessHistory(sharedString, FAILED);
     }
     else if (ret < Loc_Count) {
         // Not all bytes were written; handle the partial write
         fprintf(stderr, "write_to_stdout: Partial write occurred. Expected %zd, wrote %zd\n", Loc_Count, ret);
+        pushProcessHistory(sharedString, FAILED);
     }
     else {
         write(STDOUT, "\n",1);
+        pushProcessHistory(sharedString, SUCCESS);
     }
+
+    cleanSharedString();
 }
 
 void Shellio_CopyFile(const char *sourcePath, const char *destPath) {
     /* Check if the source and destination files are the same */
     if (strcmp(sourcePath, destPath) == SAME ) {
         my_printf("Error :: Source and Destination files are same \n");  
+        pushProcessHistory(sharedString, FAILED);
+        cleanSharedString();
         return ; 
     }
 
@@ -124,6 +194,8 @@ void Shellio_CopyFile(const char *sourcePath, const char *destPath) {
     /* Terminate this operation if the source file does not exist */
     if (FD_SrcFile == FD_INVALID) {
         perror("Source file open() error");
+        pushProcessHistory(sharedString, FAILED);
+        cleanSharedString();
         return;
     }
 
@@ -139,6 +211,8 @@ void Shellio_CopyFile(const char *sourcePath, const char *destPath) {
         if (FD_DesFile == FD_INVALID ) {
             perror("Destination file open() error");
             close(FD_SrcFile);
+            pushProcessHistory(sharedString, FAILED);
+            cleanSharedString();
             return;
         }        
     }
@@ -154,12 +228,16 @@ void Shellio_CopyFile(const char *sourcePath, const char *destPath) {
             if (FD_DesFile == FD_INVALID ) {
                 perror("Destination file open() error");
                 close(FD_SrcFile);
+                pushProcessHistory(sharedString, FAILED);
+                cleanSharedString();
                 return;
             } 
         }
         else {
             my_printf ("Error :: Destination File is already existed\n");
             close(FD_SrcFile);
+            pushProcessHistory(sharedString, FAILED);
+            cleanSharedString();
             return ;
         }
     }
@@ -181,6 +259,8 @@ void Shellio_CopyFile(const char *sourcePath, const char *destPath) {
         /* Check if the source file is different from the destination file */
         if (strcmp(sourcePath,ConcatenatedDesFile) == SAME ) {
             my_printf("Error :: Source and Destination files are same \n");  
+            pushProcessHistory(sharedString, FAILED);
+            cleanSharedString();
             return ; 
         }
 
@@ -193,6 +273,8 @@ void Shellio_CopyFile(const char *sourcePath, const char *destPath) {
             if (FD_DesFile == FD_INVALID ) {
                 perror("Destination file open() error");
                 close(FD_SrcFile);
+                pushProcessHistory(sharedString, FAILED);
+                cleanSharedString();
                 return;
             }         
         }
@@ -203,6 +285,8 @@ void Shellio_CopyFile(const char *sourcePath, const char *destPath) {
             if (FD_DesFile == FD_INVALID ) {
                 perror("Destination file open() error");
                 close(FD_SrcFile);
+                pushProcessHistory(sharedString, FAILED);
+                cleanSharedString();
                 return;
             }        
         }
@@ -212,6 +296,8 @@ void Shellio_CopyFile(const char *sourcePath, const char *destPath) {
             my_printf("Given path of directory isn't correct\n");
             perror("Destination fopen() error");
             close(FD_SrcFile);
+            pushProcessHistory(sharedString, FAILED);
+            cleanSharedString();
             return;
         }
 
@@ -234,18 +320,22 @@ void Shellio_CopyFile(const char *sourcePath, const char *destPath) {
             close(FD_SrcFile);
             close(FD_DesFile);
             Suc_Move = CLEARED ;
+            pushProcessHistory(sharedString, FAILED);
             break ;
         }
         else if (Write_Size < Read_Size) {
             // Not all bytes were written; handle the partial write
             fprintf(stderr, "write_to_stdout: Partial write occurred. Expected %zd, wrote %zd\n", Read_Size, Write_Size);
             Suc_Move = CLEARED ;
+            pushProcessHistory(sharedString, FAILED);
             break ;
         }
         else {
             write(STDOUT, "\n",1);
             Suc_Move = SET ;
         }
+
+        pushProcessHistory(sharedString, SUCCESS);
 
         /* Read file content */
         Read_Size = Read_Size = read(FD_SrcFile, Buffer, sizeof(Buffer));
@@ -259,6 +349,7 @@ void Shellio_CopyFile(const char *sourcePath, const char *destPath) {
     if (GlobalMoveOperation == MOVE_PASS && Suc_Move == SET ){
         if (unlink(sourcePath) == -1) {
             perror("Error deleting file");
+            pushProcessHistory(sharedString, FAILED);
         }
     }
 
@@ -289,7 +380,7 @@ char Shellio_FileOption(const char* Copy_Option) {
         my_printf("uncorrect option%s\n", Copy_Option);
         Local_Status = INVALID ;
     }
-
+    cleanSharedString();
     return Local_Status;
 }
 
@@ -310,7 +401,9 @@ void Shellio_Help (){
 
     /* if command isn't equal null, means that there is another input with. So, We should print error message*/
     if (token != NULL){
-        printf("command not found\nEnter (help) to know Shellio Commands\n");
+        printf("command not found\nEnter (assist) to know Shellio Commands\n");
+        pushProcessHistory(sharedString, FAILED);
+        cleanSharedString();
         return ;
     } 
 
@@ -339,6 +432,8 @@ void Shellio_Help (){
     my_printf("exit :: leave shellio terminal\n");
     my_printf("-------------------------------------------------------------------------------\n");
     my_printf("-------------------------------------------------------------------------------\n");
+    pushProcessHistory(sharedString, SUCCESS);
+    cleanSharedString();
 }
 
 static void my_printf(const char *format, ...) {
@@ -455,13 +550,13 @@ uint8 Shellio_Exit (){
 
     /* if exit command isn't equal null, means that there is another input with. So, We should print error message*/
     if (token != NULL){
-        printf("command not found\nEnter (help) to know Shellio Commands\n");
-        return FAILED;
+        printf("command not found\nEnter (assist) to know Shellio Commands\n");
+        return (uint8)FAILED;
     } 
     /* print leaving message */
     printf("Good Bye\n");
 
-    return SUCCESS;
+    return (uint8)SUCCESS;
 }
 
 void Shellio_Clear (){
@@ -470,9 +565,15 @@ void Shellio_Clear (){
 
     /* if command isn't equal null, means that there is another input with. So, We should print error message*/
     if (token != NULL){
-        printf("command not found\nEnter (help) to know Shellio Commands\n");
+        printf("command not found\nEnter (assist) to know Shellio Commands\n");
+        pushProcessHistory(sharedString, FAILED );
+        cleanSharedString();
         return ;
     } 
+
+    pushProcessHistory(sharedString, SUCCESS );
+    cleanSharedString();
+
     /* clear screen */
     system("clear");
 }
@@ -501,7 +602,260 @@ void Shellio_Copy (){
         }
     }
     else {
-        printf("command not found\nEnter (help) to know Shellio Commands\n");
+        printf("command not found\nEnter (assist) to know Shellio Commands\n");
+    }
+    cleanSharedString();
+}
+
+
+
+void Shellio_PrintEnvVar(uint8* copy_token){
+    char *path_env = getenv(copy_token);
+
+    if (path_env == NULL) {
+        printf("This variable isn't existed :: %s\n",copy_token);
+        pushProcessHistory(sharedString, FAILED);
+        cleanSharedString();
+    }
+    else {
+        printf("%s = %s\n",copy_token,path_env);
+        pushProcessHistory(sharedString, SUCCESS);
+        cleanSharedString();
+    }
+}
+void Shellio_PrintEnv(){
+    char **env = environ;
+
+    printf("-------------------------------------------------------------------------\n");
+    while (*env) {
+        printf("%s\n", *env);
+        env++;
+    }
+    printf("-------------------------------------------------------------------------\n");
+
+
+    pushProcessHistory(sharedString, SUCCESS);
+    cleanSharedString();
+}
+
+
+void Shellio_TypeCommand(){
+    uint8* token = strtok (NULL," ");
+
+    if (strcmp (token,"leave") == EQUALED)
+        printf("It is an built-in command :: %s\n",token);
+    else if (strcmp (token,"cls") == CLEARED)
+        printf("It is an built-in command :: %s\n",token);
+    else if (strcmp (token,"path") == PWD_PASS )
+        printf("It is an built-in command :: %s\n",token);
+    else if (strcmp (token,"display") == ECHO_PASS )
+        printf("It is an built-in command :: %s\n",token);
+    else if (strcmp (token,"assist") == HELP_PASS)
+        printf("It is an built-in command :: %s\n",token);
+    else if (strcmp (token,"clone") == COPY_PASS )
+        printf("It is an built-in command :: %s\n",token);
+    else if (strcmp (token,"shift") == MV_PASS )
+        printf("It is an built-in command :: %s\n",token);
+    else if (strcmp(token, "cd") == CD_PASS) 
+        printf("It is an built-in command :: %s\n",token);
+    else if (strcmp(token, "type") == TYPE_PASS) 
+        printf("It is an built-in command :: %s\n",token);
+    else if (strcmp(token, "envir") == ENV_PASS)
+        printf("It is an built-in command :: %s\n",token);
+    else if (strcmp(token, "phist") == EXIT)
+        printf("It is an built-in command :: %s\n",token);
+    else {        
+        uint8 status = SearchOnCommand (token);
+        if (status == SUCCESS){
+            printf("It is an external command :: %s\n",token);
+        }
+        else 
+            printf("Undefined command :: %s\n",token);
     }
 
+    pushProcessHistory(sharedString, SUCCESS);
+    cleanSharedString();
+}
+
+void Shellio_ExecExternalCommands(uint8 *token){
+    int status;
+    pid_t pid, wpid;
+    char *args[MAX_ARGS] ;
+    uint8 argcounter = 0 ;
+    uint8* command = token ;
+
+    while (token != NULL && argcounter < MAX_ARGS) {
+        /* New buffer for get path into */
+        uint8 * str = strdup (sharedString) ;
+
+        /* Check if element token begin with ", So it regard as path*/
+        if (token[0] == '"'){
+            /* buffer to store path*/
+            uint8 Argument[MAX_CHARACHTERS_OF_ONE_ARGUMENTS];
+
+            uint8 i = 0 ;
+            while (str[i++] != '"'); // to begin pointing on " in this path
+            str++; // to skip "
+            
+            /* copy path */
+            while (str[i] != '\0' && str[i] != '"'){
+                Argument[i] = str[i] ;
+                i++;
+            }
+            Argument[i] = '\0';
+
+            /* store path into args buffer */
+            args[argcounter++] = Argument ;
+
+            token = strtok(str, " ");
+        }
+        else {
+            args[argcounter++] = token;
+            token = strtok(NULL, " ");
+        }
+
+        free(str);
+    }
+    args[argcounter] = NULL; // Null-terminate the argument array
+
+    pid = fork();
+
+    if (pid == -1) {
+        perror("fork");
+        pushProcessHistory(sharedString, FAILED);
+        cleanSharedString();
+        return ;
+    }
+    else if (pid == 0) {
+        // Child process
+        execvp(command,(char**) args);
+        // If execvp returns, it must have failed
+        perror("execvp");
+        printf("command not found\nEnter 'assist' to know Shellio commands\n");
+        pushProcessHistory(sharedString, FAILED);
+        cleanSharedString();
+        return ;
+    }
+    else {
+        wpid = wait(&status);
+
+        if (wpid == INVALID_ID) {
+            perror("waitpid");
+            printf("command not found\nEnter 'assist' to know Shellio commands\n");
+            pushProcessHistory(sharedString, FAILED);
+            cleanSharedString();
+            return ;
+        }
+    }
+
+    pushProcessHistory(sharedString, SUCCESS);
+    cleanSharedString();
+}
+
+void Shellio_ChangeDir(){
+    const char *delimiters = "0";  // Delimiters are space and tab characters
+    char *token = strtok(NULL, delimiters);  // Tokenize the input string
+
+    /* Check if there is any additional input after the 'pwd' command */
+    if (token == NULL) {
+        printf("command not found\nEnter 'assist' to know Shellio commands\n");
+        pushProcessHistory(sharedString, FAILED);
+        cleanSharedString();
+        return;
+    }
+
+    /* Get the current working directory */
+    if (chdir(token) == EXIST) {  // Attempt to get the current working directory, storing it in cwd
+        pushProcessHistory(sharedString, SUCCESS);
+    } else {
+        pushProcessHistory(sharedString, FAILED);
+        perror("cd error::");  // If unsuccessful, print an error message indicating the failure
+    }
+
+    cleanSharedString();
+}
+
+
+void Shellio_Phist(){
+    printf("Process History:\n");
+    for (int i = processCounter-1 ; i >= 0 ; i--) {
+        printf("%d\tCommand: %s\tStatus: %d\n",i, PtrProcessHistory[i]->command, PtrProcessHistory[i]->status);
+    }
+    pushProcessHistory(sharedString, SUCCESS);
+    cleanSharedString();
+}
+
+
+// Function to push into the stack
+void pushProcessHistory(const uint8 *command, uint8 status) {
+    // Allocate memory for the new element
+    ProcessHistory *newEntry = (ProcessHistory *)malloc(sizeof(ProcessHistory));
+    if (newEntry == NULL) {
+        perror("Failed to allocate memory for new process history entry");
+        exit(EXIT_FAILURE);
+    }
+    newEntry->command = strdup(command);  // Duplicate the command string
+    if (newEntry->command == NULL) {
+        perror("Failed to duplicate command string");
+        free(newEntry);
+        exit(EXIT_FAILURE);
+    }
+    newEntry->status = status;
+
+    // If the stack is full, remove the last element
+    if (processCounter >= MAX_STACK_SIZE) {
+        free(PtrProcessHistory[MAX_STACK_SIZE - 1]->command);
+        free(PtrProcessHistory[MAX_STACK_SIZE - 1]);
+        processCounter--;
+    }
+
+    // Shift elements to the right
+    for (int i = processCounter; i > 0; i--) {
+        PtrProcessHistory[i] = PtrProcessHistory[i - 1];
+    }
+
+    // Insert the new entry at the front
+    PtrProcessHistory[0] = newEntry;
+    processCounter++;
+}
+
+// Cleanup function to free all allocated memory
+static void cleanupProcessHistory() {
+    for (int i = 0; i < processCounter; i++) {
+        free(PtrProcessHistory[i]->command);
+        free(PtrProcessHistory[i]);
+    }
+}
+
+void setSharedString (const uint8 * str){
+    sharedString = strdup(str);
+}
+
+void cleanSharedString(){
+    free(sharedString);
+}
+
+static uint8 SearchOnCommand (uint8 * token){
+    char *path_env = getenv("PATH");
+
+    if (path_env == NULL) {
+        return FAILED ; // PATH environment variable not set
+    }
+
+    char path_copy[MAX_PATH];
+    strncpy(path_copy, path_env, sizeof(path_copy));
+
+    char *dir = strtok(path_copy, ":");
+    while (dir != NULL) {
+        char full_path[MAX_PATH];
+        snprintf(full_path, sizeof(full_path), "%s/%s", dir, token);
+
+        if (access(full_path, X_OK) == 0) {
+            return SUCCESS; // Command found and is executable
+        }
+
+        dir = strtok(NULL, ":");
+    }
+
+    return FAILED; // Command not found or not executable
 }
