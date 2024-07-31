@@ -46,7 +46,7 @@
 #define STDERR                                2
 #define FD_INVALID                           -1
 #define MAX_ARGUMENTS                         3
-#define MAX_CHARACHTERS_OF_ONE_ARGUMENTS     128
+#define MAX_CHARACHTERS_OF_ONE_ARGUMENTS     255
 #define SUCCESS                               1
 #define FAILED                                0
 #define FIRST_ARGUMENT                        0
@@ -54,7 +54,6 @@
 #define THIRD_ARGUMENT                        2
 #define MAX_STACK_SIZE                        10
 #define MAX_ARGS                              5
-#define MAXSIZE                              512
 #define EXIT                                  0
 #define NOT_EXIT                              1
 #define CLEARED                               0

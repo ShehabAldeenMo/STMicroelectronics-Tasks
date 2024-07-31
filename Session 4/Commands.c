@@ -684,37 +684,30 @@ void Shellio_ExecExternalCommands(uint8 *token){
     uint8 argcounter = 0 ;
     uint8* command = token ;
 
-    while (token != NULL && argcounter < MAX_ARGS) {
-        /* New buffer for get path into */
-        uint8 * str = strdup (sharedString) ;
+    /* New buffer for get path into */
+    uint8 * str = sharedString ;
+    uint8 Cpstr[MAX_CHARACHTERS_OF_ONE_ARGUMENTS] ;
 
+    while (token != NULL && argcounter < MAX_ARGS) {
         /* Check if element token begin with ", So it regard as path*/
         if (token[0] == '"'){
-            /* buffer to store path*/
-            uint8 Argument[MAX_CHARACHTERS_OF_ONE_ARGUMENTS];
-
+            uint8 path[MAX_PATH] ;
             uint8 i = 0 ;
-            while (str[i++] != '"'); // to begin pointing on " in this path
-            str++; // to skip "
-            
-            /* copy path */
-            while (str[i] != '\0' && str[i] != '"'){
-                Argument[i] = str[i] ;
-                i++;
+            while( *(str++) != '"' );
+            while( *(str) != '"'){
+                path[i++] = *(str++) ;
             }
-            Argument[i] = '\0';
-
-            /* store path into args buffer */
-            args[argcounter++] = Argument ;
-
-            token = strtok(str, " ");
+            str++;
+            path[i]='\0';
+            args[argcounter++] = path; 
+            printf("path %d= %s\n",argcounter-1,path);
+            strcpy(Cpstr,str) ;
+            token = strtok(Cpstr, " ");
         }
         else {
             args[argcounter++] = token;
             token = strtok(NULL, " ");
         }
-
-        free(str);
     }
     args[argcounter] = NULL; // Null-terminate the argument array
 

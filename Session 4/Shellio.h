@@ -23,7 +23,7 @@
 #include "Commands.h"
 
 /*===================================  Definations ============================*/
-#define MAXSIZE                              512
+#define MAXSIZE                              1024
 #define EXIT                                  0
 #define NOT_EXIT                              1
 #define CLEARED                               0
