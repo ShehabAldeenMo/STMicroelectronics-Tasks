@@ -1,23 +1,137 @@
 # Shellio 
+
 ## Description
-Shellio is a simple, custom command-line shell designed to interact with users through a terminal interface. It provides a basic environment for entering and processing commands.
+Shellio is a custom command-line shell designed for basic file operations and terminal commands. This shell provides a simple interface for interacting with files and system commands, serving as an educational tool for understanding shell command processing and file manipulation in C.
 
-## 1. Functions
+## Features
++ **Display Current Working Directory:** Use the pwd command to display the current directory path.
++ **File Copying:** Copy files with optional append mode using the cp command.
++ **File Moving:** Move files with optional overwrite mode using the mv command.
++ **Print Messages:** Use the echo command to print messages to the terminal.
++ **Clear Terminal:** Clear the terminal screen with the clear command.
++ **Exit Shell:** Exit the Shellio terminal with the exit command.
++ **Help Command:** Displays information about available commands with help.
 
-**1.1 Prompt Display:**
-Shellio displays a prompt (Shellio > ) to indicate that it is ready to accept user input.
+## Commands
 
-**1.2 Command Input:**
-Users can input commands directly into the shell. The commands can include various text entries separated by spaces as delimiter.
++ `pwd`
+  + Displays the current working directory.
 
-**1.3 Command Parsing:**
-Shellio uses strtok() to tokenize the input string based on predefined delimiters. This allows it to break down the input into individual commands or arguments.
++ `cp "source" "destination"[-a]`
+  + Copies the file from the source path to the destination path.
+  + Use -a to append to the destination file if it exists.
+  + If the destination is a directory and the file name is not provided, the source file’s name is used.
 
-**1.4 Exit Command:**
-The shell recognizes the command "exit" as a signal to terminate the shell session. When the user inputs "exit", Shellio will exit its loop and show "Good Bye" then terminate.
++ `mv "source" "destination"[-f]`
+  + Moves the file from the source path to the destination path.
+  + Use -f to forcefully overwrite the destination file if it exists.
 
-**1.5 Error Handling:**
-Shellio uses fgets() to safely read user input, handling errors by printing a descriptive message if input reading fails.
++ `echo <message>`
+  + Prints the specified message to the terminal.
 
-**1.6 Buffer Management:**
-After processing the input, Shellio clears the buffer to prepare for the next command, ensuring that residual data from previous inputs does not interfere with new commands.
++ `clear`
+  + Clears the terminal screen.
+
++ `exit`
+  + Exits the Shellio terminal.
+
++ `help`
+  + Displays information about available commands.
+
+## Function Descriptions
++ **Shellio_GetPath:**
+Retrieves and prints the current working directory using the getcwd system call. If the directory cannot be retrieved, an error message is printed.
+
++ **Shellio_EchoInput:**
+Outputs a given string to the standard output. This simulates the echo command in a shell, printing the input string followed by a newline.
+
++ **Shellio_CopyFile:**
+Copies the content of a source file to a destination file. It supports both appending to the destination file or overwriting it based on global flags. If the move operation flag is set, the source file is deleted after copying.
+
++ **Shellio_FileOption:**
+Sets global flags based on the file operation option provided by the user. This function handles options like append (-a) and forced overwrite (-f) for file operations.
+
++ **Shellio_MoveFile:**
+Sets the global flag for moving a file. This function indicates whether the current operation is a move operation.
+
++ **Shellio_Help:**
+Displays a help menu with information on available commands in Shellio. It prints usage instructions for various Shellio commands.
+
+## Examples
++ Copying a file:
+```
+  cp /path/to/source.txt,/path/to/destination.txt
+```
+
++ Copying a file with append mode:
+```
+cp /path/to/source.txt,-a,/path/to/destination.txt
+```
+
++ Moving a file:
+```
+mv /path/to/source.txt,/path/to/destination.txt
+```
+
++ Moving a file with force overwrite:
+```
+mv /path/to/source.txt,-f,/path/to/destination.txt
+```
+
++ Printing a message:
+```
+echo Hello, Shellio!
+```
+
++ Clear Screen:
+```
+clear
+```
+
++ Exit from Shellio
+```
+exit
+```
+
++ Print help messags about commands
+```
+help
+```
+
++ Print Current Working Directory
+```
+pwd
+```
+
+## Build Instruction 
+To build the Shellio project, please follow the steps below. This section outlines the necessary dependencies, commands, and configurations required for a successful build.
+
+**Build Steps**
+1. Clone the Repository:
+First, clone the repository to your local machine using Git:
+```
+git clone https://github.com/ShehabAldeenMo/Shellio.git
+cd Shellio
+```
+
+2. Compilation:
+Compile the project using GCC. Navigate to the project directory and use the following command:
+```
+gcc -o shellio Shellio.c
+```
+
+3. Running the Shell:
+After successful compilation, you can run the shell by executing:
+```
+./shellio
+```
+
+**Configuration**
+No specific configuration is required for this project. However, ensure that you have the necessary permissions to execute and access the required files.
+
+> [!NOTE] 
+> If you encounter any issues during the build process, please check that all dependencies are correctly installed and that your compiler version is compatible with the project code.
+
+
+## Video 
+For more information, refer to the [ShellioTestCases](https://drive.google.com/file/d/1YvGFvpgqC-HBiqhc71-UJhNKyu2XEvZ4/view?usp=sharing) video.
