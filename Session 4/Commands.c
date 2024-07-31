@@ -711,7 +711,7 @@ void Shellio_ExecExternalCommands(uint8 *token) {
             if (*arg == '"') arg++; // Skip the closing quote
 
             args[argcounter++] = strdup(path);
-            //printf("path %d= %s\n", argcounter - 1, path);
+            printf("path %d= %s\n", argcounter - 1, path);
         } else {
             // Read until the next space or end of string
             end = strchr(arg, ' ');
@@ -731,10 +731,10 @@ void Shellio_ExecExternalCommands(uint8 *token) {
     args[argcounter] = NULL; // Null-terminate the argument array
 
     // Print arguments for debugging
-    /*printf("Executing command:\n");
+    printf("Executing command:\n");
     for (int i = 0; i < argcounter; i++) {
         printf("Arg %d: %s\n", i, args[i]);
-    }*/
+    }
 
     pid = fork();
 
