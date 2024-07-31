@@ -633,7 +633,6 @@ void Shellio_PrintEnv(){
     }
     printf("-------------------------------------------------------------------------\n");
 
-
     pushProcessHistory(sharedString, SUCCESS);
     cleanSharedString();
 }
@@ -677,46 +676,65 @@ void Shellio_TypeCommand(){
     cleanSharedString();
 }
 
-void Shellio_ExecExternalCommands(uint8 *token){
+// Function to execute external commands
+void Shellio_ExecExternalCommands(uint8 *token) {
     int status;
     pid_t pid, wpid;
-    char *args[MAX_ARGS] ;
-    uint8 argcounter = 0 ;
-    uint8* command = token ;
+    char *args[MAX_ARGS];
+    uint8 argcounter = 0;
+    char *command = token;
 
-    while (token != NULL && argcounter < MAX_ARGS) {
-        /* New buffer for get path into */
-        uint8 * str = strdup (sharedString) ;
+    // New buffer for getting path into
+    uint8 Cpstr[MAX_CHARACHTERS_OF_ONE_ARGUMENTS];
+    strncpy(Cpstr, sharedString, MAX_CHARACHTERS_OF_ONE_ARGUMENTS);
 
-        /* Check if element token begin with ", So it regard as path*/
-        if (token[0] == '"'){
-            /* buffer to store path*/
-            uint8 Argument[MAX_CHARACHTERS_OF_ONE_ARGUMENTS];
+    // Tokenize the input
+    char *arg = Cpstr;
+    char *end;
+    while (*arg != '\0' && argcounter < MAX_ARGS - 1) {
+        // Skip leading spaces
+        while (*arg == ' ') arg++;
 
-            uint8 i = 0 ;
-            while (str[i++] != '"'); // to begin pointing on " in this path
-            str++; // to skip "
-            
-            /* copy path */
-            while (str[i] != '\0' && str[i] != '"'){
-                Argument[i] = str[i] ;
-                i++;
+        // Handle paths enclosed in quotes
+        if (*arg == '"') {
+            arg++; // Skip the opening quote
+            char path[MAX_PATH];
+            size_t i = 0;
+
+            while (*arg != '"' && *arg != '\0') {
+                if (i < MAX_PATH - 1) {
+                    path[i++] = *arg;
+                }
+                arg++;
             }
-            Argument[i] = '\0';
+            path[i] = '\0'; // Null-terminate the path
+            if (*arg == '"') arg++; // Skip the closing quote
 
-            /* store path into args buffer */
-            args[argcounter++] = Argument ;
-
-            token = strtok(str, " ");
+            args[argcounter++] = strdup(path);
+            //printf("path %d= %s\n", argcounter - 1, path);
+        } else {
+            // Read until the next space or end of string
+            end = strchr(arg, ' ');
+            if (end == NULL) end = arg + strlen(arg);
+            char temp[MAX_PATH];
+            size_t len = end - arg;
+            if (len < MAX_PATH - 1) {
+                strncpy(temp, arg, len);
+                temp[len] = '\0';
+            } else {
+                temp[MAX_PATH - 1] = '\0';
+            }
+            arg = end;
+            args[argcounter++] = strdup(temp);
         }
-        else {
-            args[argcounter++] = token;
-            token = strtok(NULL, " ");
-        }
-
-        free(str);
     }
     args[argcounter] = NULL; // Null-terminate the argument array
+
+    // Print arguments for debugging
+    /*printf("Executing command:\n");
+    for (int i = 0; i < argcounter; i++) {
+        printf("Arg %d: %s\n", i, args[i]);
+    }*/
 
     pid = fork();
 
@@ -724,31 +742,35 @@ void Shellio_ExecExternalCommands(uint8 *token){
         perror("fork");
         pushProcessHistory(sharedString, FAILED);
         cleanSharedString();
-        return ;
-    }
-    else if (pid == 0) {
+        return;
+    } else if (pid == 0) {
         // Child process
-        execvp(command,(char**) args);
+        execvp(command, args);
         // If execvp returns, it must have failed
         perror("execvp");
-        printf("command not found\nEnter 'assist' to know Shellio commands\n");
+        printf("Command not found\nEnter 'assist' to know Shellio commands\n");
         pushProcessHistory(sharedString, FAILED);
         cleanSharedString();
-        return ;
-    }
-    else {
+        exit(EXIT_FAILURE);
+    } else {
+        // Parent process
         wpid = wait(&status);
 
-        if (wpid == INVALID_ID) {
-            perror("waitpid");
-            printf("command not found\nEnter 'assist' to know Shellio commands\n");
+        if (wpid == -1) {
+            perror("wait");
+            printf("Command failed\nEnter 'assist' to know Shellio commands\n");
             pushProcessHistory(sharedString, FAILED);
             cleanSharedString();
-            return ;
+            return;
+        }
+
+        if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+            pushProcessHistory(sharedString, SUCCESS);
+        } else {
+            pushProcessHistory(sharedString, FAILED);
         }
     }
 
-    pushProcessHistory(sharedString, SUCCESS);
     cleanSharedString();
 }
 
