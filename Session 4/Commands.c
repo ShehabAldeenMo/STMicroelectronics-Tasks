@@ -59,8 +59,17 @@ static void my_printf(const char *format, ...) ;
 
 /*===========================  Functions Implementations ======================*/
 void Shellio_GetPath() {
+    uint8 *delimiters = " 0";                   // Delimiters are space, comma, period, and exclamation mark
+    uint8 *token  = strtok(NULL, delimiters) ;  // to store each word into string
+
     /* Buffer of path */
     uint8 cwd[MAX_PATH];  // Array to store the current working directory path, with a maximum size defined by PATH_MAX
+
+    /* if pwd command isn't equal null, means that there is another input with. So, We should print error message*/
+    if (token != NULL){
+        printf("command not found\nEnter (help) to know Shellio Commands\n");
+        return ;
+    }
 
     /* to get our working directory */
     if (getcwd(cwd, sizeof(cwd)) != NULL) {  // Attempt to get the current working directory, storing it in cwd
@@ -70,18 +79,21 @@ void Shellio_GetPath() {
     }
 }
 
-void Shellio_EchoInput(const char* Copy_Statment) {
-    /* Check on passing parameter */
-    if (Copy_Statment == NULL){
-        my_printf ("Null passing parameter\n");
+void Shellio_EchoInput() {
+    uint8 *delimiters = "0";                   // Delimiters are space, comma, period, and exclamation mark
+    uint8 *token  = strtok(NULL, delimiters) ;  // to store each word into string
+
+    /* if command equals null, means that there is no input with. So, We should print error message*/
+    if (token == NULL){
+        printf("command not found\nEnter (help) to know Shellio Commands\n");
         return ;
     }
 
     /* get length of coming string */
-    size_t Loc_Count = strlen (Copy_Statment) ;
+    size_t Loc_Count = strlen (token) ;
 
     /* write operation*/
-    ssize_t ret = write(STDOUT, Copy_Statment,Loc_Count);
+    ssize_t ret = write(STDOUT, token,Loc_Count);
     
     /* Check on return value of sucessed written bytes on screen */
     if (ret < 0 ) {  // Check if the input string is not NULL
@@ -295,31 +307,40 @@ void Shellio_MoveFile(const char Copy_MoveFlag) {
 }
 
 void Shellio_Help (){
-    Shellio_EchoInput("-------------------------------------------------------------------------------\n");
-    Shellio_EchoInput("-------------------------------------------------------------------------------\n");
-    Shellio_EchoInput("pwd :: Display the current working directory\n");
-    Shellio_EchoInput("-------------------------------------------------------------------------------\n");
-    Shellio_EchoInput("cp  :: Copy file1 in path1 to to file2 in path2\n");
-    Shellio_EchoInput("cp PathOffile1,PathOffile2\n");
-    Shellio_EchoInput("cp PathOffile1,-a,PathOffile2\n");
-    Shellio_EchoInput("-> case file2 name isn't determinted, will create one with file1 name\n");
-    Shellio_EchoInput("-> case file2 name is given but unallocated, will create one with disred name\n");
-    Shellio_EchoInput("-> use -a to append to copied file\n");
-    Shellio_EchoInput("-------------------------------------------------------------------------------\n");
-    Shellio_EchoInput("mv  :: move file1 in path1 to to file2 in path2\n");
-    Shellio_EchoInput("mv PathOffile1,PathOffile2\n");
-    Shellio_EchoInput("mv PathOffile1,-f,PathOffile2\n");
-    Shellio_EchoInput("-> case file2 name isn't determinted, will create one with file1 name\n");
-    Shellio_EchoInput("-> case file2 name is given but unallocated, will create one with disred name\n");
-    Shellio_EchoInput("-> use -f to overwrite on existed file\n");
-    Shellio_EchoInput("-------------------------------------------------------------------------------\n");
-    Shellio_EchoInput("echo :: print on shellio termial\n");
-    Shellio_EchoInput("-------------------------------------------------------------------------------\n");
-    Shellio_EchoInput("clear:: clears shellio termial\n");
-    Shellio_EchoInput("-------------------------------------------------------------------------------\n");
-    Shellio_EchoInput("exit :: leave shellio terminal\n");
-    Shellio_EchoInput("-------------------------------------------------------------------------------\n");
-    Shellio_EchoInput("-------------------------------------------------------------------------------\n");
+    uint8 *delimiters = " 0";                   // Delimiters are space, comma, period, and exclamation mark
+    uint8 *token  = strtok(NULL, delimiters) ;  // to store each word into string
+
+    /* if command isn't equal null, means that there is another input with. So, We should print error message*/
+    if (token != NULL){
+        printf("command not found\nEnter (help) to know Shellio Commands\n");
+        return ;
+    } 
+
+    my_printf("-------------------------------------------------------------------------------\n");
+    my_printf("-------------------------------------------------------------------------------\n");
+    my_printf("pwd :: Display the current working directory\n");
+    my_printf("-------------------------------------------------------------------------------\n");
+    my_printf("cp  :: Copy file1 in path1 to to file2 in path2\n");
+    my_printf("cp PathOffile1,PathOffile2\n");
+    my_printf("cp PathOffile1,-a,PathOffile2\n");
+    my_printf("-> case file2 name isn't determinted, will create one with file1 name\n");
+    my_printf("-> case file2 name is given but unallocated, will create one with disred name\n");
+    my_printf("-> use -a to append to copied file\n");
+    my_printf("-------------------------------------------------------------------------------\n");
+    my_printf("mv  :: move file1 in path1 to to file2 in path2\n");
+    my_printf   ("mv PathOffile1,PathOffile2\n");
+    my_printf("mv PathOffile1,-f,PathOffile2\n");
+    my_printf("-> case file2 name isn't determinted, will create one with file1 name\n");
+    my_printf("-> case file2 name is given but unallocated, will create one with disred name\n");
+    my_printf("-> use -f to overwrite on existed file\n");
+    my_printf("-------------------------------------------------------------------------------\n");
+    my_printf("echo :: print on shellio termial\n");
+    my_printf("-------------------------------------------------------------------------------\n");
+    my_printf("clear:: clears shellio termial\n");
+    my_printf("-------------------------------------------------------------------------------\n");
+    my_printf("exit :: leave shellio terminal\n");
+    my_printf("-------------------------------------------------------------------------------\n");
+    my_printf("-------------------------------------------------------------------------------\n");
 }
 
 static void my_printf(const char *format, ...) {
@@ -427,4 +448,62 @@ static uint8* GetParsedPath(void){
 
     /* return actual path */
     return Path;
+}
+
+
+uint8 Shellio_Exit (){
+    uint8 *delimiters = " 0";                   // Delimiters are space, comma, period, and exclamation mark
+    uint8 *token  = strtok(NULL, delimiters) ;  // to store each word into string
+
+    /* if exit command isn't equal null, means that there is another input with. So, We should print error message*/
+    if (token != NULL){
+        printf("command not found\nEnter (help) to know Shellio Commands\n");
+        return FAILED;
+    } 
+    /* print leaving message */
+    printf("Good Bye\n");
+
+    return SUCCESS;
+}
+
+void Shellio_Clear (){
+    uint8 *delimiters = " 0";                   // Delimiters are space, comma, period, and exclamation mark
+    uint8 *token  = strtok(NULL, delimiters) ;  // to store each word into string
+
+    /* if command isn't equal null, means that there is another input with. So, We should print error message*/
+    if (token != NULL){
+        printf("command not found\nEnter (help) to know Shellio Commands\n");
+        return ;
+    } 
+    /* clear screen */
+    system("clear");
+}
+
+void Shellio_Copy (){
+    uint8 Arguments[MAX_ARGUMENTS][MAX_CHARACHTERS_OF_ONE_ARGUMENTS] = {0} ;            // store commands
+    uint8* token = strtok (NULL , "");
+    uint8  ArgCounter = 0 ;
+    uint8* Option = Shellio_ParsingPath(&ArgCounter,Arguments[SECOND_ARGUMENT], Arguments[THIRD_ARGUMENT] , token);
+
+    /* copy function call */
+    if (ArgCounter ==  ( MAX_ARGUMENTS -1 )  ){
+        Shellio_CopyFile (Arguments[SECOND_ARGUMENT],Arguments[THIRD_ARGUMENT]);  
+    }
+    else if (ArgCounter == MAX_ARGUMENTS ){
+        if (Option == NULL){
+            printf ("Error In Passing Option\n");
+        }
+
+        // to lift our static flag
+        char Status = Shellio_FileOption (Option);  
+                    
+        // to make our option 
+        if (Status == VALID){
+            Shellio_CopyFile (Arguments[SECOND_ARGUMENT],Arguments[THIRD_ARGUMENT]); 
+        }
+    }
+    else {
+        printf("command not found\nEnter (help) to know Shellio Commands\n");
+    }
+
 }

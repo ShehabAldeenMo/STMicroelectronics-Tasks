@@ -46,7 +46,11 @@
 #define FD_INVALID                           -1
 #define MAX_ARGUMENTS                         3
 #define MAX_CHARACHTERS_OF_ONE_ARGUMENTS     128
-
+#define SUCCESS                               1
+#define FAILED                                0
+#define FIRST_ARGUMENT                        0
+#define SECOND_ARGUMENT                       1
+#define THIRD_ARGUMENT                        2
 
 typedef unsigned char uint8;
 typedef unsigned int  uint16;
@@ -81,7 +85,7 @@ void Shellio_GetPath      ();
  * Notes            : The function does not modify the input string and assumes
  *                    that the string is properly null-terminated.
  */
-void Shellio_EchoInput    (const char* Copy_Statment);
+void Shellio_EchoInput    ();
 
 /*
  * Name             : Shellio_CopyFile
@@ -154,5 +158,9 @@ void Shellio_Help         ();
  * Return           : uint8* - Returns a pointer to any option identified in the input string, or NULL if no option is found.
  */
 uint8* Shellio_ParsingPath (uint8* ptr_ArgCounter,uint8* Ptr_1st_Path, uint8* Ptr_2nd_Path, uint8* Copy_token);
+
+uint8 Shellio_Exit ();
+void Shellio_Clear ();
+void Shellio_Copy ();
 
 #endif /* Header Gaurd */
