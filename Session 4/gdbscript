@@ -32,6 +32,7 @@ define ParseCommand
 
 end
 
+
 document ParseCommand
 	The purpose of this GDB script is to parse and print the contents of the sharedString variable, character by character, in a running	      program.	
 
