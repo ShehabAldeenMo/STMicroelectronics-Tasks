@@ -212,7 +212,7 @@ No specific configuration is required for this project. However, ensure that you
 > If you encounter any issues during the build process, please check that all dependencies are correctly installed and that your compiler version is compatible with the project code.
 
 ## GDB Script
-(Parse Command) The purpose of this GDB script is to parse and print the contents of the sharedString variable, character by character, in a running	program.
+**Parse Command** The purpose of this GDB script is to parse and print the contents of the sharedString variable, character by character, in a running	program.
 
 ## Video 
 For more information, refer to the [ShellioExtension](https://drive.google.com/file/d/1Z_O5qnkvb15eSDk8xQGERKtIijxOo8D2/view?usp=sharing) video.
