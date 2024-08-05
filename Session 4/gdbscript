@@ -1,0 +1,38 @@
+define ParseCommand
+	# Print the address and content of sharedString
+	printf "Full Command :: %s\n" , sharedString
+
+	# Print each character of sharedString until a null character is encountered
+	set $ptr = sharedString
+	set $i = 1
+
+	printf "Command   : "
+
+	while (*$ptr != '\0')
+		if (*$ptr != ' ')
+			if (*$ptr == '"')
+				set $ptr++
+				while(*$ptr != '"')
+					printf "%c", *$ptr
+					set $ptr++
+				end
+			else
+				printf "%c", *$ptr
+			end
+		else 
+			printf "\n"
+			printf "operand %d : ", $i
+			set $i = $i+1
+		end
+    		
+		set $ptr++
+	end
+	
+	printf "\n"	
+
+end
+
+document ParseCommand
+	The purpose of this GDB script is to parse and print the contents of the sharedString variable, character by character, in a running	      program.	
+
+end
