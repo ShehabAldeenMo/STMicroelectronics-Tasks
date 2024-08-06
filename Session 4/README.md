@@ -211,10 +211,24 @@ No specific configuration is required for this project. However, ensure that you
 > [!NOTE] 
 > If you encounter any issues during the build process, please check that all dependencies are correctly installed and that your compiler version is compatible with the project code.
 
+-------------------------------------------------------------------------------------------------------------------
+
 ## Gdb Script
-**Parse Command**: <br />
-The purpose of this GDB script is to parse and print the contents of the sharedString variable, character by character, in a running	program.
+
+### Overview
+
+This GDB script provides tools for analyzing and debugging your program by displaying the contents of specific variables, tracking error states, and showing global state information. It includes commands to parse command details, count and display error states, and display global variables.
+
+### Commands
+`ParseCommand`
++ The `ParseCommand` command helps in parsing and printing the contents of the sharedString variable, character by character, providing visibility into the command and its operands.
+
+`state`
++ The `state` command is used to monitor and verify the states recorded in the process history stack. It counts the number of invalid states and compares it against a threshold, issuing a warning if the threshold is exceeded.
+
+`DisplayGlobalVariables`
++ The `DisplayGlobalVariables` command assists in monitoring and verifying the values of global variables that affect built-in commands and overall program behavior
 
 ## Video 
 For more information, refer to the [ShellioExtension](https://drive.google.com/file/d/1Z_O5qnkvb15eSDk8xQGERKtIijxOo8D2/view?usp=sharing) video.<br />
-For GDB usage refer to [GDB Task](https://drive.google.com/file/d/1VSCTlDdLTB5_fs3Q54X4z_g7njjMshai/view?usp=sharing) video.
+For GDB usage refer to [GDB Task](https://drive.google.com/file/d/1jFxPHfYtqyRKwURik8mhXEFwEMhw97SL/view?usp=drive_link) video.
