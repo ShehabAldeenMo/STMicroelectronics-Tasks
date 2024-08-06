@@ -113,9 +113,12 @@ static uint8 SearchOnCommand (uint8 * token);
 
 
 /*===========================  Functions Implementations ======================*/
-void Shellio_GetPath() {
+void Shellio_GetPath(uint8* command) {
     const char *delimiters = " 0";  // Delimiters are space and tab characters
     char *token = strtok(NULL, delimiters);  // Tokenize the input string
+    /* For gdb script debugging*/
+    uint8 NumOfoperand = 0 ;
+    uint8* Operand[1] = {NULL};
 
     /* Buffer for storing the current working directory */
     char cwd[MAX_PATH];  // Array to store the current working directory path, with a maximum size defined by MAX_PATH
@@ -140,9 +143,13 @@ void Shellio_GetPath() {
 }
 
 
-void Shellio_EchoInput() {
+void Shellio_EchoInput(uint8* command) {
     uint8 *delimiters = "0";                   // Delimiters are space, comma, period, and exclamation mark
     uint8 *token  = strtok(NULL, delimiters) ;  // to store each word into string
+    /* For gdb script debugging*/
+    uint8 NumOfoperand = 1 ;
+    uint8* Operand[1];
+    Operand[0] = token ;
 
     /* if command equals null, means that there is no input with. So, We should print error message*/
     if (token == NULL){
@@ -395,9 +402,12 @@ void Shellio_MoveFile(const char Copy_MoveFlag) {
     }
 }
 
-void Shellio_Help (){
+void Shellio_Help (uint8* command){
     uint8 *delimiters = " 0";                   // Delimiters are space, comma, period, and exclamation mark
     uint8 *token  = strtok(NULL, delimiters) ;  // to store each word into string
+    /* For gdb script debugging*/
+    uint8 NumOfoperand = 0 ;
+    uint8* Operand[1] = {NULL};
 
     /* if command isn't equal null, means that there is another input with. So, We should print error message*/
     if (token != NULL){
@@ -544,9 +554,12 @@ static uint8* GetParsedPath(void){
 }
 
 
-uint8 Shellio_Exit (){
+uint8 Shellio_Exit (uint8* command){
     uint8 *delimiters = " 0";                   // Delimiters are space, comma, period, and exclamation mark
     uint8 *token  = strtok(NULL, delimiters) ;  // to store each word into string
+    /* For gdb script debugging*/
+    uint8 NumOfoperand = 0 ;
+    uint8* Operand[1] = {NULL};
 
     /* if exit command isn't equal null, means that there is another input with. So, We should print error message*/
     if (token != NULL){
@@ -559,9 +572,12 @@ uint8 Shellio_Exit (){
     return (uint8)SUCCESS;
 }
 
-void Shellio_Clear (){
+void Shellio_Clear (uint8* command){
     uint8 *delimiters = " 0";                   // Delimiters are space, comma, period, and exclamation mark
     uint8 *token  = strtok(NULL, delimiters) ;  // to store each word into string
+    /* For gdb script debugging*/
+    uint8 NumOfoperand = 0 ;
+    uint8* Operand[1] = {NULL};
 
     /* if command isn't equal null, means that there is another input with. So, We should print error message*/
     if (token != NULL){
@@ -578,11 +594,14 @@ void Shellio_Clear (){
     system("clear");
 }
 
-void Shellio_Copy (){
+void Shellio_Copy (uint8* command){
     uint8 Arguments[MAX_ARGUMENTS][MAX_CHARACHTERS_OF_ONE_ARGUMENTS] = {0} ;            // store commands
     uint8* token = strtok (NULL , "");
     uint8  ArgCounter = 0 ;
     uint8* Option = Shellio_ParsingPath(&ArgCounter,Arguments[SECOND_ARGUMENT], Arguments[THIRD_ARGUMENT] , token);
+    /* For gdb script debugging*/
+    uint8 NumOfoperand = 3 ;
+    uint8* Operand[3] = {Arguments[SECOND_ARGUMENT],Option,Arguments[THIRD_ARGUMENT]};
 
     /* copy function call */
     if (ArgCounter ==  ( MAX_ARGUMENTS -1 )  ){
@@ -609,8 +628,13 @@ void Shellio_Copy (){
 
 
 
-void Shellio_PrintEnvVar(uint8* copy_token){
+void Shellio_PrintEnvVar(uint8* command,uint8* copy_token){
     char *path_env = getenv(copy_token);
+
+    /* For gdb script debugging*/
+    uint8 NumOfoperand = 1 ;
+    uint8* Operand[1];
+    Operand[0] = copy_token ;
 
     if (path_env == NULL) {
         printf("This variable isn't existed :: %s\n",copy_token);
@@ -623,8 +647,12 @@ void Shellio_PrintEnvVar(uint8* copy_token){
         cleanSharedString();
     }
 }
-void Shellio_PrintEnv(){
+void Shellio_PrintEnv(uint8* command){
     char **env = environ;
+
+    /* For gdb script debugging*/
+    uint8 NumOfoperand = 0 ;
+    uint8* Operand[1] = {NULL};
 
     printf("-------------------------------------------------------------------------\n");
     while (*env) {
@@ -638,8 +666,13 @@ void Shellio_PrintEnv(){
 }
 
 
-void Shellio_TypeCommand(){
+void Shellio_TypeCommand(uint8* command){
     uint8* token = strtok (NULL," ");
+
+    /* For gdb script debugging*/
+    uint8 NumOfoperand = 1 ;
+    uint8* Operand[1];
+    Operand[0] = token ;
 
     if (strcmp (token,"leave") == EQUALED)
         printf("It is an built-in command :: %s\n",token);
@@ -774,9 +807,14 @@ void Shellio_ExecExternalCommands(uint8 *token) {
     cleanSharedString();
 }
 
-void Shellio_ChangeDir(){
+void Shellio_ChangeDir(uint8* command){
     const char *delimiters = "0";  // Delimiters are space and tab characters
     char *token = strtok(NULL, delimiters);  // Tokenize the input string
+
+    /* For gdb script debugging*/
+    uint8 NumOfoperand = 1 ;
+    uint8* Operand[1];
+    Operand[0] = token ;
 
     /* Check if there is any additional input after the 'pwd' command */
     if (token == NULL) {
@@ -798,7 +836,11 @@ void Shellio_ChangeDir(){
 }
 
 
-void Shellio_Phist(){
+void Shellio_Phist(uint8* command){
+    /* For gdb script debugging*/
+    uint8 NumOfoperand = 0 ;
+    uint8* Operand[1] = {NULL};
+
     printf("Process History:\n");
     for (int i = processCounter-1 ; i >= 0 ; i--) {
         printf("%d\tCommand: %s\tStatus: %d\n",i, PtrProcessHistory[i]->command, PtrProcessHistory[i]->status);

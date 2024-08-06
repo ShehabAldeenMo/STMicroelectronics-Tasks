@@ -48,7 +48,7 @@ int main() {
         if (token != NULL){
             /* print goodby then exit */ 
             if (strcmp (token,"leave") == EQUALED){
-                uint8 status = Shellio_Exit();
+                uint8 status = Shellio_Exit(token);
 
                 /* exit if it successed state */
                 if (status == SUCCESS ){
@@ -57,43 +57,44 @@ int main() {
             }
             /* clear screen with clear command */ 
             else if (strcmp (token,"cls") == CLEARED){
-                Shellio_Clear();
+                Shellio_Clear(token);
             }
             /* get absolute path of current working directory */
             else if (strcmp (token,"path") == PWD_PASS ){
-                Shellio_GetPath();
+                Shellio_GetPath(token);
             }
             else if (strcmp (token,"display") == ECHO_PASS ){
-                Shellio_EchoInput();
+                Shellio_EchoInput(token);
             }
             else if (strcmp (token,"assist") == HELP_PASS){
-                Shellio_Help ();
+                Shellio_Help (token);
             }
             else if (strcmp (token,"clone") == COPY_PASS ){
-                Shellio_Copy ();
+                Shellio_Copy (token);
             }
             else if (strcmp (token,"shift") == MV_PASS ){
                 Shellio_MoveFile (strcmp(token,"shift"));
-                Shellio_Copy ();
+                Shellio_Copy (token);
             }
             else if (strcmp(token, "cd") == CD_PASS) {
-                Shellio_ChangeDir();
-            } 
+                Shellio_ChangeDir(token);
+            }
             else if (strcmp(token, "type") == TYPE_PASS) {
-                Shellio_TypeCommand();
+                Shellio_TypeCommand(token);
             } 
             else if (strcmp(token, "envir") == ENV_PASS) {
-                /* check on arguments */
-                token = strtok(NULL, delimiters);
+                uint8 * command = strdup(token) ;
+                token = strtok(NULL, delimiters) ;
 
                 if (token == NULL) {
-                    Shellio_PrintEnv();
+                    Shellio_PrintEnv(command);
                 } else {
-                    Shellio_PrintEnvVar(token);
+                    Shellio_PrintEnvVar(command,token);
                 }
+                free (command);
             } 
             else if (strcmp(token, "phist") == EXIT) {
-                Shellio_Phist();
+                Shellio_Phist(token);
             }
             else {
                 Shellio_ExecExternalCommands(token);
@@ -114,32 +115,32 @@ int main() {
 /*
 
 1- Source file isn't correct
-cp "/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/Shehab.txt" "/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt"
+clone "/home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Tasks/Session 3/Shehab.txt" "/home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Tasks/Session 3/file.txt"
 
 2- Same sourc and destination
-cp "/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt" "/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt"
+clone "/home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Tasks/Session 3/file.txt" "/home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Tasks/Session 3/file.txt"
 
 3- Normally copy
-cp "/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt" "/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/copiedfile.txt"
-cp "/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt" "/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3"
+clone "/home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Tasks/Session 3/file.txt" "/home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Tasks/copiedfile.txt"
+clone "/home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Tasks/Session 3/file.txt" "/home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Tasks/Session 3"
 
 4- Wrong destination
-cp "/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt" "/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Wrong/hgv"
+clone "/home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Tasks/Session 3/file.txt" "/home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Tasks/Session 3/Wrong/hgv"
 
 5- Append
-cp "/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt" -a "/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/copiedfile.txt"
+clone "/home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Tasks/Session 3/file.txt" -a "/home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Tasks/Session 3/copiedfile.txt"
 
 6- Wrong option
-cp "/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt" -f "/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/copiedfile.txt"
+clone "/home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Tasks/Session 3/file.txt" -f "/home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Tasks/Session 3/copiedfile.txt"
 
 7- mv with different directory
-mv "/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/file.txt" "/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/file.txt"
+shift "/home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Tasks/Session 3/file.txt" "/home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Tasks/file.txt"
  
 8- mv with forced option on file
-    mv "/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/copiedfile.txt" -f "/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/file.txt"
+shift "/home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Tasks/Session 3/copiedfile.txt" -f "//home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Tasks/Session 3/file.txt"
 
 9- mv with no forced option on file
-mv "/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/Session 3/fileMove.txt" "/home/shehab/Desktop/Embedded Linux Track/STMicroelectronics Internship/STMicroelectronics-Tasks/file.txt"
+shift "/home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Tasks/Session 3/fileMove.txt" "/home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Tasks/file.txt"
 
 
 */
