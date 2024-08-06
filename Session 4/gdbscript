@@ -60,7 +60,6 @@ define DisplayGlobalVariables
     printf "--------------------------------------------------------------------------------------------\n"
 end
 
-# Document commands for clarity
 document ParseCommand
     ParseCommand: The purpose of this GDB script is to parse and print the contents of the sharedString variable, character by character, in a running program.
 end
