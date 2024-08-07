@@ -1,0 +1,74 @@
+# Define ParseCommand to parse and print the contents of sharedString
+define ParseCommand
+    set $N_Operand = NumOfoperand
+	set $ArrayOfOperand = Operand
+    set $i = 0
+
+    printf "Command   : %s\n",command
+
+	if ($N_Operand == 0)
+		printf "No Operands\n"
+	else
+		while $i <= $N_Operand
+			printf "Operand %d : %s\n",$i+1,$ArrayOfOperand[$i]
+			set $i = $i + 1
+		end
+	end
+end
+
+# Define State to count and display the number of FAILED states
+define state
+	# Initialize invalid count and max errors
+	set $max_errors = 5
+	set $error_count = 0
+	
+	set $i=0
+	while ($i<processCounter)
+		if PtrProcessHistory[$i]->status == 0
+			set $error_count = $error_count + 1
+		end
+	   set $i=$i+1
+	end
+
+    # Print the invalid count
+    printf "Number of invalid states: %d\n", $error_count
+
+	# Check if the invalid count exceeds the maximum allowed
+	if $error_count > $max_errors
+		printf "Warning: Error states exceeded threshold! Check for corruption.\n"
+	end
+end
+
+
+# Define DisplayGlobalVariables to show the state of global variables
+define DisplayGlobalVariables
+    printf "--------------------------------------------------------------------------------------------\n"
+    printf "' Used to detect that the coming option for built-in command (clone) have append option (-a) or not : '\n"
+    printf "GlobalAppendFlag = %d\n", GlobalAppendFlag
+    printf "--------------------------------------------------------------------------------------------\n"
+    printf "' Used to detect that the coming option for built-in command (shift) have forced option (-f)  or not : '\n"
+    printf "GlobalMoveForcedFlag = %d\n", GlobalMoveForcedFlag
+    printf "--------------------------------------------------------------------------------------------\n"
+    printf "' Used to detect to distinguish between (shift) or (clone) operation : '\n"
+    printf "GlobalMoveOperation = %d\n", GlobalMoveOperation
+    printf "--------------------------------------------------------------------------------------------\n"
+    printf "' Used to track the current position in the input string during parsing : '\n"
+    printf "Ptr_GlobalGetParsingPath = %s\n", Ptr_GlobalGetParsingPath
+    printf "--------------------------------------------------------------------------------------------\n"
+    printf "' Used to show coming command from user : '\n"
+    printf "sharedString = %s\n", sharedString
+    printf "--------------------------------------------------------------------------------------------\n"
+end
+
+# Document commands for clarity
+document ParseCommand
+    ParseCommand: The purpose of this GDB script is to parse and print the contents of the sharedString variable, character by character, in a running program.
+end
+
+document DisplayGlobalVariables
+    DisplayGlobalVariables: The command helps in monitoring and verifying the values of global variables that influence the behavior of built-in commands such as `clone` and `shift`. It also shows the current command input and other relevant global state information.
+end
+
+document state
+	state: This command helps in monitoring and verifying the states recorded in the process history stack. It counts the number of `FAILED` states and compares it against a predefined threshold. If the number of invalid states exceeds the threshold, a warning is issued to indicate potential corruption or issues in the process history. Additionally, it displays relevant global state information, including pointers and status values, to assist in debugging.
+end

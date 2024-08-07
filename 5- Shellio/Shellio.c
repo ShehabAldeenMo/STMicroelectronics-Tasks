@@ -27,8 +27,8 @@ int main() {
     do {
         /* Enter your commend */
         printPrompt();
-        char cwd[MAX_PATH]; 
-        getcwd(cwd, sizeof(cwd));
+        char cwd[MAX_PATH];
+        strcpy(cwd,GetPathWithoutToken() ) ;
         printf("%s%s%s >> ",COLOR_BOLD_CYAN,cwd,COLOR_RESET);
         
         /* Use fgets to read a whole line of input including spaces */ 
@@ -134,6 +134,7 @@ clone "/home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Ta
 clone "/home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Tasks/Session 3/file.txt" "/home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Tasks/Session 3/file.txt"
 
 3- Normally copy
+clone "file.txt" "/home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Tasks/copiedfile.txt"
 clone "/home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Tasks/Session 3/file.txt" "/home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Tasks/copiedfile.txt"
 clone "/home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Tasks/Session 3/file.txt" "/home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Tasks/Session 3"
 
