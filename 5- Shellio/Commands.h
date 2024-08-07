@@ -28,6 +28,8 @@
 #include <fcntl.h>
 #include <stdarg.h>
 #include <sys/wait.h>
+#include <pwd.h>
+
 
 /*==================================  Definitions ===========================*/
 #define MAX_PATH                             1024
@@ -76,6 +78,39 @@
 #define INVALID_ID                           -1
 
 
+// Regular Colors
+#define COLOR_BLACK "\033[0;30m"
+#define COLOR_RED "\033[0;31m"
+#define COLOR_GREEN "\033[0;32m"
+#define COLOR_YELLOW "\033[0;33m"
+#define COLOR_BLUE "\033[0;34m"
+#define COLOR_MAGENTA "\033[0;35m"
+#define COLOR_CYAN "\033[0;36m"
+#define COLOR_WHITE "\033[0;37m"
+
+// Bold Colors
+#define COLOR_BOLD_BLACK "\033[1;30m"
+#define COLOR_BOLD_RED "\033[1;31m"
+#define COLOR_BOLD_GREEN "\033[1;32m"
+#define COLOR_BOLD_YELLOW "\033[1;33m"
+#define COLOR_BOLD_BLUE "\033[1;34m"
+#define COLOR_BOLD_MAGENTA "\033[1;35m"
+#define COLOR_BOLD_CYAN "\033[1;36m"
+#define COLOR_BOLD_WHITE "\033[1;37m"
+
+// Background Colors
+#define BACKGROUND_BLACK "\033[40m"
+#define BACKGROUND_RED "\033[41m"
+#define BACKGROUND_GREEN "\033[42m"
+#define BACKGROUND_YELLOW "\033[43m"
+#define BACKGROUND_BLUE "\033[44m"
+#define BACKGROUND_MAGENTA "\033[45m"
+#define BACKGROUND_CYAN "\033[46m"
+#define BACKGROUND_WHITE "\033[47m"
+
+// Reset
+#define COLOR_RESET "\033[0m"
+
 
 typedef unsigned char uint8;
 typedef unsigned int  uint16;
@@ -93,7 +128,7 @@ typedef unsigned int  uint16;
  * Notes            : If retrieving the current directory fails (e.g., due to permissions 
  *                    issues or the directory being removed), an error message is printed using `perror`.
  */
-void Shellio_GetPath();
+void Shellio_GetPath(uint8* command);
 
 /*
  * Name             : Shellio_EchoInput
@@ -105,7 +140,7 @@ void Shellio_GetPath();
  * Return           : None
  * Notes            : Assumes the input string is null-terminated and does not alter it.
  */
-void Shellio_EchoInput();
+void Shellio_EchoInput(uint8* command);
 
 /*
  * Name             : Shellio_CopyFile
@@ -155,7 +190,7 @@ void Shellio_MoveFile(const char  Copy_MoveFlag);
  * Output           : None
  * Return           : None
  */
-void Shellio_Help();
+void Shellio_Help(uint8* command);
 
 /*
  * Name             : Shellio_ParsingPath
@@ -182,7 +217,7 @@ uint8* Shellio_ParsingPath(uint8* ptr_ArgCounter, uint8* Ptr_1st_Path, uint8* Pt
  * Return           : uint8 - Status code indicating the success or failure of the exit operation.
  * Notes            : This function is typically called when the "exit" command is entered by the user.
  */
-uint8 Shellio_Exit();
+uint8 Shellio_Exit(uint8* command);
 
 /*
  * Name             : Shellio_Clear
@@ -195,7 +230,7 @@ uint8 Shellio_Exit();
  * Return           : None
  * Notes            : The implementation may vary depending on the operating system and terminal environment.
  */
-void Shellio_Clear();
+void Shellio_Clear(uint8* command);
 
 /*
  * Name             : Shellio_Copy
@@ -207,7 +242,7 @@ void Shellio_Clear();
  * Return           : None
  * Notes            : It typically involves calling `Shellio_CopyFile` with appropriate arguments.
  */
-void Shellio_Copy();
+void Shellio_Copy(uint8* command);
 
 /*
  * Name             : Shellio_PrintEnvVar
@@ -219,7 +254,7 @@ void Shellio_Copy();
  * Return           : None
  * Notes            : The process history is updated with either SUCCESS or FAILED based on the outcome.
  */
-void Shellio_PrintEnvVar(uint8* copy_token);
+void Shellio_PrintEnvVar(uint8* command,uint8* copy_token);
 
 /*
  * Name             : Shellio_TypeCommand
@@ -231,7 +266,7 @@ void Shellio_PrintEnvVar(uint8* copy_token);
  * Return           : None
  * Notes            : The function does not execute the command, only identifies its type.
  */
-void Shellio_TypeCommand();
+void Shellio_TypeCommand(uint8* command);
 
 /*
  * Name             : Shellio_PrintEnv
@@ -243,7 +278,7 @@ void Shellio_TypeCommand();
  * Return           : None
  * Notes            : The function retrieves the environment variables from the global 'environ' array.
  */
-void Shellio_PrintEnv();
+void Shellio_PrintEnv(uint8* command);
 
 /*
  * Name             : Shellio_ChangeDir
@@ -254,7 +289,7 @@ void Shellio_PrintEnv();
  * Return           : None
  * Notes            : The function uses the `chdir` system call to change the directory.
  */
-void Shellio_ChangeDir();
+void Shellio_ChangeDir(uint8* command);
 
 /*
  * Name             : Shellio_Phist
@@ -265,7 +300,7 @@ void Shellio_ChangeDir();
  * Return           : None
  * Notes            : The process history stack is managed using an array of pointers.
  */
-void Shellio_Phist();
+void Shellio_Phist(uint8* command);
 
 /*
  * Name             : setSharedString
@@ -313,5 +348,10 @@ void pushProcessHistory(const uint8 *command, uint8 status) ;
  * Notes            : The function updates the process history based on the success or failure of the command execution.
  */
 void Shellio_ExecExternalCommands(uint8 *token);
+
+
+const char* getUserName() ;
+void getHostName(char *hostname, size_t size) ;
+void printPrompt() ;
 
 #endif /* Header Guard */
