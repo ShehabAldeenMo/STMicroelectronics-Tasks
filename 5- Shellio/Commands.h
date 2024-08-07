@@ -353,5 +353,6 @@ void Shellio_ExecExternalCommands(uint8 *token);
 const char* getUserName() ;
 void getHostName(char *hostname, size_t size) ;
 void printPrompt() ;
+uint8* GetPathWithoutToken();
 
 #endif /* Header Guard */

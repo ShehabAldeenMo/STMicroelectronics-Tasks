@@ -456,8 +456,10 @@ static void my_printf(const char *format, ...) {
 uint8* Shellio_ParsingPath (uint8* ptr_ArgCounter,uint8* Ptr_1st_Path,
                                     uint8* Ptr_2nd_Path, uint8* Copy_token){
     /* buffer the return from GetParsedPath() */
-    uint8 *Buf ;
+    uint8 Buf[MAX_PATH/2] ;
     static uint8 Option[3]; // tp prevent danglying pointer
+    uint8 NumOfoperand = 3 ;
+    uint8* command = "clone";
 
     /* Set global pointer to the input of mv function or cp function */
     if (Copy_token == NULL){
@@ -472,7 +474,15 @@ uint8* Shellio_ParsingPath (uint8* ptr_ArgCounter,uint8* Ptr_1st_Path,
         printf("Error In Passing Paths\n");
         return NULL;
     }
-    strcpy ( Ptr_1st_Path ,Buf);   
+
+    /* handle relative paths */
+    char keyword[] = "/home/shehabaldeen";
+    char *found = strstr(Buf, keyword);
+    if (found != NULL) {
+        strcpy ( Ptr_1st_Path ,Buf); 
+    } else {
+        snprintf(Ptr_1st_Path, MAX_PATH, "%s/%s", GetPathWithoutToken (), Buf);
+    }
     (*ptr_ArgCounter)++;  // counting parameters
 
     /* To discard the second double quote of given path(")*/
@@ -503,8 +513,17 @@ uint8* Shellio_ParsingPath (uint8* ptr_ArgCounter,uint8* Ptr_1st_Path,
         printf("Error In Passing Paths\n");
         return NULL;
     }
-    strcpy ( Ptr_2nd_Path , Buf );
+
+    /* handle relative paths */
+    found = strstr(Buf, keyword);
+    if (found != NULL) {
+        strcpy ( Ptr_2nd_Path ,Buf); 
+    } else {
+        snprintf(Ptr_2nd_Path, MAX_PATH, "%s/%s", GetPathWithoutToken (), Buf);
+    }
     (*ptr_ArgCounter)++;  // counting parameters
+
+    uint8* Operand[3] = {Ptr_1st_Path,Option,Ptr_2nd_Path} ;
 
     return Option ;
 }
@@ -512,6 +531,9 @@ uint8* Shellio_ParsingPath (uint8* ptr_ArgCounter,uint8* Ptr_1st_Path,
 static uint8* GetParsedPath(void){
     /* buffer of stored path*/
     static uint8* Path = NULL ; // static to prevent dangling pointer
+    uint8 NumOfoperand = 1 ;
+    uint8* Operand[1] ;
+    uint8* command = "clone";
 
     if (Ptr_GlobalGetParsingPath == NULL) {
         my_printf("Error: Ptr_GlobalGetParsingPath is NULL\n");
@@ -548,6 +570,8 @@ static uint8* GetParsedPath(void){
 
     /* Null terminator */
     Path[i] = '\0';
+
+    Operand[0] =  Path ;
 
     /* return actual path */
     return Path;
@@ -815,6 +839,10 @@ void Shellio_ChangeDir(uint8* command){
     uint8 NumOfoperand = 1 ;
     uint8* Operand[1];
     Operand[0] = token ;
+    char keyword[] = "/home/shehabaldeen";
+
+    uint8 AbsolutePath[MAX_PATH];
+    strcpy(AbsolutePath ,token);
 
     /* Check if there is any additional input after the 'pwd' command */
     if (token == NULL) {
@@ -824,8 +852,31 @@ void Shellio_ChangeDir(uint8* command){
         return;
     }
 
+    /* handle relative paths */
+    char *found = strstr(token, keyword);
+    if (found == NULL) {
+        found = strstr(token,"../");
+        if (found != NULL){
+            uint8* path = GetPathWithoutToken();
+            uint8* BaseName = basename(path);
+            uint8 len_path = strlen(path);
+            uint8 len_BaseName = strlen(BaseName);
+            uint8 len = (len_path-len_BaseName) ;
+
+            // Copy the substring to the destination
+            strncpy(AbsolutePath, path , len );
+            AbsolutePath[len] = '\0';
+            len++;
+        }
+        else {
+            snprintf(AbsolutePath, MAX_PATH, "%s/%s", GetPathWithoutToken (), token);
+        }
+    } 
+
+    Operand[0] = AbsolutePath ; // for debugging by gdb
+
     /* Get the current working directory */
-    if (chdir(token) == EXIST) {  // Attempt to get the current working directory, storing it in cwd
+    if (chdir(AbsolutePath) == EXIST) {  // Attempt to get the current working directory, storing it in cwd
         pushProcessHistory(sharedString, SUCCESS);
     } else {
         pushProcessHistory(sharedString, FAILED);
@@ -952,3 +1003,9 @@ void printPrompt() {
     printf("@%s%s%s:", COLOR_BOLD_GREEN,host, COLOR_RESET);
 }
 
+uint8* GetPathWithoutToken(){
+    // to avoid dangling pointer
+    static char cwd[MAX_PATH]; 
+    getcwd(cwd, sizeof(cwd));
+    return cwd ;
+}
