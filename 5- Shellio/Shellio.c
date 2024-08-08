@@ -6,136 +6,141 @@
  *
  =============================================================================
  * @Notes:
- * Shellio is a simple, custom command-line shell designed to interact with users through a terminal interface. 
- * It provides a basic environment for entering and processing commands. Few commands: pwd, cp, mv, exit, clear,
- * echo.
+ * Shellio is a custom command-line shell designed to provide a simple interface 
+ * for users to interact with the system. It allows the execution of both built-in 
+ * commands (like path, clone, shift, leave, cls, display) and external programs. The shell 
+ * supports local and environment variables, redirection, command history, and more.
+ * The command execution is enhanced by custom handling of errors and outputs. The 
+ * shell also includes features for displaying system information like memory usage 
+ * and uptime.
  ******************************************************************************
  ==============================================================================
 */
 
 /*===================================  Includes ===============================*/
-#include "Shellio.h"
+#include "Shellio.h"   // Include the header file that contains function declarations and macros for the Shellio program
 
 /*===================================  Main Code ==============================*/
 int main() {
     /* Initiliazations */
-    char str[MAXSIZE] = {0} ;          // buffer of input command
-    char *delimiters = " 0";           // Delimiters are space, comma, period, and exclamation mark
-    uint8 *token ;                     // to store each word into string
-    uint8* separators = "============================================================================================";
+    char str[MAXSIZE] = {0};           // Buffer to store the input command from the user
+    char *delimiters = " 0";           // Delimiters for tokenizing input, using space and null character as delimiters
+    uint8 *token;                      // Pointer to store each word of the command as a token
+    uint8* separators = "============================================================================================";  // Separator line for formatting output
 
     do {
-        /* Enter your commend */
-        printPrompt();
-        char cwd[MAX_PATH];
-        strcpy(cwd,GetPathWithoutToken() ) ;
-        printf("%s%s%s >> ",COLOR_BOLD_CYAN,cwd,COLOR_RESET);
-        
+        /* Enter your command */
+        printPrompt();                 // Function to print the shell prompt to the user
+        char cwd[MAX_PATH];            // Buffer to store the current working directory path
+        strcpy(cwd, GetPathWithoutToken());  // Get the current working directory path and copy it to 'cwd'
+        printf("%s%s%s >> ", COLOR_BOLD_CYAN, cwd, COLOR_RESET);  // Print the current working directory in cyan color
+
         /* Use fgets to read a whole line of input including spaces */ 
-        if (fgets(str, MAXSIZE, stdin) == NULL) {
-            perror("fgets failed");
-            continue;
+        if (fgets(str, MAXSIZE, stdin) == NULL) {  // Read the input from the user
+            perror("fgets failed");  // Print an error message if fgets fails
+            continue;  // Skip to the next iteration of the loop
         }
 
         /* Remove trailing newline character, if present */ 
-        size_t len = strlen(str);
-        if (len > 0 && str[len-1] == '\n') {
-            str[len-1] = '\0';
+        size_t len = strlen(str);  // Get the length of the input string
+        if (len > 0 && str[len-1] == '\n') {  // Check if the last character is a newline
+            str[len-1] = '\0';  // Replace the newline character with a null terminator
         }
 
-        // to share this input unto history
-        setSharedString(str);
+        // To share this input into the history
+        setSharedString(str);  // Store the input command in a global history buffer
 
         /* Initial call to strtok */ 
-        token = strtok(str, delimiters);
+        token = strtok(str, delimiters);  // Tokenize the input string using the specified delimiters
 
-        if (token != NULL){
-            /* print goodby then exit */ 
-            if (strcmp (token,"leave") == EQUALED){
-                uint8 status = Shellio_Exit(token);
+        if (token != NULL) {  // If a token was found
+            /* print goodbye then exit */ 
+            if (strcmp(token, "leave") == EQUALED) {  // If the command is 'leave'
+                uint8 status = Shellio_Exit(token);  // Call the exit function
 
-                /* exit if it successed state */
-                if (status == SUCCESS ){
-                    break ;
+                /* exit if it succeeded */
+                if (status == SUCCESS) {  // If the exit command succeeded
+                    break;  // Exit the loop and terminate the shell
                 }
             }
             /* clear screen with clear command */ 
-            else if (strcmp (token,"cls") == CLEARED){
-                Shellio_Clear(token);
+            else if (strcmp(token, "cls") == CLEARED) {  // If the command is 'cls' (clear screen)
+                Shellio_Clear(token);  // Clear the screen
             }
             /* get absolute path of current working directory */
-            else if (strcmp (token,"path") == PWD_PASS ){
-                Shellio_GetPath(token);
-                printf("%s%s%s \n",COLOR_BOLD_BLUE,separators,COLOR_RESET);
+            else if (strcmp(token, "path") == PWD_PASS) {  // If the command is 'path'
+                Shellio_GetPath(token);  // Print the current working directory
+                printf("%s%s%s \n", COLOR_BOLD_BLUE, separators, COLOR_RESET);  // Print a separator line in blue
             }
-            else if (strcmp (token,"display") == ECHO_PASS ){
-                Shellio_EchoInput(token);
-                printf("%s%s%s \n",COLOR_BOLD_BLUE,separators,COLOR_RESET);
+            else if (strcmp(token, "display") == ECHO_PASS) {  // If the command is 'display'
+                Shellio_EchoInput(token);  // Echo the input back to the user
+                printf("%s%s%s \n", COLOR_BOLD_BLUE, separators, COLOR_RESET);  // Print a separator line in blue
             }
-            else if (strcmp (token,"assist") == HELP_PASS){
-                Shellio_Help (token);
-                printf("%s%s%s \n",COLOR_BOLD_BLUE,separators,COLOR_RESET);
+            else if (strcmp(token, "assist") == HELP_PASS) {  // If the command is 'assist'
+                Shellio_Help(token);  // Display help information
+                printf("%s%s%s \n", COLOR_BOLD_BLUE, separators, COLOR_RESET);  // Print a separator line in blue
             }
-            else if (strcmp (token,"clone") == COPY_PASS ){
-                Shellio_Copy (token);
-                printf("%s%s%s \n",COLOR_BOLD_BLUE,separators,COLOR_RESET);
+            else if (strcmp(token, "clone") == COPY_PASS) {  // If the command is 'clone'
+                Shellio_Copy(token);  // Copy a file or directory
+                printf("%s%s%s \n", COLOR_BOLD_BLUE, separators, COLOR_RESET);  // Print a separator line in blue
             }
-            else if (strcmp (token,"shift") == MV_PASS ){
-                Shellio_MoveFile (strcmp(token,"shift"));
-                Shellio_Copy (token);
-                printf("%s%s%s \n",COLOR_BOLD_BLUE,separators,COLOR_RESET);
+            else if (strcmp(token, "shift") == MV_PASS) {  // If the command is 'shift'
+                Shellio_MoveFile(strcmp(token, "shift"));  // Move a file or directory
+                Shellio_Copy(token);  // Copy a file or directory
+                printf("%s%s%s \n", COLOR_BOLD_BLUE, separators, COLOR_RESET);  // Print a separator line in blue
             }
-            else if (strcmp(token, "cd") == CD_PASS) {
-                Shellio_ChangeDir(token);
+            else if (strcmp(token, "cd") == CD_PASS) {  // If the command is 'cd'
+                Shellio_ChangeDir(token);  // Change the current working directory
             }
-            else if (strcmp(token, "type") == TYPE_PASS) {
-                Shellio_TypeCommand(token);
+            else if (strcmp(token, "type") == TYPE_PASS) {  // If the command is 'type'
+                Shellio_TypeCommand(token);  // Display the contents of a file
             } 
-            else if (strcmp(token, "envir") == ENV_PASS) {
-                uint8 * command = strdup(token) ;
-                token = strtok(NULL, "") ;
+            else if (strcmp(token, "envir") == ENV_PASS) {  // If the command is 'envir'
+                uint8 * command = strdup(token);  // Duplicate the command string
+                token = strtok(NULL, "");  // Get the next token, which is the argument to 'envir'
 
-                if (token == NULL || *(token) == '2' || (*token) == '>' ) {
-                    Shellio_PrintEnv(command,token);
-                    printf("%s%s%s \n",COLOR_BOLD_BLUE,separators,COLOR_RESET);
+                if (token == NULL || *(token) == '2' || (*token) == '>') {  // If no argument or redirection is provided
+                    Shellio_PrintEnv(command, token);  // Print the environment variables
+                    printf("%s%s%s \n", COLOR_BOLD_BLUE, separators, COLOR_RESET);  // Print a separator line in blue
                 } else {
-                    Shellio_PrintEnvVar(command,token);
-                    printf("%s%s%s \n",COLOR_BOLD_BLUE,separators,COLOR_RESET);
+                    Shellio_PrintEnvVar(command, token);  // Print the value of a specific environment variable
+                    printf("%s%s%s \n", COLOR_BOLD_BLUE, separators, COLOR_RESET);  // Print a separator line in blue
                 }
-                free (command);
+                free(command);  // Free the memory allocated for the duplicated command
             } 
-            else if (strcmp(token, "phist") == EXIT) {
-                Shellio_Phist(token);
-                printf("%s%s%s \n",COLOR_BOLD_BLUE,separators,COLOR_RESET);
+            else if (strcmp(token, "phist") == EXIT) {  // If the command is 'phist'
+                Shellio_Phist(token);  // Print the process history
+                printf("%s%s%s \n", COLOR_BOLD_BLUE, separators, COLOR_RESET);  // Print a separator line in blue
             }
-            else if (strcmp(token, "free") == FREE_PASS) {
-                Shellio_Meminfo(token);
-                printf("%s%s%s \n",COLOR_BOLD_BLUE,separators,COLOR_RESET);
+            else if (strcmp(token, "free") == FREE_PASS) {  // If the command is 'free'
+                Shellio_Meminfo(token);  // Display memory usage information
+                printf("%s%s%s \n", COLOR_BOLD_BLUE, separators, COLOR_RESET);  // Print a separator line in blue
             } 
-            else if (strcmp(token, "uptime") == UPTIME_PASS) {
-                Shellio_uptime(token);
-                printf("%s%s%s \n",COLOR_BOLD_BLUE,separators,COLOR_RESET);
+            else if (strcmp(token, "uptime") == UPTIME_PASS) {  // If the command is 'uptime'
+                Shellio_uptime(token);  // Display system uptime and idle time
+                printf("%s%s%s \n", COLOR_BOLD_BLUE, separators, COLOR_RESET);  // Print a separator line in blue
             }
-            else if (strchr(token, '=') != NULL) {
-                Shellio_setVariable(token);
+            else if (strchr(token, '=') != NULL) {  // If the token contains an '=' character
+                Shellio_setVariable(token);  // Set a local variable with the format name=value
             }
-            else if (strcmp(token, "allVar") == ALLVAR_PASS) {
-                Shellio_allVar();
-                printf("%s%s%s \n",COLOR_BOLD_BLUE,separators,COLOR_RESET);
+            else if (strcmp(token, "allVar") == ALLVAR_PASS) {  // If the command is 'allVar'
+                Shellio_allVar();  // Print all local and environment variables
+                printf("%s%s%s \n", COLOR_BOLD_BLUE, separators, COLOR_RESET);  // Print a separator line in blue
             }
             else {
-                Shellio_ExecExternalCommands(token);
-                printf("%s%s%s \n",COLOR_BOLD_BLUE,separators,COLOR_RESET);
+                Shellio_ExecExternalCommands(token);  // Execute an external command
+                printf("%s%s%s \n", COLOR_BOLD_BLUE, separators, COLOR_RESET);  // Print a separator line in blue
             }
         }
 
         /* clear all flags and buffers */
-        memset (str,0, sizeof(str) );
+        memset(str, 0, sizeof(str));  // Clear the input buffer for the next command
 
-    }while(1);
+    } while (1);  // Loop indefinitely until the user decides to exit
 
-    return 0;
+    return 0;  // Return 0 to indicate successful execution
 }
+
 
 
 
