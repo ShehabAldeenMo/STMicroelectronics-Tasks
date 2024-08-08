@@ -33,6 +33,9 @@ static char GlobalMoveOperation        = MOVE_FAILED ;
  * Points to the character in the string currently being processed.*/
 static uint8* Ptr_GlobalGetParsingPath = NULL        ;
 
+static uint8 IamChild = UNRAISED ;
+static uint8 IamParent = UNRAISED ;
+int localVarCount = 0;
 
 /*
  * Name             : ProcessHistory Structure and Related Globals
@@ -51,6 +54,14 @@ typedef struct {
     uint8 *command;
     uint8 status;
 } ProcessHistory;
+
+typedef struct {
+    char name[MAX_VAR_NAME];
+    char value[MAX_VAR_VALUE];
+} LocalVariable;
+
+LocalVariable localVariables[MAX_VARS];
+
 
 // Global stack and counter
 ProcessHistory *PtrProcessHistory[MAX_STACK_SIZE];
@@ -71,7 +82,7 @@ extern char **environ;
  * Input            : None
  * Return           : uint8* - Returns a pointer to the next parsed path or NULL if no path is found.
  */
-static uint8* GetParsedPath(void);
+static uint8* GetParsedPath(uint8* command );
 
 /*
  * Name             : my_printf
@@ -112,24 +123,61 @@ static uint8 SearchOnCommand (uint8 * token);
 
 
 
+static uint8 searchCharacter(const uint8 *str, char character, uint8** Remaining);
+static void redirect (uint8* path, int newFD);
+static void fork_redirectionExec(uint8* path,int FD);
+static uint8* ErrorFD_Path(uint8* path);
+static uint8* GetRelativePath(uint8 path[] );
+static void DisplaySeq(uint8* str);
+static void GetPathSeq();
+static void Help_Seq ();
+static void TypeSeq(uint8* str);
+static void FreeSeq ();
+static void uptimeSeq();
+static uint8 printLocalVariables(char* var);
+
 /*===========================  Functions Implementations ======================*/
 void Shellio_GetPath(uint8* command) {
-    const char *delimiters = " 0";  // Delimiters are space and tab characters
+    const char *delimiters = "";  // Delimiters are space and tab characters
     char *token = strtok(NULL, delimiters);  // Tokenize the input string
     /* For gdb script debugging*/
     uint8 NumOfoperand = 0 ;
     uint8* Operand[1] = {NULL};
 
-    /* Buffer for storing the current working directory */
-    char cwd[MAX_PATH];  // Array to store the current working directory path, with a maximum size defined by MAX_PATH
-
     /* Check if there is any additional input after the 'pwd' command */
     if (token != NULL) {
-        printf("command not found\nEnter 'assist' to know Shellio commands\n");
-        pushProcessHistory(sharedString, FAILED);
-        cleanSharedString();
-        return;
+
+        uint8* path ; 
+        char *found = strstr(token, "2>");
+        if (found != NULL){
+            path = ErrorFD_Path(found);
+            fork_redirectionExec(path,STDERR);
+        }
+        else if ( searchCharacter(token,'>',&path) == VALID ) {
+            fork_redirectionExec(path,STDOUT);
+        }
+        else {
+            printf("command not found\nEnter 'assist' to know Shellio commands\n");
+            pushProcessHistory(sharedString, FAILED);
+            cleanSharedString();
+            return;   
+        }
     }
+
+    if (IamChild == RAISED){
+        GetPathSeq();
+        exit(100);
+    }
+    else if (IamParent != RAISED){
+        GetPathSeq();
+    }
+    cleanSharedString();
+    IamParent = UNRAISED ;
+}
+
+static void GetPathSeq(){
+    /* Buffer for storing the current working directory */
+    char cwd[MAX_PATH];  // Array to store the current working directory path, with a maximum size defined by MAX_PATH
 
     /* Get the current working directory */
     if (getcwd(cwd, sizeof(cwd)) != NULL) {  // Attempt to get the current working directory, storing it in cwd
@@ -138,32 +186,56 @@ void Shellio_GetPath(uint8* command) {
     } else {
         perror("getcwd() error");  // If unsuccessful, print an error message indicating the failure
     }
-
-    cleanSharedString();
 }
 
-
 void Shellio_EchoInput(uint8* command) {
-    uint8 *delimiters = "0";                   // Delimiters are space, comma, period, and exclamation mark
+    uint8 *delimiters = "";                   // Delimiters are space, comma, period, and exclamation mark
     uint8 *token  = strtok(NULL, delimiters) ;  // to store each word into string
     /* For gdb script debugging*/
     uint8 NumOfoperand = 1 ;
     uint8* Operand[1];
     Operand[0] = token ;
 
-    /* if command equals null, means that there is no input with. So, We should print error message*/
-    if (token == NULL){
+
+    /* Check if there is any additional input after the 'pwd' command */
+    if (token == NULL) {
         printf("command not found\nEnter (assist) to know Shellio Commands\n");
         pushProcessHistory(sharedString, FAILED);
         cleanSharedString();
         return ;
     }
+    else {
+        uint8* path ; 
+        char *found = strstr(token, "2>");
+        if (found != NULL){
+            path = ErrorFD_Path(found);
+            fork_redirectionExec(path,STDERR);
+            token = strtok (token,"2>");
+        }
+        else if ( searchCharacter(token,'>',&path) == VALID ) {
+            fork_redirectionExec(path,STDOUT);
+            token = strtok (token,">");
+        }
+    }
 
+    if (IamChild == RAISED){
+        DisplaySeq(token);
+        exit(100);
+    }
+    else if (IamParent != RAISED){
+        DisplaySeq(token);
+    }
+
+    cleanSharedString();
+    IamParent = UNRAISED ;
+}
+
+static void DisplaySeq(uint8* str){
     /* get length of coming string */
-    size_t Loc_Count = strlen (token) ;
+    size_t Loc_Count = strlen (str) ;
 
     /* write operation*/
-    ssize_t ret = write(STDOUT, token,Loc_Count);
+    ssize_t ret = write(STDOUT, str,Loc_Count);
     
     /* Check on return value of sucessed written bytes on screen */
     if (ret < 0 ) {  // Check if the input string is not NULL
@@ -179,8 +251,6 @@ void Shellio_EchoInput(uint8* command) {
         write(STDOUT, "\n",1);
         pushProcessHistory(sharedString, SUCCESS);
     }
-
-    cleanSharedString();
 }
 
 void Shellio_CopyFile(const char *sourcePath, const char *destPath) {
@@ -403,48 +473,72 @@ void Shellio_MoveFile(const char Copy_MoveFlag) {
 }
 
 void Shellio_Help (uint8* command){
-    uint8 *delimiters = " 0";                   // Delimiters are space, comma, period, and exclamation mark
+    uint8 *delimiters = "";                   // Delimiters are space, comma, period, and exclamation mark
     uint8 *token  = strtok(NULL, delimiters) ;  // to store each word into string
     /* For gdb script debugging*/
     uint8 NumOfoperand = 0 ;
     uint8* Operand[1] = {NULL};
 
-    /* if command isn't equal null, means that there is another input with. So, We should print error message*/
-    if (token != NULL){
-        printf("command not found\nEnter (assist) to know Shellio Commands\n");
-        pushProcessHistory(sharedString, FAILED);
-        cleanSharedString();
-        return ;
-    } 
+    /* Check if there is any additional input after the 'pwd' command */
+    if (token != NULL) {
+        uint8* path ; 
+        char *found = strstr(token, "2>");
+        if (found != NULL){
+            path = ErrorFD_Path(found);
+            fork_redirectionExec(path,STDERR);
+        }
+        else if ( searchCharacter(token,'>',&path) == VALID ) {
+            fork_redirectionExec(path,STDOUT);
+        }
+        else {
+            printf("command not found\nEnter (assist) to know Shellio Commands\n");
+            pushProcessHistory(sharedString, FAILED);
+            cleanSharedString();
+            return ;  
+        }
+    }
 
+    if (IamChild == RAISED){
+        Help_Seq();
+        exit(100);
+    }
+    else if (IamParent != RAISED){
+        Help_Seq();
+    }
+
+    pushProcessHistory(sharedString, SUCCESS);
+    cleanSharedString();
+    IamParent = UNRAISED ;
+}
+
+static void Help_Seq (){
     my_printf("-------------------------------------------------------------------------------\n");
     my_printf("-------------------------------------------------------------------------------\n");
-    my_printf("pwd :: Display the current working directory\n");
+    my_printf("path :: Display the current working directory\n");
     my_printf("-------------------------------------------------------------------------------\n");
-    my_printf("cp  :: Copy file1 in path1 to to file2 in path2\n");
-    my_printf("cp PathOffile1,PathOffile2\n");
-    my_printf("cp PathOffile1,-a,PathOffile2\n");
+    my_printf("clone  :: Copy file1 in path1 to to file2 in path2\n");
+    my_printf("clone PathOffile1,PathOffile2\n");
+    my_printf("clone PathOffile1,-a,PathOffile2\n");
     my_printf("-> case file2 name isn't determinted, will create one with file1 name\n");
     my_printf("-> case file2 name is given but unallocated, will create one with disred name\n");
     my_printf("-> use -a to append to copied file\n");
     my_printf("-------------------------------------------------------------------------------\n");
-    my_printf("mv  :: move file1 in path1 to to file2 in path2\n");
+    my_printf("shift  :: move file1 in path1 to to file2 in path2\n");
     my_printf   ("mv PathOffile1,PathOffile2\n");
-    my_printf("mv PathOffile1,-f,PathOffile2\n");
+    my_printf("shift PathOffile1,-f,PathOffile2\n");
     my_printf("-> case file2 name isn't determinted, will create one with file1 name\n");
     my_printf("-> case file2 name is given but unallocated, will create one with disred name\n");
     my_printf("-> use -f to overwrite on existed file\n");
     my_printf("-------------------------------------------------------------------------------\n");
-    my_printf("echo :: print on shellio termial\n");
+    my_printf("display :: print on shellio termial\n");
     my_printf("-------------------------------------------------------------------------------\n");
-    my_printf("clear:: clears shellio termial\n");
+    my_printf("cls:: clears shellio termial\n");
     my_printf("-------------------------------------------------------------------------------\n");
-    my_printf("exit :: leave shellio terminal\n");
+    my_printf("leave :: leave shellio terminal\n");
     my_printf("-------------------------------------------------------------------------------\n");
     my_printf("-------------------------------------------------------------------------------\n");
-    pushProcessHistory(sharedString, SUCCESS);
-    cleanSharedString();
 }
+
 
 static void my_printf(const char *format, ...) {
     va_list args;
@@ -469,7 +563,7 @@ uint8* Shellio_ParsingPath (uint8* ptr_ArgCounter,uint8* Ptr_1st_Path,
     Ptr_GlobalGetParsingPath = Copy_token ;
 
     /* Get first path*/
-    strcpy(Buf , GetParsedPath() );
+    strcpy(Buf , GetParsedPath("clone") );
     if (Buf == NULL){
         printf("Error In Passing Paths\n");
         return NULL;
@@ -508,7 +602,7 @@ uint8* Shellio_ParsingPath (uint8* ptr_ArgCounter,uint8* Ptr_1st_Path,
     }
 
     /* Get second path*/
-    strcpy ( Buf , GetParsedPath() );
+    strcpy ( Buf , GetParsedPath("clone") );
     if (Buf == NULL){
         printf("Error In Passing Paths\n");
         return NULL;
@@ -528,12 +622,11 @@ uint8* Shellio_ParsingPath (uint8* ptr_ArgCounter,uint8* Ptr_1st_Path,
     return Option ;
 }
 
-static uint8* GetParsedPath(void){
+static uint8* GetParsedPath(uint8* command ){
     /* buffer of stored path*/
     static uint8* Path = NULL ; // static to prevent dangling pointer
     uint8 NumOfoperand = 1 ;
     uint8* Operand[1] ;
-    uint8* command = "clone";
 
     if (Ptr_GlobalGetParsingPath == NULL) {
         my_printf("Error: Ptr_GlobalGetParsingPath is NULL\n");
@@ -651,87 +744,132 @@ void Shellio_Copy (uint8* command){
 }
 
 
-
-void Shellio_PrintEnvVar(uint8* command,uint8* copy_token){
-    char *path_env = getenv(copy_token);
-
-    /* For gdb script debugging*/
-    uint8 NumOfoperand = 1 ;
-    uint8* Operand[1];
-    Operand[0] = copy_token ;
-
-    if (path_env == NULL) {
-        printf("This variable isn't existed :: %s\n",copy_token);
-        pushProcessHistory(sharedString, FAILED);
-        cleanSharedString();
-    }
-    else {
-        printf("%s = %s\n",copy_token,path_env);
-        pushProcessHistory(sharedString, SUCCESS);
-        cleanSharedString();
-    }
-}
-void Shellio_PrintEnv(uint8* command){
+void Shellio_PrintEnv(uint8* command,uint8* token){
     char **env = environ;
 
     /* For gdb script debugging*/
     uint8 NumOfoperand = 0 ;
     uint8* Operand[1] = {NULL};
 
-    printf("-------------------------------------------------------------------------\n");
-    while (*env) {
-        printf("%s\n", *env);
-        env++;
+    /* Check if there is any additional input after the 'pwd' command */
+    if (token != NULL) {
+        uint8* path ; 
+        char *found = strstr(token, "2>");
+        if (found != NULL){
+            path = ErrorFD_Path(found);
+            fork_redirectionExec(path,STDERR);
+        }
+        else if ( searchCharacter(token,'>',&path) == VALID ) {
+            fork_redirectionExec(path,STDOUT);
+        }
+        else {
+            printf("command not found\nEnter (assist) to know Shellio Commands\n");
+            pushProcessHistory(sharedString, FAILED);
+            cleanSharedString();
+            return ;  
+        }
     }
-    printf("-------------------------------------------------------------------------\n");
+
+    if (IamChild == RAISED){
+        printf("-------------------------------------------------------------------------\n");
+        while (*env) {
+            printf("%s\n", *env);
+            env++;
+        }
+        printf("-------------------------------------------------------------------------\n");
+        exit(100);
+    }
+    else if (IamParent != RAISED){
+        printf("-------------------------------------------------------------------------\n");
+        while (*env) {
+            printf("%s\n", *env);
+            env++;
+        }
+        printf("-------------------------------------------------------------------------\n");
+    }
 
     pushProcessHistory(sharedString, SUCCESS);
     cleanSharedString();
+    IamParent = UNRAISED ;
 }
 
 
 void Shellio_TypeCommand(uint8* command){
-    uint8* token = strtok (NULL," ");
+    uint8* token = strtok (NULL,"");
 
     /* For gdb script debugging*/
     uint8 NumOfoperand = 1 ;
     uint8* Operand[1];
     Operand[0] = token ;
 
-    if (strcmp (token,"leave") == EQUALED)
-        printf("It is an built-in command :: %s\n",token);
-    else if (strcmp (token,"cls") == CLEARED)
-        printf("It is an built-in command :: %s\n",token);
-    else if (strcmp (token,"path") == PWD_PASS )
-        printf("It is an built-in command :: %s\n",token);
-    else if (strcmp (token,"display") == ECHO_PASS )
-        printf("It is an built-in command :: %s\n",token);
-    else if (strcmp (token,"assist") == HELP_PASS)
-        printf("It is an built-in command :: %s\n",token);
-    else if (strcmp (token,"clone") == COPY_PASS )
-        printf("It is an built-in command :: %s\n",token);
-    else if (strcmp (token,"shift") == MV_PASS )
-        printf("It is an built-in command :: %s\n",token);
-    else if (strcmp(token, "cd") == CD_PASS) 
-        printf("It is an built-in command :: %s\n",token);
-    else if (strcmp(token, "type") == TYPE_PASS) 
-        printf("It is an built-in command :: %s\n",token);
-    else if (strcmp(token, "envir") == ENV_PASS)
-        printf("It is an built-in command :: %s\n",token);
-    else if (strcmp(token, "phist") == EXIT)
-        printf("It is an built-in command :: %s\n",token);
-    else {        
-        uint8 status = SearchOnCommand (token);
-        if (status == SUCCESS){
-            printf("It is an external command :: %s\n",token);
-        }
-        else 
-            printf("Undefined command :: %s\n",token);
+    /* Check if there is any additional input after the 'pwd' command */
+    if (token == NULL) {
+        printf("command not found\nEnter (assist) to know Shellio Commands\n");
+        pushProcessHistory(sharedString, FAILED);
+        cleanSharedString();
+        return ;
     }
+    else {
+        uint8* path ; 
+        char *found = strstr(token, "2>");
+        if (found != NULL){
+            path = ErrorFD_Path(found);
+            fork_redirectionExec(path,STDERR);
+            token = strtok (token," 2>");
+        }
+        else if ( searchCharacter(token,'>',&path) == VALID ) {
+            fork_redirectionExec(path,STDOUT);
+            token = strtok (token," >");
+        }
+    }
+
+    if (IamChild == RAISED){
+        TypeSeq(token);
+        exit(100);
+    }
+    else if (IamParent != RAISED){
+        TypeSeq(token);
+    }    
 
     pushProcessHistory(sharedString, SUCCESS);
     cleanSharedString();
+    IamParent = UNRAISED ;
 }
+
+
+static void TypeSeq(uint8* str){
+    if (strcmp (str,"leave") == EQUALED)
+        printf("It is an built-in command :: %s\n",str);
+    else if (strcmp (str,"cls") == CLEARED)
+        printf("It is an built-in command :: %s\n",str);
+    else if (strcmp (str,"path") == PWD_PASS )
+        printf("It is an built-in command :: %s\n",str);
+    else if (strcmp (str,"display") == ECHO_PASS )
+        printf("It is an built-in command :: %s\n",str);
+    else if (strcmp (str,"assist") == HELP_PASS)
+        printf("It is an built-in command :: %s\n",str);
+    else if (strcmp (str,"clone") == COPY_PASS )
+        printf("It is an built-in command :: %s\n",str);
+    else if (strcmp (str,"shift") == MV_PASS )
+        printf("It is an built-in command :: %s\n",str);
+    else if (strcmp(str, "cd") == CD_PASS) 
+        printf("It is an built-in command :: %s\n",str);
+    else if (strcmp(str, "type") == TYPE_PASS) 
+        printf("It is an built-in command :: %s\n",str);
+    else if (strcmp(str, "envir") == ENV_PASS)
+        printf("It is an built-in command :: %s\n",str);
+    else if (strcmp(str, "phist") == EXIT)
+        printf("It is an built-in command :: %s\n",str);
+    else {        
+        uint8 status = SearchOnCommand (str);
+        if (status == SUCCESS){
+            printf("It is an external command :: %s\n",str);
+        }
+        else 
+            printf("Undefined command :: %s\n",str);
+    }
+}
+
 
 // Function to execute external commands
 void Shellio_ExecExternalCommands(uint8 *token) {
@@ -891,13 +1029,44 @@ void Shellio_Phist(uint8* command){
     /* For gdb script debugging*/
     uint8 NumOfoperand = 0 ;
     uint8* Operand[1] = {NULL};
+    uint8* token = strtok (NULL,"");
 
-    printf("Process History:\n");
-    for (int i = processCounter-1 ; i >= 0 ; i--) {
-        printf("%d\tCommand: %s\tStatus: %d\n",i, PtrProcessHistory[i]->command, PtrProcessHistory[i]->status);
+    /* Check if there is any additional input after the 'pwd' command */
+    if (token != NULL) {
+        uint8* path ; 
+        char *found = strstr(token, "2>");
+        if (found != NULL){
+            path = ErrorFD_Path(found);
+            fork_redirectionExec(path,STDERR);
+        }
+        else if ( searchCharacter(token,'>',&path) == VALID ) {
+            fork_redirectionExec(path,STDOUT);
+        }
+        else {
+            printf("command not found\nEnter (assist) to know Shellio Commands\n");
+            pushProcessHistory(sharedString, FAILED);
+            cleanSharedString();
+            return ;  
+        }
     }
+
+    if (IamChild == RAISED){
+        printf("Process History:\n");
+        for (int i = processCounter-1 ; i >= 0 ; i--) {
+            printf("%d\tCommand: %s\tStatus: %d\n",i, PtrProcessHistory[i]->command, PtrProcessHistory[i]->status);
+        }
+        exit(100);
+    }
+    else if (IamParent != RAISED){
+        printf("Process History:\n");
+        for (int i = processCounter-1 ; i >= 0 ; i--) {
+            printf("%d\tCommand: %s\tStatus: %d\n",i, PtrProcessHistory[i]->command, PtrProcessHistory[i]->status);
+        }
+    }
+
     pushProcessHistory(sharedString, SUCCESS);
     cleanSharedString();
+    IamParent = UNRAISED ;
 }
 
 
@@ -1009,3 +1178,405 @@ uint8* GetPathWithoutToken(){
     getcwd(cwd, sizeof(cwd));
     return cwd ;
 }
+
+
+void Shellio_Meminfo(uint8* command){
+    uint8 *token  = strtok(NULL, "") ;  // to store each word into string
+    /* For gdb script debugging*/
+    uint8 NumOfoperand = 0 ;
+    uint8* Operand[1] = {NULL};
+
+
+    /* Check if there is any additional input after the 'pwd' command */
+    if (token != NULL) {
+        uint8* path ; 
+        char *found = strstr(token, "2>");
+        if (found != NULL){
+            path = ErrorFD_Path(found);
+            fork_redirectionExec(path,STDERR);
+        }
+        else if ( searchCharacter(token,'>',&path) == VALID ) {
+            fork_redirectionExec(path,STDOUT);
+        }
+        else {
+            printf("command not found\nEnter (assist) to know Shellio Commands\n");
+            pushProcessHistory(sharedString, FAILED);
+            cleanSharedString();
+            return ;  
+        }
+    }
+
+    if (IamChild == RAISED){
+        FreeSeq();
+        exit(100);
+    }
+    else if (IamParent != RAISED){
+        FreeSeq();
+    }
+
+    pushProcessHistory(sharedString, SUCCESS);
+    cleanSharedString();
+    IamParent = UNRAISED ;
+}
+
+
+
+static void FreeSeq (){
+    uint8 buffer[1024];
+    ssize_t bytes_read;
+    uint8 *line_start = buffer;
+    uint8 *line_end;
+    int FD ;
+
+    FD = open("/proc/meminfo", O_RDONLY);
+    if (FD < 0) {
+        perror("open");
+        return ;
+    }
+
+    unsigned long total_ram ,free_ram, used_ram, total_swap, free_swap, used_swap ;
+
+    while ( (bytes_read = read(FD, buffer, sizeof(buffer) - 1)) > 0 ) {
+        buffer[bytes_read] = '\0';
+        uint8 *ptr = line_start;
+
+        while (( line_end = strchr(ptr, '\n')) != NULL) {
+            *line_end = '\0'; // Null-terminate the line  
+
+            // Parse each line
+            sscanf(ptr, "MemTotal: %lu kB", &total_ram);
+            sscanf(ptr, "MemFree: %lu kB", &free_ram);
+            sscanf(ptr, "SwapTotal: %lu kB", &total_swap);
+            sscanf(ptr, "SwapFree: %lu kB", &free_swap);
+
+            ptr = line_end + 1;
+        }  
+    }
+
+    close(FD);
+    
+    used_ram = total_ram - free_ram ;
+    used_swap = total_swap - free_swap ;
+        
+    printf("             total                used                  free \n");
+    printf("Mem        %lu             %lu                %lu\n",total_ram,used_ram,free_ram);
+    printf("Swap           %lu                    %lu                     %lu\n",total_swap,used_swap,free_swap);
+
+}
+
+
+void Shellio_uptime(uint8* command) {
+    /* For gdb script debugging*/
+    uint8 NumOfoperand = 0 ;
+    uint8* Operand[1] = {NULL};
+
+    uint8 *token  = strtok(NULL, "") ;  // to store each word 
+
+    /* Check if there is any additional input after the 'pwd' command */
+    if (token != NULL) {
+        uint8* path ; 
+        char *found = strstr(token, "2>");
+        if (found != NULL){
+            path = ErrorFD_Path(found);
+            fork_redirectionExec(path,STDERR);
+        }
+        else if ( searchCharacter(token,'>',&path) == VALID ) {
+            fork_redirectionExec(path,STDOUT);
+        }
+        else {
+            printf("command not found\nEnter (assist) to know Shellio Commands\n");
+            pushProcessHistory(sharedString, FAILED);
+            cleanSharedString();
+            return ;  
+        }
+    }
+
+    if (IamChild == RAISED){
+        uptimeSeq();
+        exit(100);
+    }
+    else if (IamParent != RAISED){
+        uptimeSeq();
+    }
+
+    pushProcessHistory(sharedString, SUCCESS);
+    cleanSharedString();
+    IamParent = UNRAISED ;
+}
+
+static void uptimeSeq(){
+    char buffer[100];
+
+    ssize_t bytes_read;
+    int FD;
+    char *uptime, *idletime;
+
+    FD = open("/proc/uptime", O_RDONLY);
+    if (FD < 0) {
+        perror("open");
+        return;
+    }
+
+    bytes_read = read(FD, buffer, sizeof(buffer) - 1);
+    if (bytes_read < 0) {
+        perror("read");
+        close(FD);
+        return;
+    }
+    buffer[bytes_read] = '\0';  // Null-terminate the string
+
+    // Close the file descriptor
+    close(FD);
+
+    // Tokenize the buffer
+    uptime = strtok(buffer, " ");
+    idletime = strtok(NULL, " ");
+
+    uint8 len = strlen(idletime);
+    idletime[len-1]='\0';
+
+    if (uptime != NULL && idletime != NULL) {
+        printf("The uptime : %s seconds\n", uptime);
+        printf("The idletime : %s seconds\n", idletime);
+    } else {
+        printf("Error parsing uptime data.\n");
+    }
+
+}
+
+static uint8 searchCharacter(const uint8 *str, char character, uint8** Remaining) {
+    // Use strchr to find the first occurrence of the character
+    *Remaining = (uint8*) strchr((const char*)str, character);
+
+    if (*Remaining != NULL) {
+        // If the character is found, skip the character itself
+        (*Remaining)++;
+        
+        // Extract the part after the character
+        *Remaining = (uint8*) strtok((char*) *Remaining, "");
+        if (*Remaining) {
+            Ptr_GlobalGetParsingPath = *Remaining ;
+            *Remaining = GetParsedPath("path");
+            *Remaining  = GetRelativePath(*Remaining );
+            return VALID;
+        }
+        else {
+            return INVALID ;
+        }
+    }
+
+    return INVALID;
+}
+
+static uint8* ErrorFD_Path(uint8* path) {
+    // Move the pointer 2 characters ahead
+    path += 2;
+
+    // Tokenize the string starting from path, ensure correct type casting
+    path = (uint8*) strtok((char*) path, "");
+
+    // Set the global parsing path
+    Ptr_GlobalGetParsingPath = path;
+
+    // Get the parsed path
+    path = GetParsedPath("path");
+
+    path = GetRelativePath(path);
+
+    return path;
+}
+
+static void redirect (uint8* path, int newFD){
+
+    // Determine how to open the destination file
+    mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH; // Default permissions
+    int outfd = open (path,O_CREAT| O_WRONLY , mode);
+
+    if (outfd < 0){
+        perror("Error In Opening File :: ");
+        return ;
+    }
+
+    // close (newFD);
+    int FD = dup2 (outfd,newFD);
+
+    if (FD != newFD){
+        perror("Error In reserving FD of stdout");
+    } 
+
+    close (outfd);
+} 
+
+static void fork_redirectionExec(uint8* path,int FD){
+    int retPid = fork();
+
+    if (retPid > 0){  
+        pushProcessHistory(sharedString, SUCCESS);  
+        IamParent = RAISED ;            
+	    int status =0;	
+	    wait(&status);
+	}
+	else if (retPid == 0){
+        redirect (path,FD);
+        IamChild = RAISED ;
+	}
+	else{
+	    perror("fork");
+	}
+}
+
+
+static uint8* GetRelativePath(uint8 path[]){
+    uint8* ResultPath = (uint8*) malloc(MAX_PATH);
+    char keyword[] = "/home/shehabaldeen";
+    char *found = strstr((char*)path, keyword);
+
+    if (found == NULL) {
+        snprintf((char*)ResultPath, MAX_PATH, "%s/%s", GetPathWithoutToken(), path);
+    } else {
+        strncpy((char*)ResultPath, (char*)path, MAX_PATH);
+    }
+
+    return ResultPath;
+}
+
+
+
+
+
+
+void Shellio_PrintEnvVar(uint8* command,uint8* copy_token){
+    /* For gdb script debugging*/
+    uint8 NumOfoperand = 1 ;
+    uint8* Operand[1];
+    Operand[0] = copy_token ;
+    uint8 token[20] ;
+
+
+    /* Check if there is any additional input after the 'pwd' command */
+    if (copy_token != NULL) {
+        uint8* path ; 
+        char *found = strstr(copy_token, "2>");
+        if (found != NULL){
+            path = ErrorFD_Path(found);
+            fork_redirectionExec(path,STDERR);
+            strcpy (token ,strtok (copy_token," 2>") );
+        }
+        else if ( searchCharacter(copy_token,'>',&path) == VALID ) {
+            fork_redirectionExec(path,STDOUT);
+            strcpy (token ,strtok (copy_token," >") );
+        }
+    }
+
+    if (IamChild == RAISED){
+        char *path_env = getenv(token);
+    
+        if (path_env == NULL) {
+            uint8 status = printLocalVariables(token);
+
+            if (status == INVALID){
+                printf("This variable isn't existed :: %s\n",token);
+                pushProcessHistory(sharedString, FAILED);
+            }
+            else{
+                pushProcessHistory(sharedString, SUCCESS);
+            }
+        }
+        else {
+            printf("%s = %s\n",token,path_env);
+            pushProcessHistory(sharedString, SUCCESS);
+        }
+        exit(100);
+    }
+    else if (IamParent != RAISED){
+        strcpy (token ,strtok (copy_token," ") );
+        char *path_env = getenv(token);
+    
+        if (path_env == NULL) {
+            uint8 status = printLocalVariables(token);
+
+            if (status == INVALID){
+                printf("This variable isn't existed :: %s\n",token);
+                pushProcessHistory(sharedString, FAILED);
+            }
+            else{
+                pushProcessHistory(sharedString, SUCCESS);
+            }
+        }
+        else {
+            printf("%s = %s\n",token,path_env);
+            pushProcessHistory(sharedString, SUCCESS);
+        }
+    }
+
+    cleanSharedString();
+    IamParent = UNRAISED ;
+}
+
+
+
+
+
+
+
+
+
+
+
+void Shellio_setVariable(uint8* command) {
+    if (command == NULL) {
+        printf("Invalid command format.\n");
+        return;
+    }
+
+    char* name = strtok(command, "=");
+    char* value = strtok(NULL, "");
+
+    if (name != NULL && value != NULL) {
+        setLocalVariable(name, value);
+        printf("Variable set: %s=%s\n", name, value);
+    } else {
+        printf("Invalid variable format. Use: name=value\n");
+    }
+}
+
+void Shellio_allVar() {
+    // Print local variables
+    printf("Local Variables:\n");
+    for (int i = 0; i < localVarCount; i++) {
+        printf("%s=%s\n", localVariables[i].name, localVariables[i].value);
+    }
+
+    // Print environment variables
+    printf("Environment Variables:\n");
+    Shellio_PrintEnv("allVar",NULL);
+}
+
+void setLocalVariable(const char* name, const char* value) {
+    for (int i = 0; i < localVarCount; i++) {
+        if (strcmp(localVariables[i].name, name) == 0) {
+            strncpy(localVariables[i].value, value, MAX_VAR_VALUE);
+            return;
+        }
+    }
+    
+    if (localVarCount < MAX_VARS) {
+        strncpy(localVariables[localVarCount].name, name, MAX_VAR_NAME);
+        strncpy(localVariables[localVarCount].value, value, MAX_VAR_VALUE);
+        localVarCount++;
+    } else {
+        printf("Maximum number of local variables reached.\n");
+    }
+}
+
+
+static uint8 printLocalVariables(char* var) {
+    for (int i = 0; i < localVarCount; ++i) {
+        if (strcmp(localVariables[i].name, var) == 0) {
+            printf("%s\n", localVariables[i].value);
+            return VALID;
+        }
+    }
+    return INVALID;
+}
+

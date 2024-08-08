@@ -45,6 +45,9 @@
 #define EQUALED                               0
 #define SUCCESS                               1
 #define FAILED                                0
+#define FREE_PASS                             0
+#define UPTIME_PASS                           0
+#define ALLVAR_PASS                           0
 
 
 
