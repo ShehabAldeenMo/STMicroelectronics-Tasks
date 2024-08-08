@@ -18,283 +18,21 @@
 
 /*===================================  Includes ===============================*/
 #include "Commands.h"
+#include "Helper.h"
 
-
-/*===========================  Local File Variables ===========================*/
-/* A flag indicating whether the append mode is set for file operations.
- * CLEARED indicates the flag is not set, while a different value indicates it is set.*/
-static char GlobalAppendFlag           = CLEARED     ;
-
-/* A flag indicating whether the move operation should force overwrite.
- * CLEARED indicates the flag is not set, while a different value indicates it is set.*/ 
-static char GlobalMoveForcedFlag       = CLEARED     ;
-
-/* A flag indicating the current status of a move operation.
- * MOVE_FAILED indicates the operation has not started or failed, while a different value indicates a successful operation.*/
-static char GlobalMoveOperation        = MOVE_FAILED ;
-
-/* A global pointer used to track the current position in the input string during parsing.
- * This pointer points to the character in the string that is currently being processed.
- */
-static uint8* Ptr_GlobalGetParsingPath = NULL;
-
-/* Flag to indicate if the current process is a child process.
- * UNRAISED - Indicates that the process is not a child.
- * RAISED - Indicates that the process is a child.
- */
-static uint8 IamChild = UNRAISED;
-
-/* Flag to indicate if the current process is a parent process.
- * UNRAISED - Indicates that the process is not a parent.
- * RAISED - Indicates that the process is a parent.
- */
-static uint8 IamParent = UNRAISED;
-
-/* Counter for the number of local variables.
- * Keeps track of the total number of local variables currently in use.
- */
-int localVarCount = 0;
-
-
-/*
- * Name             : ProcessHistory Structure and Related Globals
- * Description      : Defines the structure for storing process history entries and
- *                    declares global variables related to process history management.
- *                    - ProcessHistory: A structure that holds command and status information.
- *                    - PtrProcessHistory: An array of pointers to ProcessHistory structures,
- *                      representing the global stack for storing process history.
- *                    - processCounter: A counter for tracking the number of elements in the stack.
- *                    - sharedString: A pointer to a string used for various operations in the shell.
- *                    - environ: A pointer to the environment variables.
- * */
-
-// Define the structure for process history
-typedef struct {
-    uint8 *command;
-    uint8 status;
-} ProcessHistory;
-
-/*
- * Name             : LocalVariable Structure and Related Globals
- * Description      : Defines the structure for storing local variables and
- *                    declares global variables related to local variable management.
- *                    - LocalVariable: A structure that holds the name and value of a local variable.
- *                    - localVariables: An array of LocalVariable structures, 
- *                      representing the global list of local variables.
- *                    - localVarCount: A counter for tracking the number of local variables stored.
- * */
-
-// Define the structure for local variables
-typedef struct {
-    char name[MAX_VAR_NAME];  /**< Name of the local variable */
-    char value[MAX_VAR_VALUE]; /**< Value of the local variable */
-} LocalVariable;
-
-
-// Global variables
-LocalVariable localVariables[MAX_VARS]; /**< Array to store local variables */
-
-ProcessHistory *PtrProcessHistory[MAX_STACK_SIZE]; /**< Array to store process history entries */
-uint8 processCounter = 0; /**< Counter for the number of process history entries */
-
-uint8 *sharedString = NULL; /**< Pointer to a string used for various operations in the shell */
 
 extern char **environ; /**< Pointer to the environment variables */
-
-/*===================  Local File Functions Prototypes ========================*/
-/*
- * Name             : GetParsedPath
- * Description      : Parses and returns the next path from the input string, moving the global parsing pointer forward.
- *                    This function extracts the path enclosed in double quotes (") and advances Ptr_GlobalGetParsingPath.
- * Parameter In/Out : None
- * Input            : command - The command string containing the variable name and value.
- * Return           : uint8* - Returns a pointer to the next parsed path or NULL if no path is found.
- */
-static uint8* GetParsedPath(uint8* command);
-
-/*
- * Name             : my_printf
- * Description      : A custom printf function for formatted output in Shellio.
- *                    This function allows formatted output similar to the standard printf function.
- * Parameter In/Out : None
- * Input            : format (const char*) - A format string containing the text to be written, optionally with format specifiers.
- *                    ... - Additional arguments to be formatted according to the format specifiers in the format string.
- * Return           : void
- */
-static void my_printf(const char *format, ...);
-
-/*
- * Name             : cleanupProcessHistory
- * Description      : Cleans up the process history by freeing all allocated memory.
- *                    Iterates through the process history stack and frees each command string
- *                    and its associated memory.
- * Input            : None
- * Output           : None
- * Return           : None
- * Notes            : This function should be called when the process history is no longer needed
- *                    to prevent memory leaks.
- */
-static void cleanupProcessHistory();
-
-/*
- * Name             : SearchOnCommand
- * Description      : Searches for an external command in the directories specified in the PATH environment variable.
- *                    Checks if the command exists and is executable.
- * Input            : token - The command to search for.
- * Output           : None
- * Return           : SUCCESS if the command is found and executable, otherwise FAILED.
- * Notes            : The function uses the `access` system call to check the executability of the command.
- */
-static uint8 SearchOnCommand(uint8 *token);
-
-
-
-
-/*
- * Name             : searchCharacter
- * Description      : Searches for the first occurrence of a specified character in a string.
- *                    If found, returns a pointer to the substring following the character.
- *                    Updates the global parsing pointer and extracts the relevant path information.
- * Input            : str - The string to search within.
- *                    character - The character to search for.
- *                    Remaining - Pointer to store the substring after the found character.
- * Output           : Remaining - Updated to point to the substring after the character, or NULL if not found.
- * Return           : VALID if the character is found and processed successfully, otherwise INVALID.
- */
-static uint8 searchCharacter(const uint8 *str, char character, uint8** Remaining);
-
-/*
- * Name             : redirect
- * Description      : Redirects the output to a specified file descriptor (FD) by opening the file at the given path.
- *                    The function handles file creation and setting the necessary permissions.
- * Input            : path - The path to the file where output should be redirected.
- *                    newFD - The file descriptor to be redirected (e.g., STDOUT or STDERR).
- * Output           : None
- * Return           : None
- * Notes            : The function uses `dup2` to redirect the output and `close` to close the original file descriptor.
- */
-static void redirect(uint8* path, int newFD);
-
-/*
- * Name             : fork_redirectionExec
- * Description      : Forks a new process to execute a command with output redirection.
- *                    The parent process waits for the child process to complete.
- * Input            : path - The path to the file for output redirection.
- *                    FD - The file descriptor to be redirected (e.g., STDOUT or STDERR).
- * Output           : None
- * Return           : None
- * Notes            : The function uses `fork` to create a new process and `redirect` to handle output redirection.
- */
-static void fork_redirectionExec(uint8* path, int FD);
-
-/*
- * Name             : ErrorFD_Path
- * Description      : Processes a string to extract a file path for error redirection.
- *                    The function adjusts the input path to point to the correct file for error output.
- * Input            : path - The input string containing the file path prefixed with "2>".
- * Output           : None
- * Return           : uint8* - Returns the adjusted file path for error redirection.
- * Notes            : The function updates the global parsing path and processes relative paths.
- */
-static uint8* ErrorFD_Path(uint8* path);
-
-/*
- * Name             : GetRelativePath
- * Description      : Computes the relative path from the provided absolute path.
- *                    If the path contains a specific keyword (e.g., "/home/shehabaldeen"),
- *                    it uses the path directly; otherwise, it constructs a relative path
- *                    based on the current working directory.
- * Input            : path - The absolute or relative path to be processed.
- * Output           : None
- * Return           : uint8* - Returns a pointer to the computed relative path.
- * Notes            : Allocates memory for the result path which should be freed by the caller.
- */
-static uint8* GetRelativePath(uint8 path[]);
-
-/*
- * Name             : DisplaySeq
- * Description      : Displays a sequence of information based on the input string.
- *                    This function processes the input string to generate formatted output,
- *                    possibly including command execution results or status messages.
- * Input            : str - The input string to be processed and displayed.
- * Output           : None
- * Return           : None
- * Notes            : The function may include formatted output and error handling as needed.
- */
-static void DisplaySeq(uint8* str);
-
-/*
- * Name             : GetPathSeq
- * Description      : Retrieves and displays the current working directory or path sequence.
- *                    This function outputs the current path or path-related information
- *                    to provide context or debugging information.
- * Input            : None
- * Output           : None
- * Return           : None
- * Notes            : This function may include system calls like `getcwd` to fetch the current directory.
- */
-static void GetPathSeq();
-
-/*
- * Name             : Help_Seq
- * Description      : Provides help or guidance on using commands and functionalities.
- *                    This function displays information on available commands, usage,
- *                    and other relevant details to assist users.
- * Input            : None
- * Output           : None
- * Return           : None
- * Notes            : The function may include a list of commands, descriptions, and usage examples.
- */
-static void Help_Seq();
-
-
-/*
- * Name             : TypeSeq
- * Description      : Processes and displays the content of the provided string.
- *                    This function interprets the input string, performs required operations,
- *                    and outputs the result, which may include formatted text or command output.
- * Input            : str - The input string to be processed and displayed.
- * Output           : None
- * Return           : None
- * Notes            : The function may involve text formatting and output to the console.
- */
-static void TypeSeq(uint8* str);
-
-/*
- * Name             : FreeSeq
- * Description      : Frees resources allocated for handling sequences.
- *                    This function cleans up and deallocates any memory or resources used
- *                    for managing sequences or related operations.
- * Input            : None
- * Output           : None
- * Return           : None
- * Notes            : Call this function to avoid memory leaks and ensure proper resource management.
- */
-static void FreeSeq();
-
-/*
- * Name             : uptimeSeq
- * Description      : Retrieves and displays the system's uptime and idle time.
- *                    This function reads uptime information from the system's `/proc/uptime`
- *                    file and prints both the total uptime and idle time to the console.
- * Input            : None
- * Output           : None
- * Return           : None
- * Notes            : Uses system file operations to access uptime information and may handle errors.
- */
-static void uptimeSeq();
-
-/*
- * Name             : printLocalVariables
- * Description      : Prints the value of a specified local variable.
- *                    This function searches for a local variable with the given name and
- *                    prints its value if found. If the variable does not exist, an error message is shown.
- * Input            : var - The name of the local variable to be printed.
- * Output           : None
- * Return           : uint8 - Returns VALID if the variable is found and printed, otherwise INVALID.
- * Notes            : This function is used for debugging or displaying variable values in the shell.
- */
-static uint8 printLocalVariables(char* var);
+extern char GlobalAppendFlag ;
+extern char GlobalMoveForcedFlag ;
+extern char GlobalMoveOperation  ;
+extern uint8* Ptr_GlobalGetParsingPath ;
+extern uint8 IamChild ;
+extern uint8 IamParent ;
+extern int localVarCount ;
+extern LocalVariable localVariables[MAX_VARS];
+extern ProcessHistory *PtrProcessHistory[MAX_STACK_SIZE];
+extern uint8 processCounter ;
+extern uint8 *sharedString ;
 
 
 /*===========================  Functions Implementations ======================*/
@@ -344,20 +82,6 @@ void Shellio_GetPath(uint8* command) {
 }
 
 
-static void GetPathSeq() {
-    /* Buffer for storing the current working directory */
-    char cwd[MAX_PATH];  // Array to store the current working directory path; MAX_PATH defines its size
-
-    /* Get the current working directory */
-    if (getcwd(cwd, sizeof(cwd)) != NULL) {  // Attempt to get the current working directory and store it in cwd
-        my_printf("Current working directory: %s\n", cwd);  // Print the current working directory if successful
-        pushProcessHistory(sharedString, SUCCESS);  // Record the success of the operation in process history
-    } else {
-        perror("getcwd() error");  // If the operation fails, print an error message
-    }
-}
-
-
 void Shellio_EchoInput(uint8* command) {
     uint8 *delimiters = "";  // Delimiters are space, comma, period, and exclamation mark (though currently empty)
     uint8 *token = strtok(NULL, delimiters);  // Tokenize the input string to extract the argument for echo
@@ -395,27 +119,6 @@ void Shellio_EchoInput(uint8* command) {
 
     cleanSharedString();  // Clean up the shared string
     IamParent = UNRAISED;  // Reset parent status
-}
-
-static void DisplaySeq(uint8* str) {
-    /* Get the length of the input string */
-    size_t Loc_Count = strlen(str);  // Length of the string to be written
-
-    /* Write operation */
-    ssize_t ret = write(STDOUT, str, Loc_Count);  // Write the string to standard output
-    
-    /* Check on return value of written bytes */
-    if (ret < 0) {  // Error in writing
-        perror("Error in writing on screen :: \n");  // Print error message
-        pushProcessHistory(sharedString, FAILED);  // Log the failure in process history
-    } else if (ret < Loc_Count) {
-        // Not all bytes were written; handle partial write
-        fprintf(stderr, "write_to_stdout: Partial write occurred. Expected %zd, wrote %zd\n", Loc_Count, ret);
-        pushProcessHistory(sharedString, FAILED);  // Log the failure in process history
-    } else {
-        write(STDOUT, "\n", 1);  // Write a newline character to standard output
-        pushProcessHistory(sharedString, SUCCESS);  // Log the success in process history
-    }
 }
 
 
@@ -678,42 +381,6 @@ void Shellio_Help(uint8* command) {
 }
 
 
-static void Help_Seq (){
-    my_printf("-------------------------------------------------------------------------------\n");
-    my_printf("-------------------------------------------------------------------------------\n");
-    my_printf("path :: Display the current working directory\n");
-    my_printf("-------------------------------------------------------------------------------\n");
-    my_printf("clone  :: Copy file1 in path1 to to file2 in path2\n");
-    my_printf("clone PathOffile1,PathOffile2\n");
-    my_printf("clone PathOffile1,-a,PathOffile2\n");
-    my_printf("-> case file2 name isn't determinted, will create one with file1 name\n");
-    my_printf("-> case file2 name is given but unallocated, will create one with disred name\n");
-    my_printf("-> use -a to append to copied file\n");
-    my_printf("-------------------------------------------------------------------------------\n");
-    my_printf("shift  :: move file1 in path1 to to file2 in path2\n");
-    my_printf   ("mv PathOffile1,PathOffile2\n");
-    my_printf("shift PathOffile1,-f,PathOffile2\n");
-    my_printf("-> case file2 name isn't determinted, will create one with file1 name\n");
-    my_printf("-> case file2 name is given but unallocated, will create one with disred name\n");
-    my_printf("-> use -f to overwrite on existed file\n");
-    my_printf("-------------------------------------------------------------------------------\n");
-    my_printf("display :: print on shellio termial\n");
-    my_printf("-------------------------------------------------------------------------------\n");
-    my_printf("cls:: clears shellio termial\n");
-    my_printf("-------------------------------------------------------------------------------\n");
-    my_printf("leave :: leave shellio terminal\n");
-    my_printf("-------------------------------------------------------------------------------\n");
-    my_printf("-------------------------------------------------------------------------------\n");
-}
-
-
-static void my_printf(const char *format, ...) {
-    va_list args;           // Declare a variable to hold the variable arguments
-    va_start(args, format); // Initialize the va_list variable with the format argument
-    vprintf(format, args); // Call vprintf to handle the formatted output
-    va_end(args);           // Clean up the va_list variable
-}
-
 uint8* Shellio_ParsingPath(uint8* ptr_ArgCounter, uint8* Ptr_1st_Path,
                             uint8* Ptr_2nd_Path, uint8* Copy_token) {
     // Buffer to temporarily store parsed paths
@@ -803,57 +470,6 @@ uint8* Shellio_ParsingPath(uint8* ptr_ArgCounter, uint8* Ptr_1st_Path,
     return Option;
 }
 
-static uint8* GetParsedPath(uint8* command) {
-    // Static pointer to hold the parsed path
-    static uint8* Path = NULL;  // Static to persist across function calls and avoid dangling pointer issues
-    
-    // Array to hold operands (not used in this function but included for completeness)
-    uint8 NumOfoperand = 1;
-    uint8* Operand[1];
-
-    // Check if the global pointer for parsing paths is valid
-    if (Ptr_GlobalGetParsingPath == NULL) {
-        my_printf("Error: Ptr_GlobalGetParsingPath is NULL\n");
-        return NULL;
-    }
-
-    // Advance the pointer to skip characters until a double quote (") or end of string is found
-    while (*Ptr_GlobalGetParsingPath != '"' && *Ptr_GlobalGetParsingPath != '\0') {
-        Ptr_GlobalGetParsingPath++;
-    }
-
-    // Check if the current character is a double quote
-    if (*Ptr_GlobalGetParsingPath == '"') {
-        Ptr_GlobalGetParsingPath++;  // Skip the double quote
-    } else if (*Ptr_GlobalGetParsingPath == '\0') {
-        my_printf("Error: Expected closing double quote\n");
-        return NULL;
-    }
-
-    // Allocate memory for the path, considering the length of remaining string plus null terminator
-    Path = malloc(strlen(Ptr_GlobalGetParsingPath) + 1);
-    
-    // Check if memory allocation succeeded
-    if (Path == NULL) {
-        my_printf("Memory allocation failed\n");
-        return NULL;
-    }
-
-    // Copy characters from the global pointer to the allocated path buffer
-    int i = 0;
-    while (*Ptr_GlobalGetParsingPath != '"' && *Ptr_GlobalGetParsingPath != '\0') {
-        Path[i++] = *Ptr_GlobalGetParsingPath++;
-    }
-
-    // Null-terminate the path string
-    Path[i] = '\0';
-
-    // Assign the path to Operand array (though Operand is not used further in this function)
-    Operand[0] = Path;
-
-    // Return the parsed path
-    return Path;
-}
 
 uint8 Shellio_Exit (uint8* command) {
     // Delimiters used for tokenizing input (space and zero)
@@ -1052,39 +668,6 @@ void Shellio_TypeCommand(uint8* command) {
     IamParent = UNRAISED;  // Reset parent status
 }
 
-
-static void TypeSeq(uint8* str){
-    if (strcmp (str,"leave") == EQUALED)
-        printf("It is an built-in command :: %s\n",str);
-    else if (strcmp (str,"cls") == CLEARED)
-        printf("It is an built-in command :: %s\n",str);
-    else if (strcmp (str,"path") == PWD_PASS )
-        printf("It is an built-in command :: %s\n",str);
-    else if (strcmp (str,"display") == ECHO_PASS )
-        printf("It is an built-in command :: %s\n",str);
-    else if (strcmp (str,"assist") == HELP_PASS)
-        printf("It is an built-in command :: %s\n",str);
-    else if (strcmp (str,"clone") == COPY_PASS )
-        printf("It is an built-in command :: %s\n",str);
-    else if (strcmp (str,"shift") == MV_PASS )
-        printf("It is an built-in command :: %s\n",str);
-    else if (strcmp(str, "cd") == CD_PASS) 
-        printf("It is an built-in command :: %s\n",str);
-    else if (strcmp(str, "type") == TYPE_PASS) 
-        printf("It is an built-in command :: %s\n",str);
-    else if (strcmp(str, "envir") == ENV_PASS)
-        printf("It is an built-in command :: %s\n",str);
-    else if (strcmp(str, "phist") == EXIT)
-        printf("It is an built-in command :: %s\n",str);
-    else {        
-        uint8 status = SearchOnCommand (str);
-        if (status == SUCCESS){
-            printf("It is an external command :: %s\n",str);
-        }
-        else 
-            printf("Undefined command :: %s\n",str);
-    }
-}
 
 
 // Function to execute external commands
@@ -1314,54 +897,6 @@ void Shellio_Phist(uint8* command) {
 }
 
 
-// Function to push a new entry into the process history stack
-void pushProcessHistory(const uint8 *command, uint8 status) {
-    // Allocate memory for a new ProcessHistory entry
-    ProcessHistory *newEntry = (ProcessHistory *)malloc(sizeof(ProcessHistory));
-    if (newEntry == NULL) {
-        perror("Failed to allocate memory for new process history entry");
-        exit(EXIT_FAILURE);  // Exit if memory allocation fails
-    }
-
-    // Duplicate the command string and check for allocation failure
-    newEntry->command = strdup(command);
-    if (newEntry->command == NULL) {
-        perror("Failed to duplicate command string");
-        free(newEntry);  // Free the allocated memory for the new entry
-        exit(EXIT_FAILURE);  // Exit if string duplication fails
-    }
-
-    // Set the status for the new entry
-    newEntry->status = status;
-
-    // If the stack is full (i.e., reached MAX_STACK_SIZE), remove the oldest element
-    if (processCounter >= MAX_STACK_SIZE) {
-        // Free the memory allocated for the oldest element
-        free(PtrProcessHistory[MAX_STACK_SIZE - 1]->command);
-        free(PtrProcessHistory[MAX_STACK_SIZE - 1]);
-        processCounter--;  // Decrease the counter as we are removing an element
-    }
-
-    // Shift existing elements to the right to make space for the new entry
-    for (int i = processCounter; i > 0; i--) {
-        PtrProcessHistory[i] = PtrProcessHistory[i - 1];
-    }
-
-    // Insert the new entry at the beginning of the stack
-    PtrProcessHistory[0] = newEntry;
-    processCounter++;  // Increase the counter to reflect the added entry
-}
-
-// Cleanup function to free all allocated memory for process history
-static void cleanupProcessHistory() {
-    // Iterate through all entries in the stack
-    for (int i = 0; i < processCounter; i++) {
-        // Free the command string and the ProcessHistory entry itself
-        free(PtrProcessHistory[i]->command);
-        free(PtrProcessHistory[i]);
-    }
-}
-
 // Function to set the global sharedString to a duplicate of the input string
 void setSharedString(const uint8 *str) {
     // Duplicate the input string and assign it to sharedString
@@ -1379,39 +914,6 @@ void cleanSharedString() {
     sharedString = NULL;
 }
 
-// Function to search for a command in the directories listed in the PATH environment variable
-static uint8 SearchOnCommand(uint8 *token) {
-    // Retrieve the PATH environment variable
-    char *path_env = getenv("PATH");
-
-    // Check if PATH is not set; return FAILED if NULL
-    if (path_env == NULL) {
-        return FAILED; // PATH environment variable not set
-    }
-
-    // Create a copy of PATH to tokenize and search
-    char path_copy[MAX_PATH];
-    strncpy(path_copy, path_env, sizeof(path_copy));
-
-    // Tokenize the PATH variable to extract directories
-    char *dir = strtok(path_copy, ":");
-    while (dir != NULL) {
-        // Construct the full path by appending the command token to the directory
-        char full_path[MAX_PATH];
-        snprintf(full_path, sizeof(full_path), "%s/%s", dir, token);
-
-        // Check if the file exists and is executable
-        if (access(full_path, X_OK) == 0) {
-            return SUCCESS; // Command found and is executable
-        }
-
-        // Move to the next directory in PATH
-        dir = strtok(NULL, ":");
-    }
-
-    // Command not found in any directory listed in PATH
-    return FAILED; // Command not found or not executable
-}
 
 // Function to get the username of the current user
 const char* getUserName() {
@@ -1446,16 +948,6 @@ void printPrompt() {
     // Print the username in bold green, followed by the hostname in bold green
     printf("%s%s%s", COLOR_BOLD_GREEN, user, COLOR_RESET);
     printf("@%s%s%s:", COLOR_BOLD_GREEN, host, COLOR_RESET);
-}
-
-// Function to get the current working directory without a token
-uint8* GetPathWithoutToken() {
-    // Static buffer to store the current working directory
-    static char cwd[MAX_PATH];
-
-    // Retrieve the current working directory
-    getcwd(cwd, sizeof(cwd));
-    return cwd; // Return the buffer containing the current working directory
 }
 
 void Shellio_Meminfo(uint8* command){
@@ -1504,50 +996,6 @@ void Shellio_Meminfo(uint8* command){
 }
 
 
-static void FreeSeq (){
-    uint8 buffer[1024];
-    ssize_t bytes_read;
-    uint8 *line_start = buffer;
-    uint8 *line_end;
-    int FD ;
-
-    FD = open("/proc/meminfo", O_RDONLY);
-    if (FD < 0) {
-        perror("open");
-        return ;
-    }
-
-    unsigned long total_ram ,free_ram, used_ram, total_swap, free_swap, used_swap ;
-
-    while ( (bytes_read = read(FD, buffer, sizeof(buffer) - 1)) > 0 ) {
-        buffer[bytes_read] = '\0';
-        uint8 *ptr = line_start;
-
-        while (( line_end = strchr(ptr, '\n')) != NULL) {
-            *line_end = '\0'; // Null-terminate the line  
-
-            // Parse each line
-            sscanf(ptr, "MemTotal: %lu kB", &total_ram);
-            sscanf(ptr, "MemFree: %lu kB", &free_ram);
-            sscanf(ptr, "SwapTotal: %lu kB", &total_swap);
-            sscanf(ptr, "SwapFree: %lu kB", &free_swap);
-
-            ptr = line_end + 1;
-        }  
-    }
-
-    close(FD);
-    
-    used_ram = total_ram - free_ram ;
-    used_swap = total_swap - free_swap ;
-        
-    printf("             total                used                  free \n");
-    printf("Mem        %lu             %lu                %lu\n",total_ram,used_ram,free_ram);
-    printf("Swap           %lu                    %lu                     %lu\n",total_swap,used_swap,free_swap);
-
-}
-
-
 void Shellio_uptime(uint8* command) {
     /* For gdb script debugging */
     uint8 NumOfoperand = 0 ;   // Number of operands (set to 0 as default)
@@ -1593,181 +1041,6 @@ void Shellio_uptime(uint8* command) {
     cleanSharedString(); // Clean up the shared string memory
     IamParent = UNRAISED ; // Reset parent process status
 }
-
-static void uptimeSeq() {
-    char buffer[100];  // Buffer to store the contents of /proc/uptime
-
-    ssize_t bytes_read;
-    int FD;
-    char *uptime, *idletime;
-
-    // Open the /proc/uptime file for reading
-    FD = open("/proc/uptime", O_RDONLY);
-    if (FD < 0) {
-        perror("open");  // Print error if file cannot be opened
-        return;
-    }
-
-    // Read the contents of the file into the buffer
-    bytes_read = read(FD, buffer, sizeof(buffer) - 1);
-    if (bytes_read < 0) {
-        perror("read");  // Print error if reading fails
-        close(FD);       // Close the file descriptor before returning
-        return;
-    }
-    buffer[bytes_read] = '\0';  // Null-terminate the string to make it a valid C string
-
-    // Close the file descriptor after reading
-    close(FD);
-
-    // Tokenize the buffer to separate uptime and idletime
-    uptime = strtok(buffer, " ");       // Extract uptime (time since last boot)
-    idletime = strtok(NULL, " ");        // Extract idletime (time the system has been idle)
-
-    uint8 len = strlen(idletime);        // Get the length of the idletime string
-    idletime[len-1] = '\0';              // Remove the trailing newline character from idletime
-
-    if (uptime != NULL && idletime != NULL) {
-        // Print the uptime and idletime values
-        printf("The uptime : %s seconds\n", uptime);
-        printf("The idletime : %s seconds\n", idletime);
-    } else {
-        // Print an error message if parsing fails
-        printf("Error parsing uptime data.\n");
-    }
-}
-
-static uint8 searchCharacter(const uint8 *str, char character, uint8** Remaining) {
-    // Use strchr to find the first occurrence of the specified character in the string
-    *Remaining = (uint8*) strchr((const char*)str, character);
-
-    if (*Remaining != NULL) {
-        // If the character is found, move the pointer past the character itself
-        (*Remaining)++;
-        
-        // Extract the part of the string after the character
-        *Remaining = (uint8*) strtok((char*) *Remaining, "");
-        if (*Remaining) {
-            // Set the global variable with the parsed path (if necessary)
-            Ptr_GlobalGetParsingPath = *Remaining;
-
-            // Get the absolute path
-            *Remaining = GetParsedPath("path");
-
-            // Get the relative path
-            *Remaining = GetRelativePath(*Remaining);
-
-            return VALID;  // Indicate that the character was found and processing succeeded
-        } else {
-            return INVALID;  // Return INVALID if strtok fails to extract the remaining part
-        }
-    }
-
-    return INVALID;  // Return INVALID if the character was not found in the string
-}
-
-static uint8* ErrorFD_Path(uint8* path) {
-    // Skip the initial "2>" characters, which are used for error redirection
-    path += 2;
-
-    // Tokenize the string to isolate the path after the redirection operator
-    path = (uint8*) strtok((char*) path, "");
-
-    // Set the global parsing path to the extracted path
-    Ptr_GlobalGetParsingPath = path;
-
-    // Parse the path to ensure it's in the correct format
-    path = GetParsedPath("path");
-
-    // Convert the path to a relative path if necessary
-    path = GetRelativePath(path);
-
-    // Return the processed path
-    return path;
-}
-
-static void redirect(uint8* path, int newFD) {
-    // Define file permissions: read and write for the owner, read for group and others
-    mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
-    
-    // Open the file specified by the path. Create the file if it doesn't exist, and open it for writing.
-    int outfd = open(path, O_CREAT | O_WRONLY, mode);
-
-    if (outfd < 0) {
-        // Print an error message if the file cannot be opened or created
-        perror("Error In Opening File :: ");
-        return;
-    }
-
-    // Redirect the new file descriptor (newFD) to the opened file descriptor (outfd)
-    int FD = dup2(outfd, newFD);
-
-    if (FD != newFD) {
-        // Print an error message if the file descriptor could not be reserved correctly
-        perror("Error In reserving FD of stdout");
-    }
-
-    // Close the file descriptor as it's no longer needed after redirection
-    close(outfd);
-}
-
-
-static void fork_redirectionExec(uint8* path, int FD) {
-    // Fork the current process to create a child process
-    int retPid = fork();
-
-    if (retPid > 0) {  
-        // This block executes in the parent process
-
-        // Record the success of the command execution in process history
-        pushProcessHistory(sharedString, SUCCESS);  
-        
-        // Indicate that the parent process is currently active
-        IamParent = RAISED;            
-        
-        // Wait for the child process to complete
-        int status = 0;	
-        wait(&status);
-    } 
-    else if (retPid == 0) {
-        // This block executes in the child process
-
-        // Redirect the file descriptor (FD) to the specified path
-        redirect(path, FD);
-        
-        // Indicate that the child process is currently active
-        IamChild = RAISED;
-    } 
-    else {
-        // Fork failed
-        perror("fork");
-    }
-}
-
-
-
-static uint8* GetRelativePath(uint8 path[]) {
-    // Allocate memory for the resulting path
-    uint8* ResultPath = (uint8*) malloc(MAX_PATH);
-    
-    // Define the base path to check against
-    char keyword[] = "/home/shehabaldeen";
-    
-    // Check if the path contains the base path keyword
-    char *found = strstr((char*)path, keyword);
-
-    if (found == NULL) {
-        // If the base path is not found, construct a relative path
-        snprintf((char*)ResultPath, MAX_PATH, "%s/%s", GetPathWithoutToken(), path);
-    } else {
-        // If the base path is found, copy the original path to the result
-        strncpy((char*)ResultPath, (char*)path, MAX_PATH);
-    }
-
-    // Return the resulting path
-    return ResultPath;
-}
-
 
 
 void Shellio_PrintEnvVar(uint8* command, uint8* copy_token) {
@@ -1879,7 +1152,6 @@ void Shellio_setVariable(uint8* command) {
     }
 }
 
-
 void Shellio_allVar() {
     // Print local variables
     printf("Local Variables:\n");
@@ -1924,19 +1196,4 @@ void setLocalVariable(const char* name, const char* value) {
         // Print an error message if the maximum number of local variables has been reached
         printf("Maximum number of local variables reached.\n");
     }
-}
-
-
-static uint8 printLocalVariables(char* var) {
-    // Iterate through the list of local variables
-    for (int i = 0; i < localVarCount; ++i) {
-        // Check if the variable name matches the input variable name
-        if (strcmp(localVariables[i].name, var) == 0) {
-            // Print the value of the matching variable
-            printf("%s\n", localVariables[i].value);
-            return VALID;
-        }
-    }
-    // Return INVALID if the variable is not found
-    return INVALID;
 }
