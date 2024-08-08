@@ -61,6 +61,7 @@
 #define CLEARED                               0
 #define NOT_CLEARED                           1
 #define RAISED                                1
+#define UNRAISED                              0
 #define NEWLINE_INPUT                         11
 #define PWD_PASS                              0
 #define ECHO_PASS                             0
@@ -107,6 +108,9 @@
 #define BACKGROUND_MAGENTA "\033[45m"
 #define BACKGROUND_CYAN "\033[46m"
 #define BACKGROUND_WHITE "\033[47m"
+#define MAX_VARS 100
+#define MAX_VAR_NAME 50
+#define MAX_VAR_VALUE 100
 
 // Reset
 #define COLOR_RESET "\033[0m"
@@ -278,7 +282,7 @@ void Shellio_TypeCommand(uint8* command);
  * Return           : None
  * Notes            : The function retrieves the environment variables from the global 'environ' array.
  */
-void Shellio_PrintEnv(uint8* command);
+void Shellio_PrintEnv(uint8* command,uint8* token);
 
 /*
  * Name             : Shellio_ChangeDir
@@ -354,5 +358,10 @@ const char* getUserName() ;
 void getHostName(char *hostname, size_t size) ;
 void printPrompt() ;
 uint8* GetPathWithoutToken();
+void Shellio_Meminfo(uint8* command);
+void Shellio_uptime(uint8* command);
+void Shellio_setVariable(uint8* command);
+void Shellio_allVar() ;
+void setLocalVariable(const char* name, const char* value) ;
 
 #endif /* Header Guard */

@@ -93,10 +93,10 @@ int main() {
             } 
             else if (strcmp(token, "envir") == ENV_PASS) {
                 uint8 * command = strdup(token) ;
-                token = strtok(NULL, delimiters) ;
+                token = strtok(NULL, "") ;
 
-                if (token == NULL) {
-                    Shellio_PrintEnv(command);
+                if (token == NULL || *(token) == '2' || (*token) == '>' ) {
+                    Shellio_PrintEnv(command,token);
                     printf("%s%s%s \n",COLOR_BOLD_BLUE,separators,COLOR_RESET);
                 } else {
                     Shellio_PrintEnvVar(command,token);
@@ -106,6 +106,21 @@ int main() {
             } 
             else if (strcmp(token, "phist") == EXIT) {
                 Shellio_Phist(token);
+                printf("%s%s%s \n",COLOR_BOLD_BLUE,separators,COLOR_RESET);
+            }
+            else if (strcmp(token, "free") == FREE_PASS) {
+                Shellio_Meminfo(token);
+                printf("%s%s%s \n",COLOR_BOLD_BLUE,separators,COLOR_RESET);
+            } 
+            else if (strcmp(token, "uptime") == UPTIME_PASS) {
+                Shellio_uptime(token);
+                printf("%s%s%s \n",COLOR_BOLD_BLUE,separators,COLOR_RESET);
+            }
+            else if (strchr(token, '=') != NULL) {
+                Shellio_setVariable(token);
+            }
+            else if (strcmp(token, "allVar") == ALLVAR_PASS) {
+                Shellio_allVar();
                 printf("%s%s%s \n",COLOR_BOLD_BLUE,separators,COLOR_RESET);
             }
             else {
@@ -134,6 +149,9 @@ clone "/home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Ta
 clone "/home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Tasks/Session 3/file.txt" "/home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Tasks/Session 3/file.txt"
 
 3- Normally copy
+
+"/home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Tasks/5- Shellio/file.txt"
+
 clone "file.txt" "/home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Tasks/copiedfile.txt"
 clone "/home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Tasks/Session 3/file.txt" "/home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Tasks/copiedfile.txt"
 clone "/home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Tasks/Session 3/file.txt" "/home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Tasks/Session 3"
