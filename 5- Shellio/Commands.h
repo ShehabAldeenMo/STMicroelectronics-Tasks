@@ -225,17 +225,6 @@ void Shellio_Phist(uint8* command);
 void setSharedString(const uint8 * str);
 
 /*
- * Name             : cleanSharedString
- * Description      : Frees the memory allocated for the shared string.
- *                    Ensures that the shared string is properly cleaned up after use to prevent memory leaks.
- * Input            : None
- * Output           : None
- * Return           : None
- * Notes            : This function should be called whenever the shared string is no longer needed.
- */
-void cleanSharedString();
-
-/*
  * Name             : Shellio_ExecExternalCommands
  * Description      : Executes external commands by forking a new process and using execvp.
  *                    Constructs the arguments array and handles quotation marks in paths.

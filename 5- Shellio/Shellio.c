@@ -99,7 +99,7 @@ int main() {
                 uint8 * command = strdup(token);  // Duplicate the command string
                 token = strtok(NULL, "");  // Get the next token, which is the argument to 'envir'
 
-                if (token == NULL || *(token) == '2' || (*token) == '>') {  // If no argument or redirection is provided
+                if (token == NULL || *(token) == '2' || (*token ) == '>') {  // If no argument or redirection is provided
                     Shellio_PrintEnv(command, token);  // Print the environment variables
                     printf("%s%s%s \n", COLOR_BOLD_BLUE, separators, COLOR_RESET);  // Print a separator line in blue
                 } else {
@@ -179,5 +179,19 @@ shift "/home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Ta
 9- mv with no forced option on file
 shift "/home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Tasks/Session 3/fileMove.txt" "/home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Tasks/file.txt"
 
+
+
+display Shehab > "file.txt" 2> "file2.txt"
+display Shehab 2> "file.txt" > "file2.txt"
+
+
+type cd 2> "file.txt" > "file2.txt"
+type cd > "file.txt" 2> "file2.txt"
+
+envir PWD 2> "file.txt" > "file2.txt"
+envir PWD > "file.txt" 2> "file2.txt"
+
+envir 2> "file.txt" > "file2.txt"
+envir > "file.txt" 2> "file2.txt"
 
 */

@@ -37,33 +37,10 @@ extern uint8 *sharedString ;
 
 /*===========================  Functions Implementations ======================*/
 void Shellio_GetPath(uint8* command) {
-    const char *delimiters = "";  // Delimiters for tokenizing are empty (i.e., no specific delimiters)
-    char *token = strtok(NULL, delimiters);  // Tokenize the input string after the command
+    uint8 Status = RedirectionHandlerOfnoOption(command);
 
-    /* For gdb script debugging: 
-       Initialize debugging variables (not used in this function). */
-    uint8 NumOfoperand = 0;
-    uint8* Operand[1] = {NULL};
-
-    /* Check if there is any additional input after the 'pwd' command */
-    if (token != NULL) {
-
-        uint8* path; 
-        char *found = strstr(token, "2>");  // Check if the token contains redirection to stderr
-        if (found != NULL) {
-            path = ErrorFD_Path(found);  // Get the path for stderr redirection
-            fork_redirectionExec(path, STDERR);  // Execute with stderr redirection
-        }
-        else if (searchCharacter(token, '>', &path) == VALID) {  // Check if the token contains redirection to stdout
-            fork_redirectionExec(path, STDOUT);  // Execute with stdout redirection
-        }
-        else {
-            // If no valid redirection is found, print an error message
-            printf("command not found\nEnter 'assist' to know Shellio commands\n");
-            pushProcessHistory(sharedString, FAILED);  // Record the failure in process history
-            cleanSharedString();  // Clean up the shared string
-            return;   
-        }
+    if (Status == INVALID){
+        return ;
     }
 
     /* If running in child process, get the current path and exit */
@@ -77,37 +54,17 @@ void Shellio_GetPath(uint8* command) {
     }
 
     /* Clean up and reset parent status */
+    pushProcessHistory(sharedString, SUCCESS);
     cleanSharedString();
     IamParent = UNRAISED;  // Reset the parent status
 }
 
 
 void Shellio_EchoInput(uint8* command) {
-    uint8 *delimiters = "";  // Delimiters are space, comma, period, and exclamation mark (though currently empty)
-    uint8 *token = strtok(NULL, delimiters);  // Tokenize the input string to extract the argument for echo
+    uint8* token = RedirectionHandlerOfWithOption (command);
 
-    /* For gdb script debugging */
-    uint8 NumOfoperand = 1;  // Number of operands (arguments) for debugging
-    uint8* Operand[1];  // Array to hold the operand
-    Operand[0] = token;  // Store the token (argument) in the operand array
-
-    /* Check if there is any additional input after the 'echo' command */
-    if (token == NULL) {
-        printf("command not found\nEnter (assist) to know Shellio Commands\n");  // Print error if no token is found
-        pushProcessHistory(sharedString, FAILED);  // Log the failure in process history
-        cleanSharedString();  // Clean up the shared string
-        return;
-    } else {
-        uint8* path;
-        char *found = strstr(token, "2>");  // Check for stderr redirection
-        if (found != NULL) {
-            path = ErrorFD_Path(found);  // Get the path for error redirection
-            fork_redirectionExec(path, STDERR);  // Redirect stderr to the specified path
-            token = strtok(token, "2>");  // Remove the redirection part from token
-        } else if (searchCharacter(token, '>', &path) == VALID) {
-            fork_redirectionExec(path, STDOUT);  // Redirect stdout to the specified path
-            token = strtok(token, ">");  // Remove the redirection part from token
-        }
+    if (token == NULL){
+        return ;
     }
 
     if (IamChild == RAISED) {
@@ -119,6 +76,7 @@ void Shellio_EchoInput(uint8* command) {
 
     cleanSharedString();  // Clean up the shared string
     IamParent = UNRAISED;  // Reset parent status
+    free(token);
 }
 
 
@@ -339,31 +297,10 @@ void Shellio_MoveFile(const char Copy_MoveFlag) {
 
 
 void Shellio_Help(uint8* command) {
-    uint8 *delimiters = "";  // No delimiters in this case, as we are checking for additional input
-    uint8 *token = strtok(NULL, delimiters);  // Get the next token from the command string
+    uint8 Status = RedirectionHandlerOfnoOption(command);
 
-    /* For gdb script debugging */
-    uint8 NumOfoperand = 0;  // Number of operands for debugging purposes
-    uint8* Operand[1] = {NULL};  // Array to store operands for debugging
-
-    // Check if there is additional input after the 'help' command
-    if (token != NULL) {
-        uint8* path;
-        char *found = strstr(token, "2>");
-        if (found != NULL) {
-            // Redirect standard error if "2>" is found in the input
-            path = ErrorFD_Path(found);
-            fork_redirectionExec(path, STDERR);
-        } else if (searchCharacter(token, '>', &path) == VALID) {
-            // Redirect standard output if ">" is found in the input
-            fork_redirectionExec(path, STDOUT);
-        } else {
-            // Print error message if the command is not recognized
-            printf("Command not found\nEnter 'assist' to know Shellio commands\n");
-            pushProcessHistory(sharedString, FAILED);
-            cleanSharedString();
-            return;
-        }
+    if (Status == INVALID){
+        return ;
     }
 
     // Execute the Help_Seq function based on the process state
@@ -575,22 +512,45 @@ void Shellio_PrintEnv(uint8* command, uint8* token) {
 
     // Check if there is additional input after the 'printenv' command
     if (token != NULL) {
+        char ErrorFlag = ON ;
         uint8* path; 
-        char *found = strstr(token, "2>");
-        
+        int SecondFD = -1 , SecondFDWithout2 = -1 ;
+
+        char *found = strstr(token, "2>");  // Check if the token contains redirection to stderr
+        int pos = SearchOnSpaceBeforeArrow (token) ; 
+
+        /* if contain > then cancel print on screen because of there are target file after > */
+        if ( pos != INVALID_ID && found != NULL){
+            SecondFD = STDOUT ;
+            SecondFDWithout2 = STDERR ;
+            ErrorFlag = OFF ;
+        }
+
         if (found != NULL) {
-            // Handle redirection to standard error
-            path = ErrorFD_Path(found);
-            fork_redirectionExec(path, STDERR);
-        } else if (searchCharacter(token, '>', &path) == VALID) {
-            // Handle redirection to standard output
-            fork_redirectionExec(path, STDOUT);
-        } else {
-            // Print error message for invalid command or option
-            printf("command not found\nEnter (assist) to know Shellio Commands\n");
-            pushProcessHistory(sharedString, FAILED);
-            cleanSharedString();
-            return;  
+            path = FindRedirectionPath(found);  // Get the path for stderr redirection
+            fork_redirectionExec(path, STDERR, SecondFD);  // Execute with stderr redirection
+            ErrorFlag = OFF ;
+        }
+
+        if ( pos == INVALID_ID )
+            found = NULL ;
+        else{
+            token+=pos;
+            found = strstr(token, ">"); 
+        }
+        
+        if (found != NULL) {  // Check if the token contains redirection to stdout
+            path = FindRedirectionPath(found);
+            fork_redirectionExec(path, STDOUT, SecondFDWithout2);  // Execute with stdout redirection
+            ErrorFlag = OFF ;
+        }
+        
+        if (ErrorFlag == ON ) {
+            // If no valid redirection is found, print an error message
+            printf("command not found\nEnter 'assist' to know Shellio commands\n");
+            pushProcessHistory(sharedString, FAILED);  // Record the failure in process history
+            cleanSharedString();  // Clean up the shared string
+            return;   
         }
     }
 
@@ -622,34 +582,10 @@ void Shellio_PrintEnv(uint8* command, uint8* token) {
 
 
 void Shellio_TypeCommand(uint8* command) {
-    uint8* token = strtok(NULL, "");  // Extract the command after 'type'
+    uint8* token = RedirectionHandlerOfWithOption (command);
 
-    // For GDB script debugging
-    uint8 NumOfoperand = 1;
-    uint8* Operand[1];
-    Operand[0] = token;
-
-    // Check if there is any additional input after the 'type' command
-    if (token == NULL) {
-        // If no additional input is provided, print an error message
-        printf("command not found\nEnter (assist) to know Shellio Commands\n");
-        pushProcessHistory(sharedString, FAILED);
-        cleanSharedString();
-        return;
-    } else {
-        uint8* path;
-        char *found = strstr(token, "2>");  // Check for redirection to stderr
-        
-        if (found != NULL) {
-            // Handle redirection to standard error
-            path = ErrorFD_Path(found);
-            fork_redirectionExec(path, STDERR);
-            token = strtok(token, " 2>");  // Update token to remove redirection part
-        } else if (searchCharacter(token, '>', &path) == VALID) {
-            // Handle redirection to standard output
-            fork_redirectionExec(path, STDOUT);
-            token = strtok(token, " >");  // Update token to remove redirection part
-        }
+    if (token == NULL){
+        return ;
     }
 
     // Handle the 'type' command
@@ -666,6 +602,7 @@ void Shellio_TypeCommand(uint8* command) {
     pushProcessHistory(sharedString, SUCCESS);
     cleanSharedString();
     IamParent = UNRAISED;  // Reset parent status
+    free(token);
 }
 
 
@@ -849,29 +786,10 @@ void Shellio_ChangeDir(uint8* command) {
 
 
 void Shellio_Phist(uint8* command) {
-    /* For gdb script debugging */
-    uint8 NumOfoperand = 0;  // Number of operands (arguments) for debugging purposes
-    uint8* Operand[1] = {NULL};  // Array to hold pointers to operands (not used in this function)
-    uint8* token = strtok(NULL, "");  // Tokenize input to check for additional parameters
+    uint8 Status = RedirectionHandlerOfnoOption(command);
 
-    // Check if there are additional inputs after the 'phist' command
-    if (token != NULL) {
-        uint8* path; 
-        char *found = strstr(token, "2>");  // Look for stderr redirection
-        if (found != NULL) {
-            // Handle stderr redirection
-            path = ErrorFD_Path(found);  // Extract the path for redirection
-            fork_redirectionExec(path, STDERR);  // Execute redirection
-        } else if (searchCharacter(token, '>', &path) == VALID) {
-            // Handle stdout redirection
-            fork_redirectionExec(path, STDOUT);  // Execute redirection
-        } else {
-            // Print error if the redirection syntax is invalid
-            printf("command not found\nEnter (assist) to know Shellio Commands\n");
-            pushProcessHistory(sharedString, FAILED);  // Record failure in process history
-            cleanSharedString();  // Clean up shared string buffer
-            return;  // Exit function
-        }
+    if (Status == INVALID){
+        return ;
     }
 
     // Check if the current process is a child or parent
@@ -905,14 +823,7 @@ void setSharedString(const uint8 *str) {
     // Note: Ensure to handle NULL inputs or check for memory allocation failures
 }
 
-// Function to free the memory allocated for the global sharedString
-void cleanSharedString() {
-    // Free the allocated memory for sharedString
-    free(sharedString);
 
-    // After freeing, ensure sharedString is set to NULL to avoid dangling pointers
-    sharedString = NULL;
-}
 
 
 // Function to get the username of the current user
@@ -951,32 +862,10 @@ void printPrompt() {
 }
 
 void Shellio_Meminfo(uint8* command){
-    // Tokenize the input to handle additional arguments
-    uint8 *token  = strtok(NULL, "");  // Extract the next token from the command input
-    /* For gdb script debugging */
-    uint8 NumOfoperand = 0 ;   // Number of operands (set to 0 as default)
-    uint8* Operand[1] = {NULL}; // Array to store operands (only one in this case)
+    uint8 Status = RedirectionHandlerOfnoOption(command);
 
-    // Check if there is any additional input after the 'meminfo' command
-    if (token != NULL) {
-        uint8* path; 
-        // Check if the token contains redirection for stderr
-        char *found = strstr(token, "2>");
-        if (found != NULL) {
-            path = ErrorFD_Path(found); // Get the file path for stderr redirection
-            fork_redirectionExec(path, STDERR); // Execute redirection for stderr
-        }
-        // Check if the token contains redirection for stdout
-        else if (searchCharacter(token, '>', &path) == VALID) {
-            fork_redirectionExec(path, STDOUT); // Execute redirection for stdout
-        }
-        else {
-            // If no valid redirection is found, print an error message
-            printf("command not found\nEnter (assist) to know Shellio Commands\n");
-            pushProcessHistory(sharedString, FAILED); // Log failure in process history
-            cleanSharedString(); // Clean up the shared string memory
-            return;  // Exit the function as the command is not valid
-        }
+    if (Status == INVALID){
+        return ;
     }
 
     // Check if the current process is a child process
@@ -997,33 +886,10 @@ void Shellio_Meminfo(uint8* command){
 
 
 void Shellio_uptime(uint8* command) {
-    /* For gdb script debugging */
-    uint8 NumOfoperand = 0 ;   // Number of operands (set to 0 as default)
-    uint8* Operand[1] = {NULL}; // Array to store operands (only one in this case)
+    uint8 Status = RedirectionHandlerOfnoOption(command);
 
-    // Tokenize the input to handle additional arguments
-    uint8 *token  = strtok(NULL, "") ;  // Extract the next token from the command input
-
-    // Check if there is any additional input after the 'uptime' command
-    if (token != NULL) {
-        uint8* path ; 
-        // Check if the token contains redirection for stderr
-        char *found = strstr(token, "2>");
-        if (found != NULL){
-            path = ErrorFD_Path(found); // Get the file path for stderr redirection
-            fork_redirectionExec(path, STDERR); // Execute redirection for stderr
-        }
-        // Check if the token contains redirection for stdout
-        else if (searchCharacter(token, '>', &path) == VALID ) {
-            fork_redirectionExec(path, STDOUT); // Execute redirection for stdout
-        }
-        else {
-            // If no valid redirection is found, print an error message
-            printf("command not found\nEnter (assist) to know Shellio Commands\n");
-            pushProcessHistory(sharedString, FAILED); // Log failure in process history
-            cleanSharedString(); // Clean up the shared string memory
-            return;  // Exit the function as the command is not valid
-        }
+    if (Status == INVALID){
+        return ;
     }
 
     // Check if the current process is a child process
@@ -1043,34 +909,69 @@ void Shellio_uptime(uint8* command) {
 }
 
 
-void Shellio_PrintEnvVar(uint8* command, uint8* copy_token) {
+void Shellio_PrintEnvVar(uint8* command, uint8* token) {
     // Debugging information for GDB
     uint8 NumOfoperand = 1;
     uint8* Operand[1];
-    Operand[0] = copy_token;
-    
-    // Buffer for storing environment variable names
-    uint8 token[20];
+    Operand[0] = token;
 
     // Check if there is additional input after the command
-    if (copy_token != NULL) {
-        uint8* path;
+    if (token != NULL) {
+        uint8* path; 
+        int SecondFD = -1 , SecondFDWithout2 = -1 ;
+
+        char *found = strstr(token, "2>");  // Check if the token contains redirection to stderr
+        int pos = SearchOnSpaceBeforeArrow (token) ; 
         
-        // Check if the command contains redirection to stderr
-        char *found = strstr(copy_token, "2>");
-        if (found != NULL) {
-            // Extract the path for redirection and execute with stderr redirection
-            path = ErrorFD_Path(found);
-            fork_redirectionExec(path, STDERR);
-            // Remove redirection part from the token
-            strcpy(token, strtok(copy_token, " 2>"));
+        /* if contain > then cancel print on screen because of there are target file after > */
+        if ( pos != INVALID_ID && found != NULL){
+            SecondFD = STDOUT ;
+            SecondFDWithout2 = STDERR ;
         }
-        // Check if the command contains redirection to stdout
-        else if (searchCharacter(copy_token, '>', &path) == VALID) {
-            // Extract the path for redirection and execute with stdout redirection
-            fork_redirectionExec(path, STDOUT);
-            // Remove redirection part from the token
-            strcpy(token, strtok(copy_token, " >"));
+
+        if (found != NULL) {
+            path = FindRedirectionPath(found);  // Get the path for stderr redirection
+            fork_redirectionExec(path, STDERR, SecondFD);  // Execute with stderr redirection
+            int i = 0 ;
+            while ( *(token+i) != '\0'){
+                if ( *(token+i) == '>' ){
+                    if (*(token+i-1) == '2'){
+                        *(token+i-2) = '\0'; 
+                        break;
+                    }
+                    else {
+                        *(token+i-1) = '\0'; 
+                        break;
+                    }
+                }
+                i++;
+            }
+        }
+
+        if ( pos == INVALID_ID )
+            found = NULL ;
+        else{
+            found = strstr(token+pos, ">"); 
+        }
+        
+        if (found != NULL) {  // Check if the token contains redirection to stdout
+            path = FindRedirectionPath(found);
+            fork_redirectionExec(path, STDOUT, SecondFDWithout2);  // Execute with stdout redirection
+
+            int i = 0 ;
+            while ( *(token+i) != '\0'){
+                if ( *(token+i) == '>' ){
+                    if (*(token+i-1) == '2'){
+                        *(token+i-2) = '\0'; 
+                        break;
+                    }
+                    else {
+                        *(token+i-1) = '\0'; 
+                        break;
+                    }
+                }
+                i++;
+            }
         }
     }
 
@@ -1100,8 +1001,6 @@ void Shellio_PrintEnvVar(uint8* command, uint8* copy_token) {
     }
     // Parent process block
     else if (IamParent != RAISED) {
-        // Remove redirection part from the token
-        strcpy(token, strtok(copy_token, " "));
         // Retrieve the environment variable value
         char *path_env = getenv(token);
     
