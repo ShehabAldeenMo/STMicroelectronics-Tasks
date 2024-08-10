@@ -164,35 +164,6 @@ uint8 SearchOnCommand(uint8 *token) {
     return FAILED; // Command not found or not executable
 }
 
-uint8 searchCharacter(const uint8 *str, char character, uint8** Remaining) {
-    // Use strchr to find the first occurrence of the specified character in the string
-    *Remaining = (uint8*) strchr((const char*)str, character);
-
-    if (*Remaining != NULL) {
-        // If the character is found, move the pointer past the character itself
-        (*Remaining)++;
-        
-        // Extract the part of the string after the character
-        *Remaining = (uint8*) strtok((char*) *Remaining, "");
-        if (*Remaining) {
-            // Set the global variable with the parsed path (if necessary)
-            Ptr_GlobalGetParsingPath = *Remaining;
-
-            // Get the absolute path
-            *Remaining = GetParsedPath("path");
-
-            // Get the relative path
-            *Remaining = GetRelativePath(*Remaining);
-
-            return VALID;  // Indicate that the character was found and processing succeeded
-        } else {
-            return INVALID;  // Return INVALID if strtok fails to extract the remaining part
-        }
-    }
-
-    return INVALID;  // Return INVALID if the character was not found in the string
-}
-
 void redirect(uint8* path, int newFD) {
     // Define file permissions: read and write for the owner, read for group and others
     mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
@@ -219,7 +190,7 @@ void redirect(uint8* path, int newFD) {
 }
 
 
-void fork_redirectionExec(uint8* path, int FD) {
+void fork_redirectionExec(uint8* path, int FD, int NullFD){
     // Fork the current process to create a child process
     int retPid = fork();
 
@@ -241,6 +212,10 @@ void fork_redirectionExec(uint8* path, int FD) {
 
         // Redirect the file descriptor (FD) to the specified path
         redirect(path, FD);
+
+        if ( NullFD != -1 ){
+            redirect("/dev/null",NullFD);
+        }
         
         // Indicate that the child process is currently active
         IamChild = RAISED;
@@ -276,7 +251,7 @@ uint8* GetRelativePath(uint8 path[]) {
 }
 
 
-uint8* ErrorFD_Path(uint8* path) {
+uint8* FindRedirectionPath(uint8* path) {
     // Skip the initial "2>" characters, which are used for error redirection
     path += 2;
 
@@ -543,3 +518,198 @@ uint8* GetPathWithoutToken() {
     getcwd(cwd, sizeof(cwd));
     return cwd; // Return the buffer containing the current working directory
 }
+
+int SearchOnSpaceBeforeArrow(char* path) {
+    int position = INVALID_ID;
+
+    // Check if path is NULL
+    if (path == NULL) {
+        return position;
+    }
+
+    // Traverse the string until the null terminator
+    int i = 0 ;
+    while (*path != '\0') {
+        // Check if current character is '>'
+        if (*path == '>') {
+            // Check if the previous character is '2'
+            if (*(path - 1) != '2') {
+                position = i;
+            }
+        }
+        path++;  // Move to the next character
+        i++;
+    }
+
+    return position;
+}
+
+uint8 RedirectionHandlerOfnoOption(uint8* command){
+    char *token = strtok(NULL, "");  // Tokenize the input string after the command
+
+    /* For gdb script debugging: 
+       Initialize debugging variables (not used in this function). */
+    uint8 NumOfoperand = 0;
+    uint8* Operand[1] = {NULL};
+
+    /* Check if there is any additional input after the 'pwd' command */
+    if (token != NULL) {
+        char ErrorFlag = ON ; // to check on input options to path command is ok or not 
+        uint8* path;
+        int SecondFD = -1 , SecondFDWithout2 = -1 ;
+
+        char *found = strstr(token, "2>");  // Check if the token contains redirection to stderr
+        int pos = SearchOnSpaceBeforeArrow (token) ; // get position of > without 2 anymore and return position 
+
+        /* if contain > then cancel print on screen because of there are target file after > */
+        if ( pos != INVALID_ID && found != NULL){
+            SecondFD = STDOUT ;
+            SecondFDWithout2 = STDERR ;
+            ErrorFlag = OFF ;
+        }
+
+        /* Implement 2> seq */
+        if (found != NULL) {
+            path = FindRedirectionPath(found);  // Get the path for stderr redirection
+            fork_redirectionExec(path, STDERR, SecondFD);  // Execute with stderr redirection
+            ErrorFlag = OFF ;
+        }
+        
+        /* if there are no position ret found to null to ensure that it willn't implement > seq */
+        if ( pos == INVALID_ID )
+            found = NULL ;
+        else{
+            /* implement > seq */
+            token+=pos;
+            found = strstr(token, ">"); 
+        }
+            
+        
+        if (found != NULL) {  // Check if the token contains redirection to stdout
+            path = FindRedirectionPath(found);
+            fork_redirectionExec(path, STDOUT, SecondFDWithout2);  // Execute with stdout redirection
+            ErrorFlag = OFF ;
+        }
+        
+        if (ErrorFlag == ON ) {
+            // If no valid redirection is found, print an error message
+            printf("command not found\nEnter 'assist' to know Shellio commands\n");
+            pushProcessHistory(sharedString, FAILED);  // Record the failure in process history
+            cleanSharedString();  // Clean up the shared string
+            return INVALID;   
+        }
+    }
+
+    return VALID ;
+}
+
+
+uint8* RedirectionHandlerOfWithOption(uint8* command) {
+    char* input_redirection = (char*)malloc(BUFFER_SIZE);
+    uint8* token = strdup(strtok(NULL, ""));  // Tokenize the input string to extract the argument
+    int SecondFD = -1, SecondFDWithout2 = -1;
+    bool fileContentRead = false;  // Flag to check if content has been read
+
+    // For gdb script debugging
+    uint8 NumOfoperand = 1;  // Number of operands (arguments) for debugging
+    uint8* Operand[1];  // Array to hold the operand
+    Operand[0] = strdup(token);  // Store the token (argument) in the operand array in dynamic memory
+
+    if (token == NULL) {
+        printf("command not found\nEnter (assist) to know Shellio Commands\n");
+        pushProcessHistory(sharedString, FAILED);  // Log the failure in process history
+        cleanSharedString();  // Clean up the shared string
+        return NULL;
+    } else {
+        uint8* path;
+
+        // Handle `2>` stderr redirection
+        char *found = strstr(token, "2>");
+        int pos = SearchOnSpaceBeforeArrow(token);
+
+        if (pos != INVALID_ID && found != NULL) {
+            SecondFD = STDOUT;
+            SecondFDWithout2 = STDERR;
+        }
+
+        if (found != NULL) {
+            path = FindRedirectionPath(found);
+            fork_redirectionExec(path, STDERR, SecondFD);
+            int i = 0;
+            while (*(token + i) != '\0') {
+                if (*(token + i) == '>') {
+                    if (*(token + i - 1) == '2') {
+                        *(token + i - 2) = '\0';
+                        break;
+                    } else {
+                        *(token + i - 1) = '\0';
+                        break;
+                    }
+                }
+                i++;
+            }
+        }
+
+        if (pos == INVALID_ID)
+            found = NULL;
+        else
+            found = strstr((Operand[0] + pos), ">");
+
+        if (found != NULL) {  // Handle `>` stdout redirection
+            path = FindRedirectionPath(found);
+            fork_redirectionExec(path, STDOUT, SecondFDWithout2);
+            int i = 0;
+            while (*(token + i) != '\0') {
+                if (*(token + i) == '>') {
+                    if (*(token + i - 1) == '2') {
+                        *(token + i - 2) = '\0';
+                        break;
+                    } else {
+                        *(token + i - 1) = '\0';
+                        break;
+                    }
+                }
+                i++;
+            }
+        }
+
+        // Handle `<` input redirection
+        found = strstr(token, "<");
+        if (found != NULL) {
+            path = FindRedirectionPath(found);
+            
+            int fd = open(path, O_RDONLY);
+            if (fd == INVALID_ID) {
+                perror("Error opening file for input redirection");
+                return NULL;
+            }
+
+            ssize_t length = read(fd, input_redirection, BUFFER_SIZE - 1);
+            if (length == INVALID_ID) {
+                perror("Error reading file for input redirection");
+                close(fd);
+                return NULL;
+            }
+
+            input_redirection[length-1] = '\0';
+            close(fd);
+
+            fileContentRead = true;
+            token = input_redirection;
+        }
+    }
+
+    free(Operand[0]);
+    return token;
+}
+
+
+// Function to free the memory allocated for the global sharedString
+void cleanSharedString() {
+    // Free the allocated memory for sharedString
+    free(sharedString);
+
+    // After freeing, ensure sharedString is set to NULL to avoid dangling pointers
+    sharedString = NULL;
+}
+

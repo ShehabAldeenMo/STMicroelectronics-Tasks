@@ -37,6 +37,7 @@
 #include <stdarg.h>         // Variable argument functions
 #include <sys/wait.h>       // Declarations for waiting for process termination
 #include <pwd.h>            // Functions for password database operations
+#include <stdbool.h>  // Include this for the bool type
 
 
 
@@ -86,6 +87,11 @@
 #define SUCCESS                               1    // Status indicating a successful operation
 #define FAILED                                0    // Status indicating a failed operation
 #define INVALID_ID                           -1    // Status indicating an invalid identifier
+#define OFF                                   0
+#define ON                                    1
+#define ENVIR_PASS                            0
+#define ENV_VAR_PASS                          0
+#define BUFFER_SIZE                          1024
 
 // Color definitions for shell output
 // Regular Colors
@@ -211,18 +217,6 @@ void cleanupProcessHistory();
  */
 uint8 SearchOnCommand(uint8 *token);
 
-/*
- * Name             : searchCharacter
- * Description      : Searches for the first occurrence of a specified character in a string.
- *                    If found, returns a pointer to the substring following the character.
- *                    Updates the global parsing pointer and extracts the relevant path information.
- * Input            : str - The string to search within.
- *                    character - The character to search for.
- *                    Remaining - Pointer to store the substring after the found character.
- * Output           : Remaining - Updated to point to the substring after the character, or NULL if not found.
- * Return           : VALID if the character is found and processed successfully, otherwise INVALID.
- */
-uint8 searchCharacter(const uint8 *str, char character, uint8** Remaining);
 
 /*
  * Name             : redirect
@@ -246,10 +240,10 @@ void redirect(uint8* path, int newFD);
  * Return           : None
  * Notes            : The function uses `fork` to create a new process and `redirect` to handle output redirection.
  */
-void fork_redirectionExec(uint8* path, int FD);
+void fork_redirectionExec(uint8* path, int FD, int NullFD);
 
 /*
- * Name             : ErrorFD_Path
+ * Name             : FindRedirectionPath
  * Description      : Processes a string to extract a file path for error redirection.
  *                    The function adjusts the input path to point to the correct file for error output.
  * Input            : path - The input string containing the file path prefixed with "2>".
@@ -257,7 +251,7 @@ void fork_redirectionExec(uint8* path, int FD);
  * Return           : uint8* - Returns the adjusted file path for error redirection.
  * Notes            : The function updates the global parsing path and processes relative paths.
  */
-uint8* ErrorFD_Path(uint8* path);
+uint8* FindRedirectionPath(uint8* path);
 
 /*
  * Name             : GetRelativePath
@@ -381,5 +375,21 @@ void pushProcessHistory(const uint8 *command, uint8 status);
  * Notes            : The function may handle path tokens or other modifications internally.
  */
 uint8* GetPathWithoutToken();
+
+/*
+ * Name             : cleanSharedString
+ * Description      : Frees the memory allocated for the shared string.
+ *                    Ensures that the shared string is properly cleaned up after use to prevent memory leaks.
+ * Input            : None
+ * Output           : None
+ * Return           : None
+ * Notes            : This function should be called whenever the shared string is no longer needed.
+ */
+void cleanSharedString();
+
+
+int SearchOnSpaceBeforeArrow (char* path);
+uint8 RedirectionHandlerOfnoOption(uint8* command);
+uint8* RedirectionHandlerOfWithOption(uint8* command);
 
 #endif
