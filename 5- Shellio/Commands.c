@@ -1081,71 +1081,69 @@ void setLocalVariable(const char* name, const char* value) {
 }
 
 char Execute_Piped_Commands(char **commands, int num_pipes) {
-    int pipefds[2 * num_pipes];  // Array to hold pipe file descriptors
+    /* Array to hold pipe file descriptors. */
+    int pipefds[2 * num_pipes];
 
-    // Create the necessary pipes
+    /* Create the necessary pipes */
     for (int i = 0; i < num_pipes; i++) {
         if (pipe(pipefds + i * 2) < 0) {
-            perror("pipe");  // Error creating pipe
+            perror("pipe"); /* Error creating pipe. */
             return INVALID_ID;
         }
     }  
 
-    int j = 0;  // Index for accessing pipe file descriptors
+    int j = 0; /* Index for accessing pipe file descriptors. */
+    /* Iterate through each command, forking a new process for each. */
     for (int i = 0; i <= num_pipes; i++) {
-        pid_t pid = fork();  // Fork a new process
+        pid_t pid = fork(); /* Fork a new process. */
         
-        if (pid == 0) {  // Child process
-            // If not the last command, redirect stdout to the next pipe
+        if (pid == 0) {
+            /* In the child process. */
+
+            /* If not the last command, redirect stdout to the next pipe. */
             if (i < num_pipes) {
-                if (dup2(pipefds[j + 1], STDOUT_FILENO) < 0) {
-                    perror("dup2");  // Error duplicating file descriptor
-                    exit(EXIT_FAILURE);
+                if (dup2(pipefds[j + 1], STDOUT) < 0) {
+                    perror("dup2"); /* Error duplicating file descriptor. */
+                    return INVALID_ID;
                 }
             }
 
-            // If not the first command, redirect stdin to the previous pipe
+            /* If not the first command, redirect stdin to the previous pipe. */
             if (i > 0) {
-                if (dup2(pipefds[j - 2], STDIN_FILENO) < 0) {
-                    perror("dup2");  // Error duplicating file descriptor
-                    exit(EXIT_FAILURE);
+                if (dup2(pipefds[j - 2], STDIN) < 0) {
+                    perror("dup2"); /* Error duplicating file descriptor. */
+                    return INVALID_ID;
                 }
             }
 
-            // Close all pipe file descriptors in the child process
+            /* Close all pipe file descriptors in the child process. */
             for (int k = 0; k < 2 * num_pipes; k++) {
                 close(pipefds[k]);
             }
 
-            // Execute the command
-            char *args[5];
-            tokenizeInput2(commands[i], args);  // Split the command into tokens
-            if (execvp(args[0], args) < 0) {
-                perror("execvp");  // Error executing command
-                exit(EXIT_FAILURE);
-            }
+            /* return childern id */
+            return i;
         } 
-        else if (pid < 0) {  // Error forking process
-            perror("fork");
+        else if (pid < 0) {
+            perror("fork"); /* Error forking process. */
             return INVALID_ID;
         }
-
-        j += 2;  // Move to the next set of pipe file descriptors
+        /* Move to the next set of pipe file descriptors. */
+        j += 2; 
     }
 
-    // Close all pipe file descriptors in the parent process
+    /* Close all pipe file descriptors in the parent process. */
     for (int i = 0; i < 2 * num_pipes; i++) {
         close(pipefds[i]);
     }
 
-    // Wait for all child processes to complete
+    /* Wait for all child processes to complete. */
     for (int i = 0; i <= num_pipes; i++) {
         wait(NULL);
     }
 
-    return PARENT;  // Return indicating the parent process
+    return PARENT ; /* Return number of command */
 }
-
 
 
 
@@ -1168,15 +1166,4 @@ void trim_spaces(char *str) {
         memmove(str, start, end - start + 1);
     }
     str[end - start + 1] = '\0';
-}
-
-
-void tokenizeInput2(char *command, char **args) {
-    int i = 0;
-    args[i] = strtok(command, " ");  // Tokenize the command string
-    while (args[i] != NULL) {
-        i++;
-        args[i] = strtok(NULL, " ");  // Continue tokenizing
-    }
-    args[i] = NULL;  // Ensure the last argument is NULL
 }

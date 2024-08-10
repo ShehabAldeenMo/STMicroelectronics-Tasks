@@ -324,8 +324,9 @@ void Shellio_allVar();
 void setLocalVariable(const char* name, const char* value);
 
 
-char Execute_Piped_Commands(char **commands, int num_pipes);
 void trim_spaces(char *str);
-void tokenizeInput2(char *command, char **args) ;
+
+
+char Execute_Piped_Commands(char **commands, int num_pipes);
 
 #endif /* Header Guard */

@@ -93,6 +93,9 @@
 #define BUFFER_SIZE                          1024
 #define MAX_PIPES                             5
 #define PARENT                               -2
+#define MAX_INPUT_LENGTH                     512
+#define MAX_COMMANDS                          10
+#define MAX_COMMAND_LENGTH                   100
 
 // Color definitions for shell output
 // Regular Colors
@@ -397,7 +400,9 @@ void tokenizeInput(uint8 *input, char *args[], uint8 *argc) ;
 uint8* handleOptionRedirection(const char *input, const char* delimiters);
 
 
-char Parse_Pipes(char *input, char *args[]);
-
+int parse_commands(const char *input, char commands[MAX_COMMANDS][MAX_COMMAND_LENGTH]);
+void create_pipe(int pipefd[2]);
+pid_t fork_and_execute(const char *command, int input_fd, int output_fd) ;
+void wait_for_children(int num_children, pid_t pids[]);
 
 #endif
