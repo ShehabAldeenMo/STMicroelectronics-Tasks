@@ -92,6 +92,8 @@
 #define ENVIR_PASS                            0
 #define ENV_VAR_PASS                          0
 #define BUFFER_SIZE                          1024
+#define MAX_PIPED                             5
+
 
 // Color definitions for shell output
 // Regular Colors
@@ -391,5 +393,9 @@ void cleanSharedString();
 int SearchOnSpaceBeforeArrow (char* path);
 uint8 RedirectionHandlerOfnoOption(uint8* command);
 uint8* RedirectionHandlerOfWithOption(uint8* command);
+
+void tokenizeInput(uint8 *input, char *args[], uint8 *argc) ;
+
+uint8* handleOptionRedirection(const char *input, const char* delimiters);
 
 #endif

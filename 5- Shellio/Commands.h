@@ -322,4 +322,8 @@ void Shellio_allVar();
  */
 void setLocalVariable(const char* name, const char* value);
 
+
+
+char Shellio_HandlePiped(char argcPiped);
+
 #endif /* Header Guard */
