@@ -24,7 +24,6 @@
 int main() {
     /* Initiliazations */
     char str[MAXSIZE] = {0};           // Buffer to store the input command from the user
-    char *delimiters = " 0";           // Delimiters for tokenizing input, using space and null character as delimiters
     uint8 *token;                      // Pointer to store each word of the command as a token
     uint8* separators = "============================================================================================";  // Separator line for formatting output
 
@@ -47,11 +46,31 @@ int main() {
             str[len-1] = '\0';  // Replace the newline character with a null terminator
         }
 
+        /* Handle Piped commands */
+        token = strtok(str,"|");     /* to get pointer of pointer to charachter to each command */
+        uint8 argcPiped = 0 ;        /* Count number of pipes in line */
+        uint8** CommandPipedArray;   /* to store each part from command */
+        while (token != NULL){
+            CommandPipedArray[argcPiped] = strdup(token) ; // to allocate dynamic memory for each command
+            argcPiped++;
+            token = strtok(NULL,"|");
+        }
+        
+        if ( argcPiped != 0 ){
+            char i = Shellio_HandlePiped(argcPiped);
+            if (i != INVALID_ID){
+                strcpy( str , CommandPipedArray[i] );
+            }
+            else {
+                continue;
+            }
+        }
+
         // To share this input into the history
         setSharedString(str);  // Store the input command in a global history buffer
 
         /* Initial call to strtok */ 
-        token = strtok(str, delimiters);  // Tokenize the input string using the specified delimiters
+        token = strtok(str," ");  // Tokenize the input string using the specified delimiters
 
         if (token != NULL) {  // If a token was found
             /* print goodbye then exit */ 
@@ -186,8 +205,9 @@ path 2> "file.txt"
 path > "file.txt" > "file2.txt"
 path 2> "file.txt" > "file2.txt"
 
-cd "relative path"
-cd ../
+
+cd ..
+cd 5- Shellio
 
 display She hab 
 display She hab > "file.txt"
@@ -226,6 +246,15 @@ uptime 2> "file.txt"
 free > "file.txt"
 
 allVar
+
+ls -l
+ls -l > "file.txt"
+ls -l 2> "file.txt"
+ls -l 2> "file.txt" > "file2.txt"
+ls -l > "file.txt" 2> "file2.txt"
+
+grep "shehab" non_existent_file.txt 2> "file.txt"
+
 
 set follow-fork-mode child
 

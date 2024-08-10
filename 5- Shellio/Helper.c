@@ -165,6 +165,11 @@ uint8 SearchOnCommand(uint8 *token) {
 }
 
 void redirect(uint8* path, int newFD) {
+
+    if (path == NULL){
+        return ;
+    }
+
     // Define file permissions: read and write for the owner, read for group and others
     mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
     
@@ -713,3 +718,27 @@ void cleanSharedString() {
     sharedString = NULL;
 }
 
+
+
+void tokenizeInput(uint8 *input, char *args[], uint8 *argc) {
+    char* token = strtok( input ," ");
+    while (token != NULL ){
+        if ( strcmp(token,"2>") && strcmp(token," >") && strcmp(token,"<")  )
+            args[(*argc)++]= token;
+        else 
+            break ;
+        token = strtok( NULL ," ");
+    }
+    args[*argc] = NULL;
+}
+
+// Handle input redirection
+uint8* handleOptionRedirection(const char *input, const char* delimiters) {
+    char *File = strstr(input, delimiters);
+    if (File) {
+        /* ============================ */
+        File = FindRedirectionPath(File);
+        return File;
+    }
+    return NULL;
+}

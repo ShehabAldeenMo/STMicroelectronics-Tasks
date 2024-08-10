@@ -605,71 +605,24 @@ void Shellio_TypeCommand(uint8* command) {
     free(token);
 }
 
-
-
-// Function to execute external commands
+// Function to execute external commands with redirections
 void Shellio_ExecExternalCommands(uint8 *token) {
     int status;
     pid_t pid, wpid;
     char *args[MAX_ARGS];
     uint8 argcounter = 0;
-    char *command = token;
 
-    // New buffer for copying the shared string into
+    // Buffer for copying the shared string into
     uint8 Cpstr[MAX_CHARACHTERS_OF_ONE_ARGUMENTS];
     strncpy(Cpstr, sharedString, MAX_CHARACHTERS_OF_ONE_ARGUMENTS);
 
+    // Handle redirections before tokenizing
+    uint8* InputFile = handleOptionRedirection(Cpstr,"<");
+    uint8* OutFile = handleOptionRedirection(Cpstr," >");
+    uint8* ErrFile = handleOptionRedirection(Cpstr,"2>");
+
     // Tokenize the input from the copied string
-    char *arg = Cpstr;
-    char *end;
-    while (*arg != '\0' && argcounter < MAX_ARGS - 1) {
-        // Skip leading spaces
-        while (*arg == ' ') arg++;
-
-        // Handle paths enclosed in quotes
-        if (*arg == '"') {
-            arg++; // Skip the opening quote
-            char path[MAX_PATH];
-            size_t i = 0;
-
-            // Copy characters until the closing quote or end of string
-            while (*arg != '"' && *arg != '\0') {
-                if (i < MAX_PATH - 1) {
-                    path[i++] = *arg;
-                }
-                arg++;
-            }
-            path[i] = '\0'; // Null-terminate the path
-            if (*arg == '"') arg++; // Skip the closing quote
-
-            // Store the path in the arguments array
-            args[argcounter++] = strdup(path);
-            printf("path %d= %s\n", argcounter - 1, path);
-        } else {
-            // Read until the next space or end of string
-            end = strchr(arg, ' ');
-            if (end == NULL) end = arg + strlen(arg);
-            char temp[MAX_PATH];
-            size_t len = end - arg;
-            if (len < MAX_PATH - 1) {
-                strncpy(temp, arg, len);
-                temp[len] = '\0';
-            } else {
-                temp[MAX_PATH - 1] = '\0';
-            }
-            arg = end;
-            args[argcounter++] = strdup(temp);
-        }
-    }
-    args[argcounter] = NULL; // Null-terminate the argument array
-
-    // Print arguments for debugging (commented out in production code)
-    /*
-    printf("Executing command:\n");
-    for (int i = 0; i < argcounter; i++) {
-        printf("Arg %d: %s\n", i, args[i]);
-    }
-    */
+    tokenizeInput(Cpstr, args, &argcounter);
 
     // Create a child process to execute the external command
     pid = fork();
@@ -682,7 +635,16 @@ void Shellio_ExecExternalCommands(uint8 *token) {
         return;
     } else if (pid == 0) {
         // Child process
-        execvp(command, args); // Execute the command
+        redirect (InputFile,STDIN);
+        redirect (OutFile,STDOUT);
+        redirect (ErrFile,STDERR);
+        if (InputFile != NULL )
+            free (InputFile);
+        if (OutFile != NULL )
+            free (OutFile);
+        if (ErrFile != NULL )
+            free (ErrFile);
+        execvp(args[0], args);
         // If execvp returns, it must have failed
         perror("execvp");
         printf("Command not found\nEnter 'assist' to know Shellio commands\n");
@@ -701,13 +663,6 @@ void Shellio_ExecExternalCommands(uint8 *token) {
             cleanSharedString();
             return;
         }
-
-        // Check the exit status of the child process
-        if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
-            pushProcessHistory(sharedString, SUCCESS);
-        } else {
-            pushProcessHistory(sharedString, FAILED);
-        }
     }
 
     // Clean up and reset shared string
@@ -715,11 +670,10 @@ void Shellio_ExecExternalCommands(uint8 *token) {
 }
 
 
+
 void Shellio_ChangeDir(uint8* command) {
-    // Define delimiters for tokenization. Here, "0" is used as a placeholder.
-    const char *delimiters = "0";  // Delimiters are space and tab characters
     // Tokenize the input to extract the directory path after the command
-    char *token = strtok(NULL, delimiters);  // Extract the directory path from the input
+    char *token = strtok(NULL, "");  // Extract the directory path from the input
 
     /* For gdb script debugging */
     uint8 NumOfoperand = 1;  // Number of operands (arguments) for debugging purposes
@@ -1124,4 +1078,61 @@ void setLocalVariable(const char* name, const char* value) {
         // Print an error message if the maximum number of local variables has been reached
         printf("Maximum number of local variables reached.\n");
     }
+}
+
+
+char Shellio_HandlePiped(char argcPiped){
+    int pipefd[MAX_PIPED][2]={0} ;
+    int pid[MAX_PIPED*2] = {0};
+    char IteratedFlag = 0 ;
+    int NewFD = 0 ;
+
+    char i = 0 ;
+    while ( i < argcPiped*2 && i < MAX_PIPED ){
+
+        if (IteratedFlag == 0)
+            NewFD = STDOUT ;
+        else
+            NewFD = STDIN ;
+
+        // Create a pipe
+        if (IteratedFlag == 0){
+            if (pipe(pipefd[i]) == INVALID_ID) {
+            perror("pipe");
+            return INVALID_ID;
+            }
+        }
+        
+        // Fork the first process
+        if ((pid[i] = fork()) == INVALID_ID) {
+            perror("fork");
+            return INVALID_ID;
+        }
+
+        if (pid[i] == 0) {
+            // Child process 1: Executes the first command
+
+            // Redirect STDOUT to pipe write end
+            dup2(pipefd[i][1], NewFD);
+            close(pipefd[i][0]); // Close unused read end
+            close(pipefd[i][1]); // Close write end after redirection
+
+            // Execute the first command
+            return i ;
+        }
+        i++;  
+        IteratedFlag = ! IteratedFlag;
+
+    }
+
+    // Parent process: Close both ends of the pipe
+    close(pipefd[0]);
+    close(pipefd[1]);
+
+    // Wait for childern processes to finish
+    int status = 0 ;
+    wait(status); 
+
+    /* to nake parent able to continue */
+    return INVALID_ID ;
 }
