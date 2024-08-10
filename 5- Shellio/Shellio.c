@@ -27,6 +27,9 @@ int main() {
     uint8 *token;                      // Pointer to store each word of the command as a token
     uint8* separators = "============================================================================================";  // Separator line for formatting output
 
+    char* commands[MAX_PIPES] ;
+    char TypeOfProcess = INVALID_ID ;
+
     do {
         /* Enter your command */
         printPrompt();                 // Function to print the shell prompt to the user
@@ -46,25 +49,25 @@ int main() {
             str[len-1] = '\0';  // Replace the newline character with a null terminator
         }
 
-        /* Handle Piped commands */
-        token = strtok(str,"|");     /* to get pointer of pointer to charachter to each command */
-        uint8 argcPiped = 0 ;        /* Count number of pipes in line */
-        uint8** CommandPipedArray;   /* to store each part from command */
-        while (token != NULL){
-            CommandPipedArray[argcPiped] = strdup(token) ; // to allocate dynamic memory for each command
-            argcPiped++;
-            token = strtok(NULL,"|");
-        }
+        /* check on pipes */
+        char NumOfPipes = Parse_Pipes(str,commands) ; // filter input from pipes to separate commands
         
-        if ( argcPiped != 0 ){
-            char i = Shellio_HandlePiped(argcPiped);
-            if (i != INVALID_ID){
-                strcpy( str , CommandPipedArray[i] );
+        if (NumOfPipes > 0){
+            TypeOfProcess = Execute_Piped_Commands(commands,NumOfPipes);
+
+            /* to work with each child as separate process */
+            if (TypeOfProcess > INVALID_ID ){
+                strncpy(str, commands[TypeOfProcess], sizeof(str) - 1);
+                str[sizeof(str) - 1] = '\0';  // Ensure null termination
             }
             else {
+                // Invalid case or parent to not parse commands and show prompt again
                 continue;
             }
         }
+
+        /* to remove spaces in first and last of each command */
+        trim_spaces(str);        
 
         // To share this input into the history
         setSharedString(str);  // Store the input command in a global history buffer
@@ -152,6 +155,11 @@ int main() {
             }
         }
 
+        // terminate child process
+        if (TypeOfProcess > INVALID_ID ){
+            exit(VALID);
+        }
+
         /* clear all flags and buffers */
         memset(str, 0, sizeof(str));  // Clear the input buffer for the next command
 
@@ -202,7 +210,7 @@ shift "/home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Ta
 path 
 path > "file.txt"
 path 2> "file.txt"
-path > "file.txt" > "file2.txt"
+path > "file.txt" 2> "file2.txt"
 path 2> "file.txt" > "file2.txt"
 
 
@@ -248,10 +256,10 @@ free > "file.txt"
 allVar
 
 ls -l
-ls -l > "file.txt"
+ls -l > "file.txt"                
 ls -l 2> "file.txt"
 ls -l 2> "file.txt" > "file2.txt"
-ls -l > "file.txt" 2> "file2.txt"
+ls -l > "file.txt" 2> "file2.txt" 
 
 grep "shehab" non_existent_file.txt 2> "file.txt"
 

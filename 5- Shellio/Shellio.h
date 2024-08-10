@@ -45,6 +45,7 @@
 #define EQUALED                               0    // Status code indicating equality
 #define SUCCESS                               1    // Status code indicating success
 #define FAILED                                0    // Status code indicating failure
+#define PARENT                               -2
 #define FREE_PASS                             0    // Status code for a successful 'free' command
 #define UPTIME_PASS                           0    // Status code for a successful 'uptime' command
 #define ALLVAR_PASS                           0    // Status code for a successful 'allVar' command

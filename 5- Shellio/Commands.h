@@ -23,6 +23,7 @@
 /*===================================  Includes ==============================*/
 #include "Helper.h"
 
+
 /*==========================  Function Prototypes ===========================*/
 
 /*
@@ -323,7 +324,8 @@ void Shellio_allVar();
 void setLocalVariable(const char* name, const char* value);
 
 
-
-char Shellio_HandlePiped(char argcPiped);
+char Execute_Piped_Commands(char **commands, int num_pipes);
+void trim_spaces(char *str);
+void tokenizeInput2(char *command, char **args) ;
 
 #endif /* Header Guard */

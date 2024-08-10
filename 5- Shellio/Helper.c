@@ -722,8 +722,8 @@ void cleanSharedString() {
 
 void tokenizeInput(uint8 *input, char *args[], uint8 *argc) {
     char* token = strtok( input ," ");
-    while (token != NULL ){
-        if ( strcmp(token,"2>") && strcmp(token," >") && strcmp(token,"<")  )
+    while (token != NULL ){       
+        if ( strcmp(token,"2>") && strcmp(token,">") && strcmp(token,"<")  )
             args[(*argc)++]= token;
         else 
             break ;
@@ -742,3 +742,17 @@ uint8* handleOptionRedirection(const char *input, const char* delimiters) {
     }
     return NULL;
 }
+
+
+char Parse_Pipes(char *input, char *args[]) {
+    char argc = 0 ;
+    char* token = strtok( input ,"|");
+    while (token != NULL && argc < MAX_PIPES){
+        args[argc++] = token ;
+        token = strtok( NULL ,"|");
+    }
+    args[argc] = NULL;
+    return (argc - 1) ;  
+}
+
+

@@ -1080,59 +1080,103 @@ void setLocalVariable(const char* name, const char* value) {
     }
 }
 
+char Execute_Piped_Commands(char **commands, int num_pipes) {
+    int pipefds[2 * num_pipes];  // Array to hold pipe file descriptors
 
-char Shellio_HandlePiped(char argcPiped){
-    int pipefd[MAX_PIPED][2]={0} ;
-    int pid[MAX_PIPED*2] = {0};
-    char IteratedFlag = 0 ;
-    int NewFD = 0 ;
-
-    char i = 0 ;
-    while ( i < argcPiped*2 && i < MAX_PIPED ){
-
-        if (IteratedFlag == 0)
-            NewFD = STDOUT ;
-        else
-            NewFD = STDIN ;
-
-        // Create a pipe
-        if (IteratedFlag == 0){
-            if (pipe(pipefd[i]) == INVALID_ID) {
-            perror("pipe");
+    // Create the necessary pipes
+    for (int i = 0; i < num_pipes; i++) {
+        if (pipe(pipefds + i * 2) < 0) {
+            perror("pipe");  // Error creating pipe
             return INVALID_ID;
-            }
         }
+    }  
+
+    int j = 0;  // Index for accessing pipe file descriptors
+    for (int i = 0; i <= num_pipes; i++) {
+        pid_t pid = fork();  // Fork a new process
         
-        // Fork the first process
-        if ((pid[i] = fork()) == INVALID_ID) {
+        if (pid == 0) {  // Child process
+            // If not the last command, redirect stdout to the next pipe
+            if (i < num_pipes) {
+                if (dup2(pipefds[j + 1], STDOUT_FILENO) < 0) {
+                    perror("dup2");  // Error duplicating file descriptor
+                    exit(EXIT_FAILURE);
+                }
+            }
+
+            // If not the first command, redirect stdin to the previous pipe
+            if (i > 0) {
+                if (dup2(pipefds[j - 2], STDIN_FILENO) < 0) {
+                    perror("dup2");  // Error duplicating file descriptor
+                    exit(EXIT_FAILURE);
+                }
+            }
+
+            // Close all pipe file descriptors in the child process
+            for (int k = 0; k < 2 * num_pipes; k++) {
+                close(pipefds[k]);
+            }
+
+            // Execute the command
+            char *args[5];
+            tokenizeInput2(commands[i], args);  // Split the command into tokens
+            if (execvp(args[0], args) < 0) {
+                perror("execvp");  // Error executing command
+                exit(EXIT_FAILURE);
+            }
+        } 
+        else if (pid < 0) {  // Error forking process
             perror("fork");
             return INVALID_ID;
         }
 
-        if (pid[i] == 0) {
-            // Child process 1: Executes the first command
-
-            // Redirect STDOUT to pipe write end
-            dup2(pipefd[i][1], NewFD);
-            close(pipefd[i][0]); // Close unused read end
-            close(pipefd[i][1]); // Close write end after redirection
-
-            // Execute the first command
-            return i ;
-        }
-        i++;  
-        IteratedFlag = ! IteratedFlag;
-
+        j += 2;  // Move to the next set of pipe file descriptors
     }
 
-    // Parent process: Close both ends of the pipe
-    close(pipefd[0]);
-    close(pipefd[1]);
+    // Close all pipe file descriptors in the parent process
+    for (int i = 0; i < 2 * num_pipes; i++) {
+        close(pipefds[i]);
+    }
 
-    // Wait for childern processes to finish
-    int status = 0 ;
-    wait(status); 
+    // Wait for all child processes to complete
+    for (int i = 0; i <= num_pipes; i++) {
+        wait(NULL);
+    }
 
-    /* to nake parent able to continue */
-    return INVALID_ID ;
+    return PARENT;  // Return indicating the parent process
+}
+
+
+
+
+void trim_spaces(char *str) {
+    char *start = str;
+    char *end = str + strlen(str) - 1;
+
+    // Trim leading spaces
+    while (*start && isspace((unsigned char)*start)) {
+        start++;
+    }
+
+    // Trim trailing spaces
+    while (end > start && isspace((unsigned char)*end)) {
+        end--;
+    }
+
+    // Write the trimmed string back to the original buffer
+    if (start != str) {
+        memmove(str, start, end - start + 1);
+    }
+    str[end - start + 1] = '\0';
+}
+
+
+void tokenizeInput2(char *command, char **args) {
+    int i = 0;
+    args[i] = strtok(command, " ");  // Tokenize the command string
+    while (args[i] != NULL) {
+        i++;
+        args[i] = strtok(NULL, " ");  // Continue tokenizing
+    }
+    args[i] = NULL;  // Ensure the last argument is NULL
 }
