@@ -99,7 +99,7 @@ int main() {
                 uint8 * command = strdup(token);  // Duplicate the command string
                 token = strtok(NULL, "");  // Get the next token, which is the argument to 'envir'
 
-                if (token == NULL || *(token) == '2' || (*token ) == '>') {  // If no argument or redirection is provided
+                if (token == NULL || *(token) == '2' || (*token ) == '>' && strstr(token, " < ") == NULL ) {  // If no argument or redirection is provided
                     Shellio_PrintEnv(command, token);  // Print the environment variables
                     printf("%s%s%s \n", COLOR_BOLD_BLUE, separators, COLOR_RESET);  // Print a separator line in blue
                 } else {
@@ -180,18 +180,53 @@ shift "/home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Ta
 shift "/home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Tasks/Session 3/fileMove.txt" "/home/shehabaldeen/Desktop/Linux/STMicroelectronics/STMicroelectronics-Tasks/file.txt"
 
 
+path 
+path > "file.txt"
+path 2> "file.txt"
+path > "file.txt" > "file2.txt"
+path 2> "file.txt" > "file2.txt"
 
-display Shehab > "file.txt" 2> "file2.txt"
-display Shehab 2> "file.txt" > "file2.txt"
+cd "relative path"
+cd ../
 
+display She hab 
+display She hab > "file.txt"
+display She hab 2> "file.txt"
+display She hab > "file.txt" 2> "file2.txt"
+display She hab 2> "file.txt" > "file2.txt"
+display < "file3.txt"
+display < "file3.txt" > "file.txt" 2> "file2.txt"
+display < "file3.txt" 2> "file.txt" > "file2.txt"
+display 2> "file.txt" > "file2.txt" < "file3.txt"
 
+type cd
+type < "file3.txt"
 type cd 2> "file.txt" > "file2.txt"
 type cd > "file.txt" 2> "file2.txt"
+type < "file3.txt" > "file.txt" 2> "file2.txt"
+type 2> "file.txt" > "file2.txt" < "file3.txt"
 
-envir PWD 2> "file.txt" > "file2.txt"
-envir PWD > "file.txt" 2> "file2.txt"
 
 envir 2> "file.txt" > "file2.txt"
 envir > "file.txt" 2> "file2.txt"
+
+Name=Shehab
+
+envir Name
+
+envir PWD 2> "file.txt" > "file2.txt"
+envir PWD > "file.txt" 2> "file2.txt"
+envir < "file3.txt" 2> "file.txt" > "file2.txt"
+envir > "file.txt" 2> "file2.txt" < "file3.txt"
+
+phist > "file.txt"
+
+uptime 2> "file.txt"
+
+free > "file.txt"
+
+allVar
+
+set follow-fork-mode child
 
 */

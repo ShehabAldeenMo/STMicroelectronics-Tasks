@@ -915,10 +915,14 @@ void Shellio_PrintEnvVar(uint8* command, uint8* token) {
     uint8* Operand[1];
     Operand[0] = token;
 
+    char* input_redirection = (char*)malloc(BUFFER_SIZE);
+    bool fileContentRead = false;  // Flag to check if content has been read
+    int SecondFD = -1, SecondFDWithout2 = -1;
+
+
     // Check if there is additional input after the command
     if (token != NULL) {
         uint8* path; 
-        int SecondFD = -1 , SecondFDWithout2 = -1 ;
 
         char *found = strstr(token, "2>");  // Check if the token contains redirection to stderr
         int pos = SearchOnSpaceBeforeArrow (token) ; 
@@ -972,6 +976,31 @@ void Shellio_PrintEnvVar(uint8* command, uint8* token) {
                 }
                 i++;
             }
+        }
+
+        // Handle `<` input redirection
+        found = strstr(token, "<");
+        if (found != NULL) {
+            path = FindRedirectionPath(found);
+            
+            int fd = open(path, O_RDONLY);
+            if (fd == INVALID_ID) {
+                perror("Error opening file for input redirection");
+                return ;
+            }
+
+            ssize_t length = read(fd, input_redirection, BUFFER_SIZE - 1);
+            if (length == INVALID_ID) {
+                perror("Error reading file for input redirection");
+                close(fd);
+                return ;
+            }
+
+            input_redirection[length-1] = '\0';
+            close(fd);
+
+            fileContentRead = true;
+            token = input_redirection;
         }
     }
 

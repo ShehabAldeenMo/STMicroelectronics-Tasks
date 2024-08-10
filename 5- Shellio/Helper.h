@@ -37,6 +37,7 @@
 #include <stdarg.h>         // Variable argument functions
 #include <sys/wait.h>       // Declarations for waiting for process termination
 #include <pwd.h>            // Functions for password database operations
+#include <stdbool.h>  // Include this for the bool type
 
 
 
@@ -90,6 +91,7 @@
 #define ON                                    1
 #define ENVIR_PASS                            0
 #define ENV_VAR_PASS                          0
+#define BUFFER_SIZE                          1024
 
 // Color definitions for shell output
 // Regular Colors
