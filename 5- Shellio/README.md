@@ -127,15 +127,6 @@ Shellio is a custom command-line shell designed for basic file operations and te
 - `ls -l | grep ".txt" | sort`
   - Chains multiple commands together using pipes.
 
-## Function Descriptions
-(Descriptions remain unchanged.)
-
-## Examples
-(Examples section will now reflect the newly added commands and features.)
-
-## Build Instruction 
-To build the Shellio project, please follow the steps below. This section outlines the necessary dependencies, commands, and configurations required for a successful build.
-
 ## Build Instruction 
 To build the Shellio project, please follow the steps below. This section outlines the necessary dependencies, commands, and configurations required for a successful build.
 
