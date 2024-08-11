@@ -606,11 +606,11 @@ void Shellio_TypeCommand(uint8* command) {
 }
 
 // Function to execute external commands with redirections
-void Shellio_ExecExternalCommands(uint8 *token) {
+void Shellio_ExecExternalCommands(uint8 *command) {
     int status;
     pid_t pid, wpid;
-    char *args[MAX_ARGS];
-    uint8 argcounter = 0;
+    char* args[MAX_ARGS];
+    char* cmd;
 
     // Buffer for copying the shared string into
     uint8 Cpstr[MAX_CHARACHTERS_OF_ONE_ARGUMENTS];
@@ -622,7 +622,13 @@ void Shellio_ExecExternalCommands(uint8 *token) {
     uint8* ErrFile = handleOptionRedirection(Cpstr,"2>");
 
     // Tokenize the input from the copied string
-    tokenizeInput(Cpstr, args, &argcounter);
+    cmd =  strtok( Cpstr ,"2><");
+    trim_spaces(cmd); // Ensure leading and trailing spaces are removed
+
+    args[0] = "sh" ;
+    args[1] = "-c" ;
+    args[2] = cmd;
+    args[3] = NULL ;
 
     // Create a child process to execute the external command
     pid = fork();
@@ -638,14 +644,10 @@ void Shellio_ExecExternalCommands(uint8 *token) {
         redirect (InputFile,STDIN);
         redirect (OutFile,STDOUT);
         redirect (ErrFile,STDERR);
-        if (InputFile != NULL )
-            free (InputFile);
-        if (OutFile != NULL )
-            free (OutFile);
-        if (ErrFile != NULL )
-            free (ErrFile);
-        execvp(args[0], args);
-        // If execvp returns, it must have failed
+        if (InputFile != NULL ) free (InputFile);
+        if (OutFile != NULL ) free (OutFile);           
+        if (ErrFile != NULL ) free (ErrFile);
+        execvp("sh", args);
         perror("execvp");
         printf("Command not found\nEnter 'assist' to know Shellio commands\n");
         pushProcessHistory(sharedString, FAILED);
@@ -666,6 +668,7 @@ void Shellio_ExecExternalCommands(uint8 *token) {
     }
 
     // Clean up and reset shared string
+    pushProcessHistory(sharedString, SUCCESS);
     cleanSharedString();
 }
 
@@ -1080,59 +1083,55 @@ void setLocalVariable(const char* name, const char* value) {
     }
 }
 
-void Execute_Piped_Commands(char *input) {
-    int num_commands;
-    int pipefds[2 * (MAX_COMMANDS - 1)];
-    char commands[MAX_COMMANDS][MAX_COMMAND_LENGTH];
+char* Execute_Piped_Commands(char *input) {
+    // Number of commands parsed from the input
+    char num_commands;
 
-    // Parse the input into commands
+    // Array to hold file descriptors for the pipes
+    // (2 file descriptors per pipe, for reading and writing)
+    int pipefds[2 * (MAX_COMMANDS - 1)];
+
+    // Array to hold the parsed commands
+    char *commands[MAX_COMMANDS];
+
+    // Parse the input string into separate commands
     num_commands = parse_commands(input, commands);
 
-    // Create pipes
+    // Create pipes for inter-process communication
     for (int i = 0; i < num_commands - 1; i++) {
+        // Create a pipe for each pair of commands (one less than the number of commands)
         create_pipe(pipefds + i * 2);
     }
 
-    // Fork and execute each command
+    // Array to hold process IDs of the child processes
     pid_t pids[MAX_COMMANDS];
+
+    // Fork and execute each command
     for (int i = 0; i < num_commands; i++) {
-        int input_fd = (i == 0) ? -1 : pipefds[(i - 1) * 2]; // First command, no input redirection
-        int output_fd = (i == num_commands - 1) ? -1 : pipefds[i * 2 + 1]; // Last command, no output redirection
+        // Determine the input and output file descriptors for the current command
+        int input_fd = (i == 0) ? -1 : pipefds[(i - 1) * 2]; // For the first command, no input redirection, hence -1
+        int output_fd = (i == num_commands - 1) ? -1 : pipefds[i * 2 + 1]; // For the last command, no output redirection, hence -1
 
-        pids[i] = fork_and_execute(commands[i], input_fd, output_fd);
+        // Fork a new process and execute the command
+        pids[i] = ForkAndChildRedirection(input_fd, output_fd);
 
-        // Close the pipe file descriptors in the parent
+        if (pids[i] == 0){
+            return commands[i] ;
+        }
+
+        // Close the pipe file descriptors in the parent process
         if (i > 0) {
-            close(pipefds[(i - 1) * 2]);
+            close(pipefds[(i - 1) * 2]);// Close the read end of the previous pipe if not the first command
         }
         if (i < num_commands - 1) {
-            close(pipefds[i * 2 + 1]);
+            close(pipefds[i * 2 + 1]);// Close the write end of the current pipe if not the last command
         }
     }
 
-    // Wait for all child processes to finish
+    // Wait for all child processes to complete
+    // The number of commands is used to wait for all processes
     wait_for_children(num_commands, pids);
+
+    return NULL ;
 }
 
-
-
-void trim_spaces(char *str) {
-    char *start = str;
-    char *end = str + strlen(str) - 1;
-
-    // Trim leading spaces
-    while (*start && isspace((unsigned char)*start)) {
-        start++;
-    }
-
-    // Trim trailing spaces
-    while (end > start && isspace((unsigned char)*end)) {
-        end--;
-    }
-
-    // Write the trimmed string back to the original buffer
-    if (start != str) {
-        memmove(str, start, end - start + 1);
-    }
-    str[end - start + 1] = '\0';
-}

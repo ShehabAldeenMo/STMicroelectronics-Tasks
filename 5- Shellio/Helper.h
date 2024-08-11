@@ -396,13 +396,13 @@ void cleanSharedString();
 int SearchOnSpaceBeforeArrow (char* path);
 uint8 RedirectionHandlerOfnoOption(uint8* command);
 uint8* RedirectionHandlerOfWithOption(uint8* command);
-void tokenizeInput(uint8 *input, char *args[], uint8 *argc) ;
 uint8* handleOptionRedirection(const char *input, const char* delimiters);
 
 
-int parse_commands(const char *input, char commands[MAX_COMMANDS][MAX_COMMAND_LENGTH]);
+char parse_commands(char *input, char **commands) ;
 void create_pipe(int pipefd[2]);
-pid_t fork_and_execute(const char *command, int input_fd, int output_fd) ;
+pid_t ForkAndChildRedirection(int input_fd, int output_fd) ;
 void wait_for_children(int num_children, pid_t pids[]);
+void trim_spaces(char *str);
 
 #endif

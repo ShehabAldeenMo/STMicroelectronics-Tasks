@@ -718,20 +718,6 @@ void cleanSharedString() {
     sharedString = NULL;
 }
 
-
-
-void tokenizeInput(uint8 *input, char *args[], uint8 *argc) {
-    char* token = strtok( input ," ");
-    while (token != NULL ){       
-        if ( strcmp(token,"2>") && strcmp(token,">") && strcmp(token,"<")  )
-            args[(*argc)++]= token;
-        else 
-            break ;
-        token = strtok( NULL ," ");
-    }
-    args[*argc] = NULL;
-}
-
 // Handle input redirection
 uint8* handleOptionRedirection(const char *input, const char* delimiters) {
     char *File = strstr(input, delimiters);
@@ -744,16 +730,40 @@ uint8* handleOptionRedirection(const char *input, const char* delimiters) {
 }
 
 
-// Function to parse the input command into multiple commands separated by pipes
-int parse_commands(const char *input, char commands[MAX_COMMANDS][MAX_COMMAND_LENGTH]) {
-    int num_commands = 0;
-    char *pipe_pos = strtok(strdup(input), "|");
+// Function to parse the input command into multiple commands separated by '|'
+char parse_commands(char *input, char **commands) {
+    char num_commands = 0;
+    
+    // Ensure the input and commands array are not NULL
+    if (input == NULL || commands == NULL) {
+        fprintf(stderr, "Error: NULL pointer passed to parse_commands.\n");
+        return 0;
+    }
 
-    while (pipe_pos != NULL && num_commands < MAX_COMMANDS) {
-        strncpy(commands[num_commands], pipe_pos, MAX_COMMAND_LENGTH - 1);
-        commands[num_commands][MAX_COMMAND_LENGTH - 1] = '\0';
+    char *command = strtok(input, "|");
+    while (command != NULL) {
+        // Trim leading and trailing spaces from the command
+        while (*command == ' ') command++;
+        char *end = command + strlen(command) - 1;
+        while (end > command && *end == ' ') end--;
+        *(end + 1) = '\0';
+
+        // Check if we have enough space in the commands array
+        if (num_commands >= MAX_COMMANDS) {
+            fprintf(stderr, "Error: Too many commands (max %d).\n", MAX_COMMANDS);
+            return num_commands;
+        }
+
+        // Allocate memory for the command and store it
+        commands[num_commands] = strdup(command);
+        if (commands[num_commands] == NULL) {
+            perror("strdup");
+            exit(EXIT_FAILURE);
+        }
         num_commands++;
-        pipe_pos = strtok(NULL, "|");
+
+        // Get the next command
+        command = strtok(NULL, "|");
     }
 
     return num_commands;
@@ -769,7 +779,7 @@ void create_pipe(int pipefd[2]) {
 }
 
 // Function to fork a child process and execute a command
-pid_t fork_and_execute(const char *command, int input_fd, int output_fd) {
+pid_t ForkAndChildRedirection(int input_fd, int output_fd) {
     pid_t pid = fork();
     if (pid == -1) {
         perror("fork");
@@ -785,13 +795,10 @@ pid_t fork_and_execute(const char *command, int input_fd, int output_fd) {
             dup2(output_fd, STDOUT_FILENO);
             close(output_fd);
         }
-
-        execlp("sh", "sh", "-c", command, (char *)NULL);
-        perror("execlp");
-        exit(EXIT_FAILURE);  // If execlp fails
+        return 0; // return child process ID
     }
 
-    return pid;
+    return pid; // return parent process ID
 }
 
 
@@ -800,4 +807,26 @@ void wait_for_children(int num_children, pid_t pids[]) {
     for (int i = 0; i < num_children; i++) {
         waitpid(pids[i], NULL, 0);
     }
+}
+
+
+void trim_spaces(char *str) {
+    char *start = str;
+    char *end = str + strlen(str) - 1;
+
+    // Trim leading spaces
+    while (*start && isspace((unsigned char)*start)) {
+        start++;
+    }
+
+    // Trim trailing spaces
+    while (end > start && isspace((unsigned char)*end)) {
+        end--;
+    }
+
+    // Write the trimmed string back to the original buffer
+    if (start != str) {
+        memmove(str, start, end - start + 1);
+    }
+    str[end - start + 1] = '\0';
 }

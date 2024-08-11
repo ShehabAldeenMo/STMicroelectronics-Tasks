@@ -24,11 +24,10 @@
 int main() {
     /* Initiliazations */
     char str[MAXSIZE] = {0};           // Buffer to store the input command from the user
+    char* RetCommandFromPipe ;
     uint8 *token;                      // Pointer to store each word of the command as a token
     uint8* separators = "============================================================================================";  // Separator line for formatting output
-
     char* commands[MAX_PIPES] ;
-    char TypeOfProcess = INVALID_ID ;
 
     do {
         /* Enter your command */
@@ -50,8 +49,14 @@ int main() {
         }
         
         if (strchr (str,'|') ){
-            Execute_Piped_Commands(str);
-            continue;
+            RetCommandFromPipe = Execute_Piped_Commands(str);
+
+            if (RetCommandFromPipe != NULL){
+                strcpy (str,RetCommandFromPipe);
+            }
+            else {
+                continue;
+            }
         }
 
         /* to remove spaces in first and last of each command */
@@ -141,11 +146,6 @@ int main() {
                 Shellio_ExecExternalCommands(token);  // Execute an external command
                 printf("%s%s%s \n", COLOR_BOLD_BLUE, separators, COLOR_RESET);  // Print a separator line in blue
             }
-        }
-
-        // terminate child process
-        if (TypeOfProcess > INVALID_ID ){
-            exit(VALID);
         }
 
         /* clear all flags and buffers */

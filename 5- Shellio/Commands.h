@@ -235,7 +235,7 @@ void setSharedString(const uint8 * str);
  * Return           : None
  * Notes            : The function updates the process history based on the success or failure of the command execution.
  */
-void Shellio_ExecExternalCommands(uint8 *token);
+void Shellio_ExecExternalCommands(uint8 *command);
 
 /*
  * Name             : getUserName
@@ -324,8 +324,7 @@ void Shellio_allVar();
 void setLocalVariable(const char* name, const char* value);
 
 
-void trim_spaces(char *str);
 
-void Execute_Piped_Commands(char* input);
+char* Execute_Piped_Commands(char* input);
 
 #endif /* Header Guard */
