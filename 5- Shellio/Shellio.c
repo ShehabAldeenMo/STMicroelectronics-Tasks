@@ -48,22 +48,10 @@ int main() {
         if (len > 0 && str[len-1] == '\n') {  // Check if the last character is a newline
             str[len-1] = '\0';  // Replace the newline character with a null terminator
         }
-
-        /* check on pipes */
-        char NumOfPipes = Parse_Pipes(str,commands) ; // filter input from pipes to separate commands
         
-        if (NumOfPipes > 0){
-            TypeOfProcess = Execute_Piped_Commands(commands,NumOfPipes);
-
-            /* to work with each child as separate process */
-            if (TypeOfProcess > INVALID_ID ){
-                strncpy(str, commands[TypeOfProcess], sizeof(str) - 1);
-                str[sizeof(str) - 1] = '\0';  // Ensure null termination
-            }
-            else {
-                // Invalid case or parent to not parse commands and show prompt again
-                continue;
-            }
+        if (strchr (str,'|') ){
+            Execute_Piped_Commands(str);
+            continue;
         }
 
         /* to remove spaces in first and last of each command */

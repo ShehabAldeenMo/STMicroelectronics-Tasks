@@ -326,7 +326,6 @@ void setLocalVariable(const char* name, const char* value);
 
 void trim_spaces(char *str);
 
-
-char Execute_Piped_Commands(char **commands, int num_pipes);
+void Execute_Piped_Commands(char* input);
 
 #endif /* Header Guard */

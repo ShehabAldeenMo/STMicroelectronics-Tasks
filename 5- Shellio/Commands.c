@@ -1080,69 +1080,38 @@ void setLocalVariable(const char* name, const char* value) {
     }
 }
 
-char Execute_Piped_Commands(char **commands, int num_pipes) {
-    /* Array to hold pipe file descriptors. */
-    int pipefds[2 * num_pipes];
+void Execute_Piped_Commands(char *input) {
+    int num_commands;
+    int pipefds[2 * (MAX_COMMANDS - 1)];
+    char commands[MAX_COMMANDS][MAX_COMMAND_LENGTH];
 
-    /* Create the necessary pipes */
-    for (int i = 0; i < num_pipes; i++) {
-        if (pipe(pipefds + i * 2) < 0) {
-            perror("pipe"); /* Error creating pipe. */
-            return INVALID_ID;
+    // Parse the input into commands
+    num_commands = parse_commands(input, commands);
+
+    // Create pipes
+    for (int i = 0; i < num_commands - 1; i++) {
+        create_pipe(pipefds + i * 2);
+    }
+
+    // Fork and execute each command
+    pid_t pids[MAX_COMMANDS];
+    for (int i = 0; i < num_commands; i++) {
+        int input_fd = (i == 0) ? -1 : pipefds[(i - 1) * 2]; // First command, no input redirection
+        int output_fd = (i == num_commands - 1) ? -1 : pipefds[i * 2 + 1]; // Last command, no output redirection
+
+        pids[i] = fork_and_execute(commands[i], input_fd, output_fd);
+
+        // Close the pipe file descriptors in the parent
+        if (i > 0) {
+            close(pipefds[(i - 1) * 2]);
         }
-    }  
-
-    int j = 0; /* Index for accessing pipe file descriptors. */
-    /* Iterate through each command, forking a new process for each. */
-    for (int i = 0; i <= num_pipes; i++) {
-        pid_t pid = fork(); /* Fork a new process. */
-        
-        if (pid == 0) {
-            /* In the child process. */
-
-            /* If not the last command, redirect stdout to the next pipe. */
-            if (i < num_pipes) {
-                if (dup2(pipefds[j + 1], STDOUT) < 0) {
-                    perror("dup2"); /* Error duplicating file descriptor. */
-                    return INVALID_ID;
-                }
-            }
-
-            /* If not the first command, redirect stdin to the previous pipe. */
-            if (i > 0) {
-                if (dup2(pipefds[j - 2], STDIN) < 0) {
-                    perror("dup2"); /* Error duplicating file descriptor. */
-                    return INVALID_ID;
-                }
-            }
-
-            /* Close all pipe file descriptors in the child process. */
-            for (int k = 0; k < 2 * num_pipes; k++) {
-                close(pipefds[k]);
-            }
-
-            /* return childern id */
-            return i;
-        } 
-        else if (pid < 0) {
-            perror("fork"); /* Error forking process. */
-            return INVALID_ID;
+        if (i < num_commands - 1) {
+            close(pipefds[i * 2 + 1]);
         }
-        /* Move to the next set of pipe file descriptors. */
-        j += 2; 
     }
 
-    /* Close all pipe file descriptors in the parent process. */
-    for (int i = 0; i < 2 * num_pipes; i++) {
-        close(pipefds[i]);
-    }
-
-    /* Wait for all child processes to complete. */
-    for (int i = 0; i <= num_pipes; i++) {
-        wait(NULL);
-    }
-
-    return PARENT ; /* Return number of command */
+    // Wait for all child processes to finish
+    wait_for_children(num_commands, pids);
 }
 
 
