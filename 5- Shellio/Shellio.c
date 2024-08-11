@@ -18,13 +18,19 @@
 */
 
 /*===================================  Includes ===============================*/
-#include "Shellio.h"   // Include the header file that contains function declarations and macros for the Shellio program
+#include "Utility.h"      // Custom commands specific to Shellio
+
+
+
+/*===================================  Definitions ============================*/
+#define MAXSIZE                              1024  // Maximum size for input strings
+
 
 /*===================================  Main Code ==============================*/
 int main() {
     /* Initiliazations */
     char str[MAXSIZE] = {0};           // Buffer to store the input command from the user
-    char* RetCommandFromPipe ;
+    char* RetCommandFromPipe;
 
     do {
         /* Enter your command */
@@ -62,6 +68,7 @@ path 2> "file.txt"
 path > "file.txt" 2> "file2.txt"
 path 2> "file.txt" > "file2.txt"
 
+phist
 
 cd ..
 cd 5- Shellio
@@ -83,6 +90,7 @@ type cd > "file.txt" 2> "file2.txt"
 type < "file3.txt" > "file.txt" 2> "file2.txt"
 type 2> "file.txt" > "file2.txt" < "file3.txt"
 
+phist
 
 envir 2> "file.txt" > "file2.txt"
 envir > "file.txt" 2> "file2.txt"
@@ -112,10 +120,13 @@ ls -l > "file.txt" 2> "file2.txt"
 
 grep "shehab" non_existent_file.txt 2> "file.txt"
 
+phist
 
 ls -l | grep ".txt"
 ls -l | grep ".txt" > "file.txt"
 display Shehab | grep "She"
 ls -l | grep ".txt" | sort
+
+phist
 
 */

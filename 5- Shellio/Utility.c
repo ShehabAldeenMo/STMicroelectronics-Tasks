@@ -17,8 +17,8 @@
 
 void Utility_ExecuteCommands(char *input) {
 
-    /***********************  call commands loop for single call *********************************/
-    if (strchr (input,'|') != NULL) {
+    /***********************  call commands loop for single pipe *********************************/
+    if (strchr (input,'|') == NULL) {
         Commands_Loop(input);
         return ;
     }
@@ -32,7 +32,7 @@ void Utility_ExecuteCommands(char *input) {
     char *commands[MAX_COMMANDS];
 
     // Number of commands parsed from the input
-    char num_commands = parse_commands(input, commands);
+    char num_commands = Help_ParseCommand(input, commands);
 
     // Create pipes for inter-process communication
     for (int i = 0; i < num_commands - 1; i++) {
@@ -68,6 +68,10 @@ void Utility_ExecuteCommands(char *input) {
 
             exit(VALID); /* Exit the child process with the command's exit status. */
         }
+
+        if (pid>0){
+            Help_PushProcessHistory(commands[i], SUCCESS);  // Log the success in process history
+        }
     }
 
     /* Close all pipe file descriptors in the parent process. */
@@ -84,16 +88,16 @@ void Utility_ExecuteCommands(char *input) {
 
 // Function to print the command prompt with user and hostname information
 void Utility_PrintPrompt() {
-    const char *user = getUserName(); // Retrieve the username
+    const char *user = Help_GetUserName(); // Retrieve the username
     char host[256]; // Buffer to store the hostname
 
-    getHostName(host, sizeof(host)); // Retrieve the hostname
+    Help_GetHostName(host, sizeof(host)); // Retrieve the hostname
     // Print the username in bold green, followed by the hostname in bold green
     printf("%s%s%s", COLOR_BOLD_GREEN, user, COLOR_RESET);
     printf("@%s%s%s:", COLOR_BOLD_GREEN, host, COLOR_RESET);
 
     char cwd[MAX_PATH];            // Buffer to store the current working directory path
-    strcpy(cwd, GetPathWithoutToken());  // Get the current working directory path and copy it to 'cwd'
+    strcpy(cwd, Help_GetPathWithoutToken());  // Get the current working directory path and copy it to 'cwd'
     printf("%s%s%s >> ", COLOR_BOLD_CYAN, cwd, COLOR_RESET);  // Print the current working directory in cyan color
 
 }

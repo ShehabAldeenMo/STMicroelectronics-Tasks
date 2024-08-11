@@ -21,6 +21,7 @@
 
 /*===================================  Includes ===============================*/
 #include "Commands.h"      // Custom commands specific to Shellio
+#include "Helper.h"
 
 /*===================================  Definitions ============================*/
 #define EXIT                                  0    // Exit status code
