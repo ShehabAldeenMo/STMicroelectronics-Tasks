@@ -141,7 +141,7 @@ cd Shellio
 2. Compilation:
 Compile the project using GCC. Navigate to the project directory and use the following command:
 ```
-gcc -o shellio Shellio.c Commands.c
+gcc -o shellio Shellio.c Commands.c Helper.c Utility.c
 ```
 
 3. Running the Shell:
