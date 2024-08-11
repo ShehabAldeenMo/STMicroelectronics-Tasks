@@ -63,11 +63,11 @@ Shellio is a custom command-line shell designed for basic file operations and te
 - `assist`
   - Displays information about available commands in Shellio.
 
-- `clone "source" "destination"[-a]`
+- `clone "source" -a "destination"`
   - Copies the file from the source path to the destination path.
   - Use `-a` to append to the destination file if it exists.
 
-- `shift "source" "destination"[-f]`
+- `shift "source" -f "destination"`
   - Moves the file from the source path to the destination path.
   - Use `-f` to forcefully overwrite the destination file if it exists.
 
