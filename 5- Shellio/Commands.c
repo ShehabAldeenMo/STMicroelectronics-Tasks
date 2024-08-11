@@ -9,7 +9,7 @@
  * Shellio is a custom command-line shell designed to provide a simple interface 
  * for users to interact with the system. It allows the execution of both built-in 
  * commands (like path, clone, shift, leave, cls, display) and external programs. The shell 
- * supports local and environment variables, redirection, command history, and more.
+ * supports local and environment variables, Help_Redirection, command history, and more.
  * The command execution is enhanced by custom handling of errors and outputs. The 
  * shell also includes features for displaying system information like memory usage 
  * and uptime.
@@ -20,7 +20,7 @@
 #include "Commands.h"
 #include "Helper.h"
 
-
+/* External Global variables */
 extern char **environ; /**< Pointer to the environment variables */
 extern char GlobalAppendFlag ;
 extern char GlobalMoveForcedFlag ;
@@ -36,8 +36,101 @@ extern uint8 *sharedString ;
 
 
 /*===========================  Functions Implementations ======================*/
-void Shellio_GetPath(uint8* command) {
-    uint8 Status = RedirectionHandlerOfnoOption(command);
+
+void Commands_Loop(char* str){
+    uint8 *token;                      // Pointer to store each word of the command as a token
+    char* commands[MAX_PIPES] ;
+    uint8* separators = "============================================================================================";  // Separator line for formatting output
+    
+    /* to remove spaces in first and last of each command */
+    Help_TrimSpaces(str);        
+    // To share this input into the history
+    Help_SetSharedString(str);  // Store the input command in a global history buffer
+    /* Initial call to strtok */ 
+    token = strtok(str," ");  // Tokenize the input string using the specified delimiters
+
+    if (token != NULL) {  // If a token was found
+        /* print goodbye then exit */ 
+        if (strcmp(token, "leave") == EQUALED) {  // If the command is 'leave'
+            uint8 status = Commands_Exit(token);  // Call the exit function
+            /* exit if it succeeded */
+            if (status == SUCCESS) {  // If the exit command succeeded
+                exit(0);  // Exit the loop and terminate the shell
+            }
+        }
+        /* clear screen with clear command */ 
+        else if (strcmp(token, "cls") == CLEARED) {  // If the command is 'cls' (clear screen)
+            Commands_Clear(token);  // Clear the screen
+        }
+        /* get absolute path of current working directory */
+        else if (strcmp(token, "path") == PWD_PASS) {  // If the command is 'path'
+            Commands_GetPath(token);  // Print the current working directory
+            printf("%s%s%s \n", COLOR_BOLD_BLUE, separators, COLOR_RESET);  // Print a separator line in blue
+        }
+        else if (strcmp(token, "display") == ECHO_PASS) {  // If the command is 'display'
+            Commands_EchoInput(token);  // Echo the input back to the user
+            printf("%s%s%s \n", COLOR_BOLD_BLUE, separators, COLOR_RESET);  // Print a separator line in blue
+        }
+        else if (strcmp(token, "assist") == HELP_PASS) {  // If the command is 'assist'
+            Commands_Help(token);  // Display help information
+            printf("%s%s%s \n", COLOR_BOLD_BLUE, separators, COLOR_RESET);  // Print a separator line in blue
+        }
+        else if (strcmp(token, "clone") == COPY_PASS) {  // If the command is 'clone'
+            Commands_Copy(token);  // Copy a file or directory
+            printf("%s%s%s \n", COLOR_BOLD_BLUE, separators, COLOR_RESET);  // Print a separator line in blue
+        }
+        else if (strcmp(token, "shift") == MV_PASS) {  // If the command is 'shift'
+            Commands_MoveFile(strcmp(token, "shift"));  // Move a file or directory
+            Commands_Copy(token);  // Copy a file or directory
+            printf("%s%s%s \n", COLOR_BOLD_BLUE, separators, COLOR_RESET);  // Print a separator line in blue
+        }
+        else if (strcmp(token, "cd") == CD_PASS) {  // If the command is 'cd'
+            Commands_ChangeDir(token);  // Change the current working directory
+        }
+        else if (strcmp(token, "type") == TYPE_PASS) {  // If the command is 'type'
+            Commands_TypeCommand(token);  // Display the contents of a file
+        } 
+        else if (strcmp(token, "envir") == ENV_PASS) {  // If the command is 'envir'
+            uint8 * command = strdup(token);  // Duplicate the command string
+            token = strtok(NULL, "");  // Get the next token, which is the argument to 'envir'
+            if (token == NULL || *(token) == '2' || (*token ) == '>' && strstr(token, " < ") == NULL ) {  // If no argument or Help_Redirection is provided
+                Commands_PrintEnv(command, token);  // Print the environment variables
+                printf("%s%s%s \n", COLOR_BOLD_BLUE, separators, COLOR_RESET);  // Print a separator line in blue
+            } else {
+                Commands_PrintEnvVar(command, token);  // Print the value of a specific environment variable
+                printf("%s%s%s \n", COLOR_BOLD_BLUE, separators, COLOR_RESET);  // Print a separator line in blue
+            }
+            free(command);  // Free the memory allocated for the duplicated command
+        } 
+        else if (strcmp(token, "phist") == EXIT) {  // If the command is 'phist'
+            Commands_Phist(token);  // Print the process history
+            printf("%s%s%s \n", COLOR_BOLD_BLUE, separators, COLOR_RESET);  // Print a separator line in blue
+        }
+        else if (strcmp(token, "free") == FREE_PASS) {  // If the command is 'free'
+            Commands_Meminfo(token);  // Display memory usage information
+            printf("%s%s%s \n", COLOR_BOLD_BLUE, separators, COLOR_RESET);  // Print a separator line in blue
+        } 
+        else if (strcmp(token, "uptime") == UPTIME_PASS) {  // If the command is 'uptime'
+            Commands_uptime(token);  // Display system uptime and idle time
+            printf("%s%s%s \n", COLOR_BOLD_BLUE, separators, COLOR_RESET);  // Print a separator line in blue
+        }
+        else if (strchr(token, '=') != NULL) {  // If the token contains an '=' character
+            Commands_setVariable(token);  // Set a local variable with the format name=value
+        }
+        else if (strcmp(token, "allVar") == ALLVAR_PASS) {  // If the command is 'allVar'
+            Commands_allVar();  // Print all local and environment variables
+            printf("%s%s%s \n", COLOR_BOLD_BLUE, separators, COLOR_RESET);  // Print a separator line in blue
+        }
+        else {
+            Commands_ExecExternalCommands(token);  // Execute an external command
+            printf("%s%s%s \n", COLOR_BOLD_BLUE, separators, COLOR_RESET);  // Print a separator line in blue
+        }
+    }
+}
+
+
+void Commands_GetPath(uint8* command) {
+    uint8 Status = Help_RedirectionHandlerOfnoOption(command);
 
     if (Status == INVALID){
         return ;
@@ -45,47 +138,47 @@ void Shellio_GetPath(uint8* command) {
 
     /* If running in child process, get the current path and exit */
     if (IamChild == RAISED) {
-        GetPathSeq();  // Call function to get and print the current working directory
+        Help_GetPathSeq();  // Call function to get and print the current working directory
         exit(100);  // Exit with a specific status code
     }
     else if (IamParent != RAISED) {
         /* If running in parent process and not raised, get the current path */
-        GetPathSeq();
+        Help_GetPathSeq();
     }
 
     /* Clean up and reset parent status */
-    pushProcessHistory(sharedString, SUCCESS);
-    cleanSharedString();
+    Help_PushProcessHistory(sharedString, SUCCESS);
+    Help_CleanSharedString();
     IamParent = UNRAISED;  // Reset the parent status
 }
 
 
-void Shellio_EchoInput(uint8* command) {
-    uint8* token = RedirectionHandlerOfWithOption (command);
+void Commands_EchoInput(uint8* command) {
+    uint8* token = Help_RedirectionHandlerOfWithOption (command);
 
     if (token == NULL){
         return ;
     }
 
     if (IamChild == RAISED) {
-        DisplaySeq(token);  // Display the token if in child process
+        Help_DisplaySeq(token);  // Display the token if in child process
         exit(100);  // Exit child process
     } else if (IamParent != RAISED) {
-        DisplaySeq(token);  // Display the token if in parent process
+        Help_DisplaySeq(token);  // Display the token if in parent process
     }
 
-    cleanSharedString();  // Clean up the shared string
+    Help_CleanSharedString();  // Clean up the shared string
     IamParent = UNRAISED;  // Reset parent status
     free(token);
 }
 
 
-void Shellio_CopyFile(const char *sourcePath, const char *destPath) {
+void Commands_CopyFile(const char *sourcePath, const char *destPath) {
     /* Check if the source and destination files are the same */
     if (strcmp(sourcePath, destPath) == SAME ) {
-        my_printf("Error :: Source and Destination files are same \n");  
-        pushProcessHistory(sharedString, FAILED);
-        cleanSharedString();
+        Help_MyPrintf("Error :: Source and Destination files are same \n");  
+        Help_PushProcessHistory(sharedString, FAILED);
+        Help_CleanSharedString();
         return ; 
     }
 
@@ -98,8 +191,8 @@ void Shellio_CopyFile(const char *sourcePath, const char *destPath) {
     /* Terminate this operation if the source file does not exist */
     if (FD_SrcFile == FD_INVALID) {
         perror("Source file open() error");
-        pushProcessHistory(sharedString, FAILED);
-        cleanSharedString();
+        Help_PushProcessHistory(sharedString, FAILED);
+        Help_CleanSharedString();
         return;
     }
 
@@ -115,8 +208,8 @@ void Shellio_CopyFile(const char *sourcePath, const char *destPath) {
         if (FD_DesFile == FD_INVALID ) {
             perror("Destination file open() error");
             close(FD_SrcFile);
-            pushProcessHistory(sharedString, FAILED);
-            cleanSharedString();
+            Help_PushProcessHistory(sharedString, FAILED);
+            Help_CleanSharedString();
             return;
         }        
     }
@@ -132,16 +225,16 @@ void Shellio_CopyFile(const char *sourcePath, const char *destPath) {
             if (FD_DesFile == FD_INVALID ) {
                 perror("Destination file open() error");
                 close(FD_SrcFile);
-                pushProcessHistory(sharedString, FAILED);
-                cleanSharedString();
+                Help_PushProcessHistory(sharedString, FAILED);
+                Help_CleanSharedString();
                 return;
             } 
         }
         else {
-            my_printf ("Error :: Destination File is already existed\n");
+            Help_MyPrintf ("Error :: Destination File is already existed\n");
             close(FD_SrcFile);
-            pushProcessHistory(sharedString, FAILED);
-            cleanSharedString();
+            Help_PushProcessHistory(sharedString, FAILED);
+            Help_CleanSharedString();
             return ;
         }
     }
@@ -162,9 +255,9 @@ void Shellio_CopyFile(const char *sourcePath, const char *destPath) {
 
         /* Check if the source file is different from the destination file */
         if (strcmp(sourcePath,ConcatenatedDesFile) == SAME ) {
-            my_printf("Error :: Source and Destination files are same \n");  
-            pushProcessHistory(sharedString, FAILED);
-            cleanSharedString();
+            Help_MyPrintf("Error :: Source and Destination files are same \n");  
+            Help_PushProcessHistory(sharedString, FAILED);
+            Help_CleanSharedString();
             return ; 
         }
 
@@ -177,8 +270,8 @@ void Shellio_CopyFile(const char *sourcePath, const char *destPath) {
             if (FD_DesFile == FD_INVALID ) {
                 perror("Destination file open() error");
                 close(FD_SrcFile);
-                pushProcessHistory(sharedString, FAILED);
-                cleanSharedString();
+                Help_PushProcessHistory(sharedString, FAILED);
+                Help_CleanSharedString();
                 return;
             }         
         }
@@ -189,19 +282,19 @@ void Shellio_CopyFile(const char *sourcePath, const char *destPath) {
             if (FD_DesFile == FD_INVALID ) {
                 perror("Destination file open() error");
                 close(FD_SrcFile);
-                pushProcessHistory(sharedString, FAILED);
-                cleanSharedString();
+                Help_PushProcessHistory(sharedString, FAILED);
+                Help_CleanSharedString();
                 return;
             }        
         }
 
         /* Terminate operation if the destination file could not be created */
         if (FD_DesFile == FD_INVALID ){
-            my_printf("Given path of directory isn't correct\n");
+            Help_MyPrintf("Given path of directory isn't correct\n");
             perror("Destination fopen() error");
             close(FD_SrcFile);
-            pushProcessHistory(sharedString, FAILED);
-            cleanSharedString();
+            Help_PushProcessHistory(sharedString, FAILED);
+            Help_CleanSharedString();
             return;
         }
 
@@ -224,14 +317,14 @@ void Shellio_CopyFile(const char *sourcePath, const char *destPath) {
             close(FD_SrcFile);
             close(FD_DesFile);
             Suc_Move = CLEARED ;
-            pushProcessHistory(sharedString, FAILED);
+            Help_PushProcessHistory(sharedString, FAILED);
             break ;
         }
         else if (Write_Size < Read_Size) {
             // Not all bytes were written; handle the partial write
             fprintf(stderr, "write_to_stdout: Partial write occurred. Expected %zd, wrote %zd\n", Read_Size, Write_Size);
             Suc_Move = CLEARED ;
-            pushProcessHistory(sharedString, FAILED);
+            Help_PushProcessHistory(sharedString, FAILED);
             break ;
         }
         else {
@@ -239,7 +332,7 @@ void Shellio_CopyFile(const char *sourcePath, const char *destPath) {
             Suc_Move = SET ;
         }
 
-        pushProcessHistory(sharedString, SUCCESS);
+        Help_PushProcessHistory(sharedString, SUCCESS);
 
         /* Read file content */
         Read_Size = Read_Size = read(FD_SrcFile, Buffer, sizeof(Buffer));
@@ -253,7 +346,7 @@ void Shellio_CopyFile(const char *sourcePath, const char *destPath) {
     if (GlobalMoveOperation == MOVE_PASS && Suc_Move == SET ){
         if (unlink(sourcePath) == -1) {
             perror("Error deleting file");
-            pushProcessHistory(sharedString, FAILED);
+            Help_PushProcessHistory(sharedString, FAILED);
         }
     }
 
@@ -264,7 +357,7 @@ void Shellio_CopyFile(const char *sourcePath, const char *destPath) {
 }
 
 
-char Shellio_FileOption(const char* Copy_Option) {
+char Commands_FileOption(const char* Copy_Option) {
     char Local_Status = INVALID;  // Status to return: INVALID by default
 
     /* Check if the provided option is "-a" for appending */
@@ -279,15 +372,15 @@ char Shellio_FileOption(const char* Copy_Option) {
     }
     /* Handle unrecognized options */
     else {
-        my_printf("Incorrect option: %s\n", Copy_Option);  // Print error message for unrecognized option
+        Help_MyPrintf("Incorrect option: %s\n", Copy_Option);  // Print error message for unrecognized option
         Local_Status = INVALID;  // Indicate that the option is invalid
     }
 
-    cleanSharedString();  // Clean shared string data
+    Help_CleanSharedString();  // Clean shared string data
     return Local_Status;  // Return the status of the function
 }
 
-void Shellio_MoveFile(const char Copy_MoveFlag) {
+void Commands_MoveFile(const char Copy_MoveFlag) {
     if (Copy_MoveFlag == MOVE_PASS) {
         GlobalMoveOperation = MOVE_PASS;  // Allow move operations
     } else {
@@ -296,29 +389,29 @@ void Shellio_MoveFile(const char Copy_MoveFlag) {
 }
 
 
-void Shellio_Help(uint8* command) {
-    uint8 Status = RedirectionHandlerOfnoOption(command);
+void Commands_Help(uint8* command) {
+    uint8 Status = Help_RedirectionHandlerOfnoOption(command);
 
     if (Status == INVALID){
         return ;
     }
 
-    // Execute the Help_Seq function based on the process state
+    // Execute the Help_AssistSeq function based on the process state
     if (IamChild == RAISED) {
-        Help_Seq();  // Execute Help_Seq in child process
+        Help_AssistSeq();  // Execute Help_AssistSeq in child process
         exit(100);  // Exit child process
     } else if (IamParent != RAISED) {
-        Help_Seq();  // Execute Help_Seq in parent process
+        Help_AssistSeq();  // Execute Help_AssistSeq in parent process
     }
 
     // Update process history and clean up
-    pushProcessHistory(sharedString, SUCCESS);
-    cleanSharedString();
+    Help_PushProcessHistory(sharedString, SUCCESS);
+    Help_CleanSharedString();
     IamParent = UNRAISED;  // Reset parent process state
 }
 
 
-uint8* Shellio_ParsingPath(uint8* ptr_ArgCounter, uint8* Ptr_1st_Path,
+uint8* Commands_ParsingPath(uint8* ptr_ArgCounter, uint8* Ptr_1st_Path,
                             uint8* Ptr_2nd_Path, uint8* Copy_token) {
     // Buffer to temporarily store parsed paths
     uint8 Buf[MAX_PATH / 2];
@@ -331,7 +424,7 @@ uint8* Shellio_ParsingPath(uint8* ptr_ArgCounter, uint8* Ptr_1st_Path,
 
     // Check if the input token is valid
     if (Copy_token == NULL) {
-        my_printf("Error: No input token provided.\n");
+        Help_MyPrintf("Error: No input token provided.\n");
         return NULL;
     }
     
@@ -339,7 +432,7 @@ uint8* Shellio_ParsingPath(uint8* ptr_ArgCounter, uint8* Ptr_1st_Path,
     Ptr_GlobalGetParsingPath = Copy_token;
 
     // Parse and store the first path from the input
-    strcpy(Buf, GetParsedPath(command));
+    strcpy(Buf, Help_GetParsedPath(command));
     if (Buf == NULL) {
         printf("Error: Failed to get the first path.\n");
         return NULL;
@@ -355,7 +448,7 @@ uint8* Shellio_ParsingPath(uint8* ptr_ArgCounter, uint8* Ptr_1st_Path,
         strcpy(Ptr_1st_Path, Buf);
     } else {
         // Otherwise, construct absolute path from base path
-        snprintf(Ptr_1st_Path, MAX_PATH, "%s/%s", GetPathWithoutToken(), Buf);
+        snprintf(Ptr_1st_Path, MAX_PATH, "%s/%s", Help_GetPathWithoutToken(), Buf);
     }
     
     // Increment argument counter for the first path
@@ -386,7 +479,7 @@ uint8* Shellio_ParsingPath(uint8* ptr_ArgCounter, uint8* Ptr_1st_Path,
     }
 
     // Parse and store the second path from the input
-    strcpy(Buf, GetParsedPath(command));
+    strcpy(Buf, Help_GetParsedPath(command));
     if (Buf == NULL) {
         printf("Error: Failed to get the second path.\n");
         return NULL;
@@ -397,7 +490,7 @@ uint8* Shellio_ParsingPath(uint8* ptr_ArgCounter, uint8* Ptr_1st_Path,
     if (found != NULL) {
         strcpy(Ptr_2nd_Path, Buf);
     } else {
-        snprintf(Ptr_2nd_Path, MAX_PATH, "%s/%s", GetPathWithoutToken(), Buf);
+        snprintf(Ptr_2nd_Path, MAX_PATH, "%s/%s", Help_GetPathWithoutToken(), Buf);
     }
 
     // Increment argument counter for the second path
@@ -408,7 +501,7 @@ uint8* Shellio_ParsingPath(uint8* ptr_ArgCounter, uint8* Ptr_1st_Path,
 }
 
 
-uint8 Shellio_Exit (uint8* command) {
+uint8 Commands_Exit (uint8* command) {
     // Delimiters used for tokenizing input (space and zero)
     uint8 *delimiters = " 0";                   
     // Tokenize the input string to check for additional arguments
@@ -431,7 +524,7 @@ uint8 Shellio_Exit (uint8* command) {
     return (uint8)SUCCESS;  // Return success status
 }
 
-void Shellio_Clear (uint8* command) {
+void Commands_Clear (uint8* command) {
     // Delimiters used for tokenizing input (space and zero)
     uint8 *delimiters = " 0";                   
     // Tokenize the input string to check for additional arguments
@@ -445,21 +538,21 @@ void Shellio_Clear (uint8* command) {
     if (token != NULL) {
         // Print error message if additional arguments are present
         printf("command not found\nEnter (assist) to know Shellio Commands\n");
-        pushProcessHistory(sharedString, FAILED);
-        cleanSharedString();
+        Help_PushProcessHistory(sharedString, FAILED);
+        Help_CleanSharedString();
         return;
     }
 
     // Push successful operation to process history and clean shared string
-    pushProcessHistory(sharedString, SUCCESS);
-    cleanSharedString();
+    Help_PushProcessHistory(sharedString, SUCCESS);
+    Help_CleanSharedString();
 
     // Clear the terminal screen
     system("clear");
 }
 
 
-void Shellio_Copy (uint8* command) {
+void Commands_Copy (uint8* command) {
     // Array to store arguments for the copy command
     uint8 Arguments[MAX_ARGUMENTS][MAX_CHARACHTERS_OF_ONE_ARGUMENTS] = {0};
     
@@ -468,7 +561,7 @@ void Shellio_Copy (uint8* command) {
     uint8 ArgCounter = 0;
     
     // Parse paths and options from the tokenized input
-    uint8* Option = Shellio_ParsingPath(&ArgCounter, Arguments[SECOND_ARGUMENT], Arguments[THIRD_ARGUMENT], token);
+    uint8* Option = Commands_ParsingPath(&ArgCounter, Arguments[SECOND_ARGUMENT], Arguments[THIRD_ARGUMENT], token);
     
     // For GDB script debugging
     uint8 NumOfoperand = 3;
@@ -477,7 +570,7 @@ void Shellio_Copy (uint8* command) {
     // Determine the number of arguments and proceed with copy operation
     if (ArgCounter == (MAX_ARGUMENTS - 1)) {
         // If exactly two arguments (source and destination paths) are provided
-        Shellio_CopyFile(Arguments[SECOND_ARGUMENT], Arguments[THIRD_ARGUMENT]);  
+        Commands_CopyFile(Arguments[SECOND_ARGUMENT], Arguments[THIRD_ARGUMENT]);  
     } else if (ArgCounter == MAX_ARGUMENTS) {
         // If additional arguments are provided (e.g., options)
         if (Option == NULL) {
@@ -485,11 +578,11 @@ void Shellio_Copy (uint8* command) {
             printf("Error In Passing Option\n");
         } else {
             // Handle file options such as append or force move
-            char Status = Shellio_FileOption(Option);
+            char Status = Commands_FileOption(Option);
             
             if (Status == VALID) {
                 // Proceed with copy operation if the option is valid
-                Shellio_CopyFile(Arguments[SECOND_ARGUMENT], Arguments[THIRD_ARGUMENT]);
+                Commands_CopyFile(Arguments[SECOND_ARGUMENT], Arguments[THIRD_ARGUMENT]);
             }
         }
     } else {
@@ -498,12 +591,12 @@ void Shellio_Copy (uint8* command) {
     }
     
     // Clean up shared string data
-    cleanSharedString();
+    Help_CleanSharedString();
 }
 
 
 
-void Shellio_PrintEnv(uint8* command, uint8* token) {
+void Commands_PrintEnv(uint8* command, uint8* token) {
     char **env = environ;  // Pointer to the environment variables
 
     // For GDB script debugging
@@ -516,8 +609,8 @@ void Shellio_PrintEnv(uint8* command, uint8* token) {
         uint8* path; 
         int SecondFD = -1 , SecondFDWithout2 = -1 ;
 
-        char *found = strstr(token, "2>");  // Check if the token contains redirection to stderr
-        int pos = SearchOnSpaceBeforeArrow (token) ; 
+        char *found = strstr(token, "2>");  // Check if the token contains Help_Redirection to stderr
+        int pos = Help_SearchOnSpaceBeforeArrow (token) ; 
 
         /* if contain > then cancel print on screen because of there are target file after > */
         if ( pos != INVALID_ID && found != NULL){
@@ -527,8 +620,8 @@ void Shellio_PrintEnv(uint8* command, uint8* token) {
         }
 
         if (found != NULL) {
-            path = FindRedirectionPath(found);  // Get the path for stderr redirection
-            fork_redirectionExec(path, STDERR, SecondFD);  // Execute with stderr redirection
+            path = Help_FindRedirectionPath(found);  // Get the path for stderr Help_Redirection
+            Help_ForkAssistRedirectionExec(path, STDERR, SecondFD);  // Execute with stderr Help_Redirection
             ErrorFlag = OFF ;
         }
 
@@ -539,17 +632,17 @@ void Shellio_PrintEnv(uint8* command, uint8* token) {
             found = strstr(token, ">"); 
         }
         
-        if (found != NULL) {  // Check if the token contains redirection to stdout
-            path = FindRedirectionPath(found);
-            fork_redirectionExec(path, STDOUT, SecondFDWithout2);  // Execute with stdout redirection
+        if (found != NULL) {  // Check if the token contains Help_Redirection to stdout
+            path = Help_FindRedirectionPath(found);
+            Help_ForkAssistRedirectionExec(path, STDOUT, SecondFDWithout2);  // Execute with stdout Help_Redirection
             ErrorFlag = OFF ;
         }
         
         if (ErrorFlag == ON ) {
-            // If no valid redirection is found, print an error message
+            // If no valid Help_Redirection is found, print an error message
             printf("command not found\nEnter 'assist' to know Shellio commands\n");
-            pushProcessHistory(sharedString, FAILED);  // Record the failure in process history
-            cleanSharedString();  // Clean up the shared string
+            Help_PushProcessHistory(sharedString, FAILED);  // Record the failure in process history
+            Help_CleanSharedString();  // Clean up the shared string
             return;   
         }
     }
@@ -575,14 +668,14 @@ void Shellio_PrintEnv(uint8* command, uint8* token) {
     }
 
     // Update process history and clean up
-    pushProcessHistory(sharedString, SUCCESS);
-    cleanSharedString();
+    Help_PushProcessHistory(sharedString, SUCCESS);
+    Help_CleanSharedString();
     IamParent = UNRAISED;  // Reset parent status
 }
 
 
-void Shellio_TypeCommand(uint8* command) {
-    uint8* token = RedirectionHandlerOfWithOption (command);
+void Commands_TypeCommand(uint8* command) {
+    uint8* token = Help_RedirectionHandlerOfWithOption (command);
 
     if (token == NULL){
         return ;
@@ -591,38 +684,44 @@ void Shellio_TypeCommand(uint8* command) {
     // Handle the 'type' command
     if (IamChild == RAISED) {
         // If in a child process, execute the type command and exit with status 100
-        TypeSeq(token);
+        Help_TypeSeq(token);
         exit(100);
     } else if (IamParent != RAISED) {
         // If in the parent process, execute the type command
-        TypeSeq(token);
+        Help_TypeSeq(token);
     }
 
     // Update process history and clean up
-    pushProcessHistory(sharedString, SUCCESS);
-    cleanSharedString();
+    Help_PushProcessHistory(sharedString, SUCCESS);
+    Help_CleanSharedString();
     IamParent = UNRAISED;  // Reset parent status
     free(token);
 }
 
-// Function to execute external commands with redirections
-void Shellio_ExecExternalCommands(uint8 *token) {
+// Function to execute external commands with Help_Redirections
+void Commands_ExecExternalCommands(uint8 *command) {
     int status;
     pid_t pid, wpid;
-    char *args[MAX_ARGS];
-    uint8 argcounter = 0;
+    char* args[MAX_ARGS];
+    char* cmd;
 
     // Buffer for copying the shared string into
     uint8 Cpstr[MAX_CHARACHTERS_OF_ONE_ARGUMENTS];
     strncpy(Cpstr, sharedString, MAX_CHARACHTERS_OF_ONE_ARGUMENTS);
 
-    // Handle redirections before tokenizing
-    uint8* InputFile = handleOptionRedirection(Cpstr,"<");
-    uint8* OutFile = handleOptionRedirection(Cpstr," >");
-    uint8* ErrFile = handleOptionRedirection(Cpstr,"2>");
+    // Handle Help_Redirections before tokenizing
+    uint8* InputFile = Help_HandleOptionRedirection(Cpstr,"<");
+    uint8* OutFile = Help_HandleOptionRedirection(Cpstr," >");
+    uint8* ErrFile = Help_HandleOptionRedirection(Cpstr,"2>");
 
     // Tokenize the input from the copied string
-    tokenizeInput(Cpstr, args, &argcounter);
+    cmd =  strtok( Cpstr ,"2><");
+    Help_TrimSpaces(cmd); // Ensure leading and trailing spaces are removed
+
+    args[0] = "sh" ;
+    args[1] = "-c" ;
+    args[2] = cmd;
+    args[3] = NULL ;
 
     // Create a child process to execute the external command
     pid = fork();
@@ -630,26 +729,22 @@ void Shellio_ExecExternalCommands(uint8 *token) {
     if (pid == -1) {
         // Fork failed
         perror("fork");
-        pushProcessHistory(sharedString, FAILED);
-        cleanSharedString();
+        Help_PushProcessHistory(sharedString, FAILED);
+        Help_CleanSharedString();
         return;
     } else if (pid == 0) {
         // Child process
-        redirect (InputFile,STDIN);
-        redirect (OutFile,STDOUT);
-        redirect (ErrFile,STDERR);
-        if (InputFile != NULL )
-            free (InputFile);
-        if (OutFile != NULL )
-            free (OutFile);
-        if (ErrFile != NULL )
-            free (ErrFile);
-        execvp(args[0], args);
-        // If execvp returns, it must have failed
+        Help_Redirect (InputFile,STDIN);
+        Help_Redirect (OutFile,STDOUT);
+        Help_Redirect (ErrFile,STDERR);
+        if (InputFile != NULL ) free (InputFile);
+        if (OutFile != NULL ) free (OutFile);           
+        if (ErrFile != NULL ) free (ErrFile);
+        execvp("sh", args);
         perror("execvp");
         printf("Command not found\nEnter 'assist' to know Shellio commands\n");
-        pushProcessHistory(sharedString, FAILED);
-        cleanSharedString();
+        Help_PushProcessHistory(sharedString, FAILED);
+        Help_CleanSharedString();
         exit(EXIT_FAILURE);
     } else {
         // Parent process
@@ -659,19 +754,20 @@ void Shellio_ExecExternalCommands(uint8 *token) {
             // Wait failed
             perror("wait");
             printf("Command failed\nEnter 'assist' to know Shellio commands\n");
-            pushProcessHistory(sharedString, FAILED);
-            cleanSharedString();
+            Help_PushProcessHistory(sharedString, FAILED);
+            Help_CleanSharedString();
             return;
         }
     }
 
     // Clean up and reset shared string
-    cleanSharedString();
+    Help_PushProcessHistory(sharedString, SUCCESS);
+    Help_CleanSharedString();
 }
 
 
 
-void Shellio_ChangeDir(uint8* command) {
+void Commands_ChangeDir(uint8* command) {
     // Tokenize the input to extract the directory path after the command
     char *token = strtok(NULL, "");  // Extract the directory path from the input
 
@@ -692,9 +788,9 @@ void Shellio_ChangeDir(uint8* command) {
         // If no directory is provided, print an error message
         printf("command not found\nEnter 'assist' to know Shellio commands\n");
         // Record the failed operation in the process history
-        pushProcessHistory(sharedString, FAILED);
+        Help_PushProcessHistory(sharedString, FAILED);
         // Clean up shared string buffer
-        cleanSharedString();
+        Help_CleanSharedString();
         return;  // Exit the function early
     }
 
@@ -706,7 +802,7 @@ void Shellio_ChangeDir(uint8* command) {
         found = strstr(token, "../");  // Look for parent directory reference
         if (found != NULL) {
             // Resolve the parent directory reference by removing the last directory
-            uint8* path = GetPathWithoutToken();  // Get the current directory path
+            uint8* path = Help_GetPathWithoutToken();  // Get the current directory path
             uint8* BaseName = basename(path);  // Get the base name of the current path
             uint8 len_path = strlen(path);  // Length of the current path
             uint8 len_BaseName = strlen(BaseName);  // Length of the base name
@@ -718,7 +814,7 @@ void Shellio_ChangeDir(uint8* command) {
             len++;
         } else {
             // If the path is relative and not a parent directory reference, concatenate paths
-            snprintf(AbsolutePath, MAX_PATH, "%s/%s", GetPathWithoutToken(), token);
+            snprintf(AbsolutePath, MAX_PATH, "%s/%s", Help_GetPathWithoutToken(), token);
         }
     }
 
@@ -727,20 +823,20 @@ void Shellio_ChangeDir(uint8* command) {
     // Attempt to change the current working directory to the specified path
     if (chdir(AbsolutePath) == 0) {  // chdir returns 0 on success
         // Directory change successful, record success in the process history
-        pushProcessHistory(sharedString, SUCCESS);
+        Help_PushProcessHistory(sharedString, SUCCESS);
     } else {
         // If directory change fails, print an error message and record failure
-        pushProcessHistory(sharedString, FAILED);
+        Help_PushProcessHistory(sharedString, FAILED);
         perror("cd error::");  // Print error reason
     }
 
     // Clean up shared string buffer to prevent memory leaks
-    cleanSharedString();
+    Help_CleanSharedString();
 }
 
 
-void Shellio_Phist(uint8* command) {
-    uint8 Status = RedirectionHandlerOfnoOption(command);
+void Commands_Phist(uint8* command) {
+    uint8 Status = Help_RedirectionHandlerOfnoOption(command);
 
     if (Status == INVALID){
         return ;
@@ -763,60 +859,18 @@ void Shellio_Phist(uint8* command) {
     }
 
     // Record success in process history and clean up
-    pushProcessHistory(sharedString, SUCCESS);
-    cleanSharedString();
+    Help_PushProcessHistory(sharedString, SUCCESS);
+    Help_CleanSharedString();
     IamParent = UNRAISED;  // Reset parent status
 }
 
 
-// Function to set the global sharedString to a duplicate of the input string
-void setSharedString(const uint8 *str) {
-    // Duplicate the input string and assign it to sharedString
-    sharedString = strdup(str);
-
-    // Note: Ensure to handle NULL inputs or check for memory allocation failures
-}
 
 
 
 
-// Function to get the username of the current user
-const char* getUserName() {
-    struct passwd *pw;   // Pointer to a structure containing user information
-    uid_t uid;           // User ID of the current process
-
-    uid = geteuid();     // Get the effective user ID of the calling process
-    pw = getpwuid(uid);  // Retrieve user information based on UID
-
-    // Check if the user information retrieval was successful
-    if (pw) {
-        return pw->pw_name; // Return the username
-    }
-    return ""; // Return an empty string if user information could not be retrieved
-}
-
-// Function to get the hostname of the system
-void getHostName(char *hostname, size_t size) {
-    // Get the hostname and check for errors
-    if (gethostname(hostname, size) == -1) {
-        perror("gethostname"); // Print an error message if gethostname fails
-        strcpy(hostname, "unknown"); // Set hostname to "unknown" if an error occurs
-    }
-}
-
-// Function to print the command prompt with user and hostname information
-void printPrompt() {
-    const char *user = getUserName(); // Retrieve the username
-    char host[256]; // Buffer to store the hostname
-
-    getHostName(host, sizeof(host)); // Retrieve the hostname
-    // Print the username in bold green, followed by the hostname in bold green
-    printf("%s%s%s", COLOR_BOLD_GREEN, user, COLOR_RESET);
-    printf("@%s%s%s:", COLOR_BOLD_GREEN, host, COLOR_RESET);
-}
-
-void Shellio_Meminfo(uint8* command){
-    uint8 Status = RedirectionHandlerOfnoOption(command);
+void Commands_Meminfo(uint8* command){
+    uint8 Status = Help_RedirectionHandlerOfnoOption(command);
 
     if (Status == INVALID){
         return ;
@@ -824,23 +878,23 @@ void Shellio_Meminfo(uint8* command){
 
     // Check if the current process is a child process
     if (IamChild == RAISED){
-        FreeSeq(); // Free memory or resources associated with the sequence
+        Help_FreeSeq(); // Free memory or resources associated with the sequence
         exit(100); // Exit the child process with status 100
     }
     // If the current process is the parent process
     else if (IamParent != RAISED){
-        FreeSeq(); // Free memory or resources associated with the sequence
+        Help_FreeSeq(); // Free memory or resources associated with the sequence
     }
 
     // Log the success status and clean up
-    pushProcessHistory(sharedString, SUCCESS); // Log success in process history
-    cleanSharedString(); // Clean up the shared string memory
+    Help_PushProcessHistory(sharedString, SUCCESS); // Log success in process history
+    Help_CleanSharedString(); // Clean up the shared string memory
     IamParent = UNRAISED ; // Reset parent process status
 }
 
 
-void Shellio_uptime(uint8* command) {
-    uint8 Status = RedirectionHandlerOfnoOption(command);
+void Commands_uptime(uint8* command) {
+    uint8 Status = Help_RedirectionHandlerOfnoOption(command);
 
     if (Status == INVALID){
         return ;
@@ -848,28 +902,28 @@ void Shellio_uptime(uint8* command) {
 
     // Check if the current process is a child process
     if (IamChild == RAISED){
-        uptimeSeq(); // Execute the uptime sequence for the child process
+        Help_uptimeSeq(); // Execute the uptime sequence for the child process
         exit(100); // Exit the child process with status 100
     }
     // If the current process is the parent process
     else if (IamParent != RAISED){
-        uptimeSeq(); // Execute the uptime sequence for the parent process
+        Help_uptimeSeq(); // Execute the uptime sequence for the parent process
     }
 
     // Log the success status and clean up
-    pushProcessHistory(sharedString, SUCCESS); // Log success in process history
-    cleanSharedString(); // Clean up the shared string memory
+    Help_PushProcessHistory(sharedString, SUCCESS); // Log success in process history
+    Help_CleanSharedString(); // Clean up the shared string memory
     IamParent = UNRAISED ; // Reset parent process status
 }
 
 
-void Shellio_PrintEnvVar(uint8* command, uint8* token) {
+void Commands_PrintEnvVar(uint8* command, uint8* token) {
     // Debugging information for GDB
     uint8 NumOfoperand = 1;
     uint8* Operand[1];
     Operand[0] = token;
 
-    char* input_redirection = (char*)malloc(BUFFER_SIZE);
+    char* input_Help_Redirection = (char*)malloc(BUFFER_SIZE);
     bool fileContentRead = false;  // Flag to check if content has been read
     int SecondFD = -1, SecondFDWithout2 = -1;
 
@@ -878,8 +932,8 @@ void Shellio_PrintEnvVar(uint8* command, uint8* token) {
     if (token != NULL) {
         uint8* path; 
 
-        char *found = strstr(token, "2>");  // Check if the token contains redirection to stderr
-        int pos = SearchOnSpaceBeforeArrow (token) ; 
+        char *found = strstr(token, "2>");  // Check if the token contains Help_Redirection to stderr
+        int pos = Help_SearchOnSpaceBeforeArrow (token) ; 
         
         /* if contain > then cancel print on screen because of there are target file after > */
         if ( pos != INVALID_ID && found != NULL){
@@ -888,8 +942,8 @@ void Shellio_PrintEnvVar(uint8* command, uint8* token) {
         }
 
         if (found != NULL) {
-            path = FindRedirectionPath(found);  // Get the path for stderr redirection
-            fork_redirectionExec(path, STDERR, SecondFD);  // Execute with stderr redirection
+            path = Help_FindRedirectionPath(found);  // Get the path for stderr Help_Redirection
+            Help_ForkAssistRedirectionExec(path, STDERR, SecondFD);  // Execute with stderr Help_Redirection
             int i = 0 ;
             while ( *(token+i) != '\0'){
                 if ( *(token+i) == '>' ){
@@ -912,9 +966,9 @@ void Shellio_PrintEnvVar(uint8* command, uint8* token) {
             found = strstr(token+pos, ">"); 
         }
         
-        if (found != NULL) {  // Check if the token contains redirection to stdout
-            path = FindRedirectionPath(found);
-            fork_redirectionExec(path, STDOUT, SecondFDWithout2);  // Execute with stdout redirection
+        if (found != NULL) {  // Check if the token contains Help_Redirection to stdout
+            path = Help_FindRedirectionPath(found);
+            Help_ForkAssistRedirectionExec(path, STDOUT, SecondFDWithout2);  // Execute with stdout Help_Redirection
 
             int i = 0 ;
             while ( *(token+i) != '\0'){
@@ -932,29 +986,29 @@ void Shellio_PrintEnvVar(uint8* command, uint8* token) {
             }
         }
 
-        // Handle `<` input redirection
+        // Handle `<` input Help_Redirection
         found = strstr(token, "<");
         if (found != NULL) {
-            path = FindRedirectionPath(found);
+            path = Help_FindRedirectionPath(found);
             
             int fd = open(path, O_RDONLY);
             if (fd == INVALID_ID) {
-                perror("Error opening file for input redirection");
+                perror("Error opening file for input Help_Redirection");
                 return ;
             }
 
-            ssize_t length = read(fd, input_redirection, BUFFER_SIZE - 1);
+            ssize_t length = read(fd, input_Help_Redirection, BUFFER_SIZE - 1);
             if (length == INVALID_ID) {
-                perror("Error reading file for input redirection");
+                perror("Error reading file for input Help_Redirection");
                 close(fd);
                 return ;
             }
 
-            input_redirection[length-1] = '\0';
+            input_Help_Redirection[length-1] = '\0';
             close(fd);
 
             fileContentRead = true;
-            token = input_redirection;
+            token = input_Help_Redirection;
         }
     }
 
@@ -965,19 +1019,19 @@ void Shellio_PrintEnvVar(uint8* command, uint8* token) {
     
         if (path_env == NULL) {
             // If the environment variable is not found, check local variables
-            uint8 status = printLocalVariables(token);
+            uint8 status = Help_PrintLocalVariables(token);
 
             if (status == INVALID) {
                 // Print message if variable is not found
                 printf("This variable isn't existed :: %s\n", token);
-                pushProcessHistory(sharedString, FAILED);
+                Help_PushProcessHistory(sharedString, FAILED);
             } else {
-                pushProcessHistory(sharedString, SUCCESS);
+                Help_PushProcessHistory(sharedString, SUCCESS);
             }
         } else {
             // Print the environment variable value
             printf("%s = %s\n", token, path_env);
-            pushProcessHistory(sharedString, SUCCESS);
+            Help_PushProcessHistory(sharedString, SUCCESS);
         }
         // Exit the child process
         exit(100);
@@ -989,29 +1043,29 @@ void Shellio_PrintEnvVar(uint8* command, uint8* token) {
     
         if (path_env == NULL) {
             // If the environment variable is not found, check local variables
-            uint8 status = printLocalVariables(token);
+            uint8 status = Help_PrintLocalVariables(token);
 
             if (status == INVALID) {
                 // Print message if variable is not found
                 printf("This variable isn't existed :: %s\n", token);
-                pushProcessHistory(sharedString, FAILED);
+                Help_PushProcessHistory(sharedString, FAILED);
             } else {
-                pushProcessHistory(sharedString, SUCCESS);
+                Help_PushProcessHistory(sharedString, SUCCESS);
             }
         } else {
             // Print the environment variable value
             printf("%s = %s\n", token, path_env);
-            pushProcessHistory(sharedString, SUCCESS);
+            Help_PushProcessHistory(sharedString, SUCCESS);
         }
     }
 
     // Clean up and reset parent status
-    cleanSharedString();
+    Help_CleanSharedString();
     IamParent = UNRAISED;
 }
 
 
-void Shellio_setVariable(uint8* command) {
+void Commands_setVariable(uint8* command) {
     // Check if the command input is NULL
     if (command == NULL) {
         printf("Invalid command format.\n");
@@ -1025,7 +1079,7 @@ void Shellio_setVariable(uint8* command) {
     // Check if both name and value are non-NULL
     if (name != NULL && value != NULL) {
         // Set the local variable using the extracted name and value
-        setLocalVariable(name, value);
+        Help_SetLocalVariable(name, value);
         // Confirm that the variable has been set
         printf("Variable set: %s=%s\n", name, value);
     } else {
@@ -1034,7 +1088,7 @@ void Shellio_setVariable(uint8* command) {
     }
 }
 
-void Shellio_allVar() {
+void Commands_allVar() {
     // Print local variables
     printf("Local Variables:\n");
     for (int i = 0; i < localVarCount; i++) {
@@ -1043,96 +1097,9 @@ void Shellio_allVar() {
 
     // Print environment variables
     printf("Environment Variables:\n");
-    Shellio_PrintEnv("allVar", NULL);
+    Commands_PrintEnv("allVar", NULL);
 }
 
 
 
-void setLocalVariable(const char* name, const char* value) {
-    // Iterate through the list of local variables to check if the variable already exists
-    for (int i = 0; i < localVarCount; i++) {
-        // If the variable with the same name is found, update its value
-        if (strcmp(localVariables[i].name, name) == 0) {
-            // Copy the new value into the existing variable's value field
-            strncpy(localVariables[i].value, value, MAX_VAR_VALUE);
-            // Ensure the value is null-terminated
-            localVariables[i].value[MAX_VAR_VALUE - 1] = '\0';
-            return;
-        }
-    }
-    
-    // If the variable does not exist and there is space to add new variables
-    if (localVarCount < MAX_VARS) {
-        // Copy the new variable's name and value into the next available slot
-        strncpy(localVariables[localVarCount].name, name, MAX_VAR_NAME);
-        // Ensure the name is null-terminated
-        localVariables[localVarCount].name[MAX_VAR_NAME - 1] = '\0';
-        
-        strncpy(localVariables[localVarCount].value, value, MAX_VAR_VALUE);
-        // Ensure the value is null-terminated
-        localVariables[localVarCount].value[MAX_VAR_VALUE - 1] = '\0';
-        
-        // Increment the count of local variables
-        localVarCount++;
-    } else {
-        // Print an error message if the maximum number of local variables has been reached
-        printf("Maximum number of local variables reached.\n");
-    }
-}
 
-void Execute_Piped_Commands(char *input) {
-    int num_commands;
-    int pipefds[2 * (MAX_COMMANDS - 1)];
-    char commands[MAX_COMMANDS][MAX_COMMAND_LENGTH];
-
-    // Parse the input into commands
-    num_commands = parse_commands(input, commands);
-
-    // Create pipes
-    for (int i = 0; i < num_commands - 1; i++) {
-        create_pipe(pipefds + i * 2);
-    }
-
-    // Fork and execute each command
-    pid_t pids[MAX_COMMANDS];
-    for (int i = 0; i < num_commands; i++) {
-        int input_fd = (i == 0) ? -1 : pipefds[(i - 1) * 2]; // First command, no input redirection
-        int output_fd = (i == num_commands - 1) ? -1 : pipefds[i * 2 + 1]; // Last command, no output redirection
-
-        pids[i] = fork_and_execute(commands[i], input_fd, output_fd);
-
-        // Close the pipe file descriptors in the parent
-        if (i > 0) {
-            close(pipefds[(i - 1) * 2]);
-        }
-        if (i < num_commands - 1) {
-            close(pipefds[i * 2 + 1]);
-        }
-    }
-
-    // Wait for all child processes to finish
-    wait_for_children(num_commands, pids);
-}
-
-
-
-void trim_spaces(char *str) {
-    char *start = str;
-    char *end = str + strlen(str) - 1;
-
-    // Trim leading spaces
-    while (*start && isspace((unsigned char)*start)) {
-        start++;
-    }
-
-    // Trim trailing spaces
-    while (end > start && isspace((unsigned char)*end)) {
-        end--;
-    }
-
-    // Write the trimmed string back to the original buffer
-    if (start != str) {
-        memmove(str, start, end - start + 1);
-    }
-    str[end - start + 1] = '\0';
-}

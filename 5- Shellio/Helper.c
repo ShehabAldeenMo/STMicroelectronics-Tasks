@@ -61,7 +61,7 @@ extern char **environ; /**< Pointer to the environment variables */
 
 
 
-uint8* GetParsedPath(uint8* command) {
+uint8* Help_GetParsedPath(uint8* command) {
     // Static pointer to hold the parsed path
     static uint8* Path = NULL;  // Static to persist across function calls and avoid dangling pointer issues
     
@@ -71,7 +71,7 @@ uint8* GetParsedPath(uint8* command) {
 
     // Check if the global pointer for parsing paths is valid
     if (Ptr_GlobalGetParsingPath == NULL) {
-        my_printf("Error: Ptr_GlobalGetParsingPath is NULL\n");
+        Help_MyPrintf("Error: Ptr_GlobalGetParsingPath is NULL\n");
         return NULL;
     }
 
@@ -84,7 +84,7 @@ uint8* GetParsedPath(uint8* command) {
     if (*Ptr_GlobalGetParsingPath == '"') {
         Ptr_GlobalGetParsingPath++;  // Skip the double quote
     } else if (*Ptr_GlobalGetParsingPath == '\0') {
-        my_printf("Error: Expected closing double quote\n");
+        Help_MyPrintf("Error: Expected closing double quote\n");
         return NULL;
     }
 
@@ -93,7 +93,7 @@ uint8* GetParsedPath(uint8* command) {
     
     // Check if memory allocation succeeded
     if (Path == NULL) {
-        my_printf("Memory allocation failed\n");
+        Help_MyPrintf("Memory allocation failed\n");
         return NULL;
     }
 
@@ -113,7 +113,7 @@ uint8* GetParsedPath(uint8* command) {
     return Path;
 }
 
-void my_printf(const char *format, ...) {
+void Help_MyPrintf(const char *format, ...) {
     va_list args;           // Declare a variable to hold the variable arguments
     va_start(args, format); // Initialize the va_list variable with the format argument
     vprintf(format, args); // Call vprintf to handle the formatted output
@@ -122,7 +122,7 @@ void my_printf(const char *format, ...) {
 
 
 
-void cleanupProcessHistory() {
+void Help_CleanupProcessHistory() {
     // Iterate through all entries in the stack
     for (int i = 0; i < processCounter; i++) {
         // Free the command string and the ProcessHistory entry itself
@@ -131,7 +131,7 @@ void cleanupProcessHistory() {
     }
 }
 
-uint8 SearchOnCommand(uint8 *token) {
+uint8 Help_SearchOnCommand(uint8 *token) {
     // Retrieve the PATH environment variable
     char *path_env = getenv("PATH");
 
@@ -164,7 +164,7 @@ uint8 SearchOnCommand(uint8 *token) {
     return FAILED; // Command not found or not executable
 }
 
-void redirect(uint8* path, int newFD) {
+void Help_Redirect(uint8* path, int newFD) {
 
     if (path == NULL){
         return ;
@@ -190,12 +190,12 @@ void redirect(uint8* path, int newFD) {
         perror("Error In reserving FD of stdout");
     }
 
-    // Close the file descriptor as it's no longer needed after redirection
+    // Close the file descriptor as it's no longer needed after Help_Redirection
     close(outfd);
 }
 
 
-void fork_redirectionExec(uint8* path, int FD, int NullFD){
+void Help_ForkAssistRedirectionExec(uint8* path, int FD, int NullFD){
     // Fork the current process to create a child process
     int retPid = fork();
 
@@ -203,7 +203,7 @@ void fork_redirectionExec(uint8* path, int FD, int NullFD){
         // This block executes in the parent process
 
         // Record the success of the command execution in process history
-        pushProcessHistory(sharedString, SUCCESS);  
+        Help_PushProcessHistory(sharedString, SUCCESS);  
         
         // Indicate that the parent process is currently active
         IamParent = RAISED;            
@@ -216,10 +216,10 @@ void fork_redirectionExec(uint8* path, int FD, int NullFD){
         // This block executes in the child process
 
         // Redirect the file descriptor (FD) to the specified path
-        redirect(path, FD);
+        Help_Redirect(path, FD);
 
         if ( NullFD != -1 ){
-            redirect("/dev/null",NullFD);
+            Help_Redirect("/dev/null",NullFD);
         }
         
         // Indicate that the child process is currently active
@@ -233,7 +233,7 @@ void fork_redirectionExec(uint8* path, int FD, int NullFD){
 
 
 
-uint8* GetRelativePath(uint8 path[]) {
+uint8* Help_GetRelativePath(uint8 path[]) {
     // Allocate memory for the resulting path
     uint8* ResultPath = (uint8*) malloc(MAX_PATH);
     
@@ -245,7 +245,7 @@ uint8* GetRelativePath(uint8 path[]) {
 
     if (found == NULL) {
         // If the base path is not found, construct a relative path
-        snprintf((char*)ResultPath, MAX_PATH, "%s/%s", GetPathWithoutToken(), path);
+        snprintf((char*)ResultPath, MAX_PATH, "%s/%s", Help_GetPathWithoutToken(), path);
     } else {
         // If the base path is found, copy the original path to the result
         strncpy((char*)ResultPath, (char*)path, MAX_PATH);
@@ -256,27 +256,27 @@ uint8* GetRelativePath(uint8 path[]) {
 }
 
 
-uint8* FindRedirectionPath(uint8* path) {
-    // Skip the initial "2>" characters, which are used for error redirection
+uint8* Help_FindRedirectionPath(uint8* path) {
+    // Skip the initial "2>" characters, which are used for error Help_Redirection
     path += 2;
 
-    // Tokenize the string to isolate the path after the redirection operator
+    // Tokenize the string to isolate the path after the Help_Redirection operator
     path = (uint8*) strtok((char*) path, "");
 
     // Set the global parsing path to the extracted path
     Ptr_GlobalGetParsingPath = path;
 
     // Parse the path to ensure it's in the correct format
-    path = GetParsedPath("path");
+    path = Help_GetParsedPath("path");
 
     // Convert the path to a relative path if necessary
-    path = GetRelativePath(path);
+    path = Help_GetRelativePath(path);
 
     // Return the processed path
     return path;
 }
 
-void DisplaySeq(uint8* str) {
+void Help_DisplaySeq(uint8* str) {
     /* Get the length of the input string */
     size_t Loc_Count = strlen(str);  // Length of the string to be written
 
@@ -286,61 +286,61 @@ void DisplaySeq(uint8* str) {
     /* Check on return value of written bytes */
     if (ret < 0) {  // Error in writing
         perror("Error in writing on screen :: \n");  // Print error message
-        pushProcessHistory(sharedString, FAILED);  // Log the failure in process history
+        Help_PushProcessHistory(sharedString, FAILED);  // Log the failure in process history
     } else if (ret < Loc_Count) {
         // Not all bytes were written; handle partial write
         fprintf(stderr, "write_to_stdout: Partial write occurred. Expected %zd, wrote %zd\n", Loc_Count, ret);
-        pushProcessHistory(sharedString, FAILED);  // Log the failure in process history
+        Help_PushProcessHistory(sharedString, FAILED);  // Log the failure in process history
     } else {
         write(STDOUT, "\n", 1);  // Write a newline character to standard output
-        pushProcessHistory(sharedString, SUCCESS);  // Log the success in process history
+        Help_PushProcessHistory(sharedString, SUCCESS);  // Log the success in process history
     }
 }
 
-void GetPathSeq() {
+void Help_GetPathSeq() {
     /* Buffer for storing the current working directory */
     char cwd[MAX_PATH];  // Array to store the current working directory path; MAX_PATH defines its size
 
     /* Get the current working directory */
     if (getcwd(cwd, sizeof(cwd)) != NULL) {  // Attempt to get the current working directory and store it in cwd
-        my_printf("Current working directory: %s\n", cwd);  // Print the current working directory if successful
-        pushProcessHistory(sharedString, SUCCESS);  // Record the success of the operation in process history
+        Help_MyPrintf("Current working directory: %s\n", cwd);  // Print the current working directory if successful
+        Help_PushProcessHistory(sharedString, SUCCESS);  // Record the success of the operation in process history
     } else {
         perror("getcwd() error");  // If the operation fails, print an error message
     }
 }
 
 
-void Help_Seq (){
-    my_printf("-------------------------------------------------------------------------------\n");
-    my_printf("-------------------------------------------------------------------------------\n");
-    my_printf("path :: Display the current working directory\n");
-    my_printf("-------------------------------------------------------------------------------\n");
-    my_printf("clone  :: Copy file1 in path1 to to file2 in path2\n");
-    my_printf("clone PathOffile1,PathOffile2\n");
-    my_printf("clone PathOffile1,-a,PathOffile2\n");
-    my_printf("-> case file2 name isn't determinted, will create one with file1 name\n");
-    my_printf("-> case file2 name is given but unallocated, will create one with disred name\n");
-    my_printf("-> use -a to append to copied file\n");
-    my_printf("-------------------------------------------------------------------------------\n");
-    my_printf("shift  :: move file1 in path1 to to file2 in path2\n");
-    my_printf   ("mv PathOffile1,PathOffile2\n");
-    my_printf("shift PathOffile1,-f,PathOffile2\n");
-    my_printf("-> case file2 name isn't determinted, will create one with file1 name\n");
-    my_printf("-> case file2 name is given but unallocated, will create one with disred name\n");
-    my_printf("-> use -f to overwrite on existed file\n");
-    my_printf("-------------------------------------------------------------------------------\n");
-    my_printf("display :: print on shellio termial\n");
-    my_printf("-------------------------------------------------------------------------------\n");
-    my_printf("cls:: clears shellio termial\n");
-    my_printf("-------------------------------------------------------------------------------\n");
-    my_printf("leave :: leave shellio terminal\n");
-    my_printf("-------------------------------------------------------------------------------\n");
-    my_printf("-------------------------------------------------------------------------------\n");
+void Help_AssistSeq (){
+    Help_MyPrintf("-------------------------------------------------------------------------------\n");
+    Help_MyPrintf("-------------------------------------------------------------------------------\n");
+    Help_MyPrintf("path :: Display the current working directory\n");
+    Help_MyPrintf("-------------------------------------------------------------------------------\n");
+    Help_MyPrintf("clone  :: Copy file1 in path1 to to file2 in path2\n");
+    Help_MyPrintf("clone PathOffile1,PathOffile2\n");
+    Help_MyPrintf("clone PathOffile1,-a,PathOffile2\n");
+    Help_MyPrintf("-> case file2 name isn't determinted, will create one with file1 name\n");
+    Help_MyPrintf("-> case file2 name is given but unallocated, will create one with disred name\n");
+    Help_MyPrintf("-> use -a to append to copied file\n");
+    Help_MyPrintf("-------------------------------------------------------------------------------\n");
+    Help_MyPrintf("shift  :: move file1 in path1 to to file2 in path2\n");
+    Help_MyPrintf   ("mv PathOffile1,PathOffile2\n");
+    Help_MyPrintf("shift PathOffile1,-f,PathOffile2\n");
+    Help_MyPrintf("-> case file2 name isn't determinted, will create one with file1 name\n");
+    Help_MyPrintf("-> case file2 name is given but unallocated, will create one with disred name\n");
+    Help_MyPrintf("-> use -f to overwrite on existed file\n");
+    Help_MyPrintf("-------------------------------------------------------------------------------\n");
+    Help_MyPrintf("display :: print on shellio termial\n");
+    Help_MyPrintf("-------------------------------------------------------------------------------\n");
+    Help_MyPrintf("cls:: clears shellio termial\n");
+    Help_MyPrintf("-------------------------------------------------------------------------------\n");
+    Help_MyPrintf("leave :: leave shellio terminal\n");
+    Help_MyPrintf("-------------------------------------------------------------------------------\n");
+    Help_MyPrintf("-------------------------------------------------------------------------------\n");
 }
 
 
-void TypeSeq(uint8* str){
+void Help_TypeSeq(uint8* str){
     if (strcmp (str,"leave") == EQUALED)
         printf("It is an built-in command :: %s\n",str);
     else if (strcmp (str,"cls") == CLEARED)
@@ -364,7 +364,7 @@ void TypeSeq(uint8* str){
     else if (strcmp(str, "phist") == EXIT)
         printf("It is an built-in command :: %s\n",str);
     else {        
-        uint8 status = SearchOnCommand (str);
+        uint8 status = Help_SearchOnCommand (str);
         if (status == SUCCESS){
             printf("It is an external command :: %s\n",str);
         }
@@ -374,7 +374,7 @@ void TypeSeq(uint8* str){
 }
 
 
-void FreeSeq (){
+void Help_FreeSeq (){
     uint8 buffer[1024];
     ssize_t bytes_read;
     uint8 *line_start = buffer;
@@ -418,7 +418,7 @@ void FreeSeq (){
 }
 
 
-void uptimeSeq() {
+void Help_uptimeSeq() {
     char buffer[100];  // Buffer to store the contents of /proc/uptime
 
     ssize_t bytes_read;
@@ -461,7 +461,7 @@ void uptimeSeq() {
     }
 }
 
-uint8 printLocalVariables(char* var) {
+uint8 Help_PrintLocalVariables(char* var) {
     // Iterate through the list of local variables
     for (int i = 0; i < localVarCount; ++i) {
         // Check if the variable name matches the input variable name
@@ -477,9 +477,10 @@ uint8 printLocalVariables(char* var) {
 
 
 // Function to push a new entry into the process history stack
-void pushProcessHistory(const uint8 *command, uint8 status) {
+void Help_PushProcessHistory(const uint8 *command, uint8 status) {
     // Allocate memory for a new ProcessHistory entry
     ProcessHistory *newEntry = (ProcessHistory *)malloc(sizeof(ProcessHistory));
+
     if (newEntry == NULL) {
         perror("Failed to allocate memory for new process history entry");
         exit(EXIT_FAILURE);  // Exit if memory allocation fails
@@ -514,17 +515,7 @@ void pushProcessHistory(const uint8 *command, uint8 status) {
     processCounter++;  // Increase the counter to reflect the added entry
 }
 
-// Function to get the current working directory without a token
-uint8* GetPathWithoutToken() {
-    // Static buffer to store the current working directory
-    static char cwd[MAX_PATH];
-
-    // Retrieve the current working directory
-    getcwd(cwd, sizeof(cwd));
-    return cwd; // Return the buffer containing the current working directory
-}
-
-int SearchOnSpaceBeforeArrow(char* path) {
+int Help_SearchOnSpaceBeforeArrow(char* path) {
     int position = INVALID_ID;
 
     // Check if path is NULL
@@ -549,7 +540,7 @@ int SearchOnSpaceBeforeArrow(char* path) {
     return position;
 }
 
-uint8 RedirectionHandlerOfnoOption(uint8* command){
+uint8 Help_RedirectionHandlerOfnoOption(uint8* command){
     char *token = strtok(NULL, "");  // Tokenize the input string after the command
 
     /* For gdb script debugging: 
@@ -563,8 +554,8 @@ uint8 RedirectionHandlerOfnoOption(uint8* command){
         uint8* path;
         int SecondFD = -1 , SecondFDWithout2 = -1 ;
 
-        char *found = strstr(token, "2>");  // Check if the token contains redirection to stderr
-        int pos = SearchOnSpaceBeforeArrow (token) ; // get position of > without 2 anymore and return position 
+        char *found = strstr(token, "2>");  // Check if the token contains Help_Redirection to stderr
+        int pos = Help_SearchOnSpaceBeforeArrow (token) ; // get position of > without 2 anymore and return position 
 
         /* if contain > then cancel print on screen because of there are target file after > */
         if ( pos != INVALID_ID && found != NULL){
@@ -575,8 +566,8 @@ uint8 RedirectionHandlerOfnoOption(uint8* command){
 
         /* Implement 2> seq */
         if (found != NULL) {
-            path = FindRedirectionPath(found);  // Get the path for stderr redirection
-            fork_redirectionExec(path, STDERR, SecondFD);  // Execute with stderr redirection
+            path = Help_FindRedirectionPath(found);  // Get the path for stderr Help_Redirection
+            Help_ForkAssistRedirectionExec(path, STDERR, SecondFD);  // Execute with stderr Help_Redirection
             ErrorFlag = OFF ;
         }
         
@@ -590,17 +581,17 @@ uint8 RedirectionHandlerOfnoOption(uint8* command){
         }
             
         
-        if (found != NULL) {  // Check if the token contains redirection to stdout
-            path = FindRedirectionPath(found);
-            fork_redirectionExec(path, STDOUT, SecondFDWithout2);  // Execute with stdout redirection
+        if (found != NULL) {  // Check if the token contains Help_Redirection to stdout
+            path = Help_FindRedirectionPath(found);
+            Help_ForkAssistRedirectionExec(path, STDOUT, SecondFDWithout2);  // Execute with stdout Help_Redirection
             ErrorFlag = OFF ;
         }
         
         if (ErrorFlag == ON ) {
-            // If no valid redirection is found, print an error message
+            // If no valid Help_Redirection is found, print an error message
             printf("command not found\nEnter 'assist' to know Shellio commands\n");
-            pushProcessHistory(sharedString, FAILED);  // Record the failure in process history
-            cleanSharedString();  // Clean up the shared string
+            Help_PushProcessHistory(sharedString, FAILED);  // Record the failure in process history
+            Help_CleanSharedString();  // Clean up the shared string
             return INVALID;   
         }
     }
@@ -609,8 +600,8 @@ uint8 RedirectionHandlerOfnoOption(uint8* command){
 }
 
 
-uint8* RedirectionHandlerOfWithOption(uint8* command) {
-    char* input_redirection = (char*)malloc(BUFFER_SIZE);
+uint8* Help_RedirectionHandlerOfWithOption(uint8* command) {
+    char* input_Help_Redirection = (char*)malloc(BUFFER_SIZE);
     uint8* token = strdup(strtok(NULL, ""));  // Tokenize the input string to extract the argument
     int SecondFD = -1, SecondFDWithout2 = -1;
     bool fileContentRead = false;  // Flag to check if content has been read
@@ -622,15 +613,15 @@ uint8* RedirectionHandlerOfWithOption(uint8* command) {
 
     if (token == NULL) {
         printf("command not found\nEnter (assist) to know Shellio Commands\n");
-        pushProcessHistory(sharedString, FAILED);  // Log the failure in process history
-        cleanSharedString();  // Clean up the shared string
+        Help_PushProcessHistory(sharedString, FAILED);  // Log the failure in process history
+        Help_CleanSharedString();  // Clean up the shared string
         return NULL;
     } else {
         uint8* path;
 
-        // Handle `2>` stderr redirection
+        // Handle `2>` stderr Help_Redirection
         char *found = strstr(token, "2>");
-        int pos = SearchOnSpaceBeforeArrow(token);
+        int pos = Help_SearchOnSpaceBeforeArrow(token);
 
         if (pos != INVALID_ID && found != NULL) {
             SecondFD = STDOUT;
@@ -638,8 +629,8 @@ uint8* RedirectionHandlerOfWithOption(uint8* command) {
         }
 
         if (found != NULL) {
-            path = FindRedirectionPath(found);
-            fork_redirectionExec(path, STDERR, SecondFD);
+            path = Help_FindRedirectionPath(found);
+            Help_ForkAssistRedirectionExec(path, STDERR, SecondFD);
             int i = 0;
             while (*(token + i) != '\0') {
                 if (*(token + i) == '>') {
@@ -660,9 +651,9 @@ uint8* RedirectionHandlerOfWithOption(uint8* command) {
         else
             found = strstr((Operand[0] + pos), ">");
 
-        if (found != NULL) {  // Handle `>` stdout redirection
-            path = FindRedirectionPath(found);
-            fork_redirectionExec(path, STDOUT, SecondFDWithout2);
+        if (found != NULL) {  // Handle `>` stdout Help_Redirection
+            path = Help_FindRedirectionPath(found);
+            Help_ForkAssistRedirectionExec(path, STDOUT, SecondFDWithout2);
             int i = 0;
             while (*(token + i) != '\0') {
                 if (*(token + i) == '>') {
@@ -678,29 +669,29 @@ uint8* RedirectionHandlerOfWithOption(uint8* command) {
             }
         }
 
-        // Handle `<` input redirection
+        // Handle `<` input Help_Redirection
         found = strstr(token, "<");
         if (found != NULL) {
-            path = FindRedirectionPath(found);
+            path = Help_FindRedirectionPath(found);
             
             int fd = open(path, O_RDONLY);
             if (fd == INVALID_ID) {
-                perror("Error opening file for input redirection");
+                perror("Error opening file for input Help_Redirection");
                 return NULL;
             }
 
-            ssize_t length = read(fd, input_redirection, BUFFER_SIZE - 1);
+            ssize_t length = read(fd, input_Help_Redirection, BUFFER_SIZE - 1);
             if (length == INVALID_ID) {
-                perror("Error reading file for input redirection");
+                perror("Error reading file for input Help_Redirection");
                 close(fd);
                 return NULL;
             }
 
-            input_redirection[length-1] = '\0';
+            input_Help_Redirection[length-1] = '\0';
             close(fd);
 
             fileContentRead = true;
-            token = input_redirection;
+            token = input_Help_Redirection;
         }
     }
 
@@ -710,7 +701,7 @@ uint8* RedirectionHandlerOfWithOption(uint8* command) {
 
 
 // Function to free the memory allocated for the global sharedString
-void cleanSharedString() {
+void Help_CleanSharedString() {
     // Free the allocated memory for sharedString
     free(sharedString);
 
@@ -718,86 +709,158 @@ void cleanSharedString() {
     sharedString = NULL;
 }
 
-
-
-void tokenizeInput(uint8 *input, char *args[], uint8 *argc) {
-    char* token = strtok( input ," ");
-    while (token != NULL ){       
-        if ( strcmp(token,"2>") && strcmp(token,">") && strcmp(token,"<")  )
-            args[(*argc)++]= token;
-        else 
-            break ;
-        token = strtok( NULL ," ");
-    }
-    args[*argc] = NULL;
-}
-
-// Handle input redirection
-uint8* handleOptionRedirection(const char *input, const char* delimiters) {
+// Handle input Help_Redirection
+uint8* Help_HandleOptionRedirection(const char *input, const char* delimiters) {
     char *File = strstr(input, delimiters);
     if (File) {
         /* ============================ */
-        File = FindRedirectionPath(File);
+        File = Help_FindRedirectionPath(File);
         return File;
     }
     return NULL;
 }
 
+// Function to wait for child processes
+void wait_for_children(int num_children, pid_t pids[]) {
+    for (int i = 0; i < num_children; i++) {
+        waitpid(pids[i], NULL, 0);
+    }
+}
 
-// Function to parse the input command into multiple commands separated by pipes
-int parse_commands(const char *input, char commands[MAX_COMMANDS][MAX_COMMAND_LENGTH]) {
-    int num_commands = 0;
-    char *pipe_pos = strtok(strdup(input), "|");
 
-    while (pipe_pos != NULL && num_commands < MAX_COMMANDS) {
-        strncpy(commands[num_commands], pipe_pos, MAX_COMMAND_LENGTH - 1);
-        commands[num_commands][MAX_COMMAND_LENGTH - 1] = '\0';
+// Function to parse the input command into multiple commands separated by '|'
+char Help_ParseCommand(char *input, char **commands) {
+    char num_commands = 0;
+    
+    // Ensure the input and commands array are not NULL
+    if (input == NULL || commands == NULL) {
+        fprintf(stderr, "Error: NULL pointer passed to Help_TrimSpaces.\n");
+        return 0;
+    }
+
+    char *command = strtok(input, "|");
+    while (command != NULL) {
+        // Trim leading and trailing spaces from the command
+        while (*command == ' ') command++;
+        char *end = command + strlen(command) - 1;
+        while (end > command && *end == ' ') end--;
+        *(end + 1) = '\0';
+
+        // Check if we have enough space in the commands array
+        if (num_commands >= MAX_COMMANDS) {
+            fprintf(stderr, "Error: Too many commands (max %d).\n", MAX_COMMANDS);
+            return num_commands;
+        }
+
+        // Allocate memory for the command and store it
+        commands[num_commands] = strdup(command);
+        if (commands[num_commands] == NULL) {
+            perror("strdup");
+            exit(EXIT_FAILURE);
+        }
         num_commands++;
-        pipe_pos = strtok(NULL, "|");
+
+        // Get the next command
+        command = strtok(NULL, "|");
     }
 
     return num_commands;
 }
 
+void Help_TrimSpaces(char *str) {
+    char *start = str;
+    char *end = str + strlen(str) - 1;
 
-// Function to create a pipe and handle errors
-void create_pipe(int pipefd[2]) {
-    if (pipe(pipefd) == -1) {
-        perror("pipe");
-        exit(EXIT_FAILURE);
-    }
-}
-
-// Function to fork a child process and execute a command
-pid_t fork_and_execute(const char *command, int input_fd, int output_fd) {
-    pid_t pid = fork();
-    if (pid == -1) {
-        perror("fork");
-        exit(EXIT_FAILURE);
+    // Trim leading spaces
+    while (*start && isspace((unsigned char)*start)) {
+        start++;
     }
 
-    if (pid == 0) { // Child process
-        if (input_fd != -1) {
-            dup2(input_fd, STDIN_FILENO);
-            close(input_fd);
-        }
-        if (output_fd != -1) {
-            dup2(output_fd, STDOUT_FILENO);
-            close(output_fd);
-        }
-
-        execlp("sh", "sh", "-c", command, (char *)NULL);
-        perror("execlp");
-        exit(EXIT_FAILURE);  // If execlp fails
+    // Trim trailing spaces
+    while (end > start && isspace((unsigned char)*end)) {
+        end--;
     }
 
-    return pid;
+    // Write the trimmed string back to the original buffer
+    if (start != str) {
+        memmove(str, start, end - start + 1);
+    }
+    str[end - start + 1] = '\0';
 }
 
 
-// Function to wait for child processes
-void wait_for_children(int num_children, pid_t pids[]) {
-    for (int i = 0; i < num_children; i++) {
-        waitpid(pids[i], NULL, 0);
+// Function to get the username of the current user
+const char* Help_GetUserName() {
+    struct passwd *pw;   // Pointer to a structure containing user information
+    uid_t uid;           // User ID of the current process
+
+    uid = geteuid();     // Get the effective user ID of the calling process
+    pw = getpwuid(uid);  // Retrieve user information based on UID
+
+    // Check if the user information retrieval was successful
+    if (pw) {
+        return pw->pw_name; // Return the username
+    }
+    return ""; // Return an empty string if user information could not be retrieved
+}
+
+
+
+// Function to get the hostname of the system
+void Help_GetHostName(char *hostname, size_t size) {
+    // Get the hostname and check for errors
+    if (gethostname(hostname, size) == -1) {
+        perror("gethostname"); // Print an error message if gethostname fails
+        strcpy(hostname, "unknown"); // Set hostname to "unknown" if an error occurs
+    }
+}
+
+// Function to get the current working directory without a token
+uint8* Help_GetPathWithoutToken() {
+    // Static buffer to store the current working directory
+    static char cwd[MAX_PATH];
+
+    // Retrieve the current working directory
+    getcwd(cwd, sizeof(cwd));
+    return cwd; // Return the buffer containing the current working directory
+}
+
+// Function to set the global sharedString to a duplicate of the input string
+void Help_SetSharedString(const uint8 *str) {
+    // Duplicate the input string and assign it to sharedString
+    sharedString = strdup(str);
+
+    // Note: Ensure to handle NULL inputs or check for memory allocation failures
+}
+
+void Help_SetLocalVariable(const char* name, const char* value) {
+    // Iterate through the list of local variables to check if the variable already exists
+    for (int i = 0; i < localVarCount; i++) {
+        // If the variable with the same name is found, update its value
+        if (strcmp(localVariables[i].name, name) == 0) {
+            // Copy the new value into the existing variable's value field
+            strncpy(localVariables[i].value, value, MAX_VAR_VALUE);
+            // Ensure the value is null-terminated
+            localVariables[i].value[MAX_VAR_VALUE - 1] = '\0';
+            return;
+        }
+    }
+    
+    // If the variable does not exist and there is space to add new variables
+    if (localVarCount < MAX_VARS) {
+        // Copy the new variable's name and value into the next available slot
+        strncpy(localVariables[localVarCount].name, name, MAX_VAR_NAME);
+        // Ensure the name is null-terminated
+        localVariables[localVarCount].name[MAX_VAR_NAME - 1] = '\0';
+        
+        strncpy(localVariables[localVarCount].value, value, MAX_VAR_VALUE);
+        // Ensure the value is null-terminated
+        localVariables[localVarCount].value[MAX_VAR_VALUE - 1] = '\0';
+        
+        // Increment the count of local variables
+        localVarCount++;
+    } else {
+        // Print an error message if the maximum number of local variables has been reached
+        printf("Maximum number of local variables reached.\n");
     }
 }

@@ -4,6 +4,6 @@
         "unistd.h": "c",
         "commands.h": "c",
         "helper.h": "c",
-        "shellio.h": "c"
+        "utility.h":"c"
     }
 }

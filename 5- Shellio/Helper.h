@@ -39,6 +39,7 @@
 #include <pwd.h>            // Functions for password database operations
 #include <stdbool.h>        // Include this for the bool type
 #include <ctype.h>
+#include <signal.h>
 
 /*==================================  Definitions ===========================*/
 #define MAX_PATH                             1024  // Maximum length for a file path
@@ -96,6 +97,9 @@
 #define MAX_INPUT_LENGTH                     512
 #define MAX_COMMANDS                          10
 #define MAX_COMMAND_LENGTH                   100
+#define FREE_PASS                             0    // Status code for a successful 'free' command
+#define UPTIME_PASS                           0    // Status code for a successful 'uptime' command
+#define ALLVAR_PASS                           0    // Status code for a successful 'allVar' command
 
 // Color definitions for shell output
 // Regular Colors
@@ -178,17 +182,17 @@ typedef struct {
 
 /*===================  Helper File Functions Prototypes ========================*/
 /*
- * Name             : GetParsedPath
+ * Name             : Help_GetParsedPath
  * Description      : Parses and returns the next path from the input string, moving the global parsing pointer forward.
  *                    This function extracts the path enclosed in double quotes (") and advances Ptr_GlobalGetParsingPath.
  * Parameter In/Out : None
  * Input            : command - The command string containing the variable name and value.
  * Return           : uint8* - Returns a pointer to the next parsed path or NULL if no path is found.
  */
-uint8* GetParsedPath(uint8* command);
+uint8* Help_GetParsedPath(uint8* command);
 
 /*
- * Name             : my_printf
+ * Name             : Help_MyPrintf
  * Description      : A custom printf function for formatted output in Shellio.
  *                    This function allows formatted output similar to the standard printf function.
  * Parameter In/Out : None
@@ -196,10 +200,10 @@ uint8* GetParsedPath(uint8* command);
  *                    ... - Additional arguments to be formatted according to the format specifiers in the format string.
  * Return           : void
  */
-void my_printf(const char *format, ...);
+void Help_MyPrintf(const char *format, ...);
 
 /*
- * Name             : cleanupProcessHistory
+ * Name             : Help_CleanupProcessHistory
  * Description      : Cleans up the process history by freeing all allocated memory.
  *                    Iterates through the process history stack and frees each command string
  *                    and its associated memory.
@@ -209,10 +213,10 @@ void my_printf(const char *format, ...);
  * Notes            : This function should be called when the process history is no longer needed
  *                    to prevent memory leaks.
  */
-void cleanupProcessHistory();
+void Help_CleanupProcessHistory();
 
 /*
- * Name             : SearchOnCommand
+ * Name             : Help_SearchOnCommand
  * Description      : Searches for an external command in the directories specified in the PATH environment variable.
  *                    Checks if the command exists and is executable.
  * Input            : token - The command to search for.
@@ -220,46 +224,46 @@ void cleanupProcessHistory();
  * Return           : SUCCESS if the command is found and executable, otherwise FAILED.
  * Notes            : The function uses the `access` system call to check the executability of the command.
  */
-uint8 SearchOnCommand(uint8 *token);
+uint8 Help_SearchOnCommand(uint8 *token);
 
 
 /*
- * Name             : redirect
+ * Name             : Help_Redirect
  * Description      : Redirects the output to a specified file descriptor (FD) by opening the file at the given path.
  *                    The function handles file creation and setting the necessary permissions.
- * Input            : path - The path to the file where output should be redirected.
- *                    newFD - The file descriptor to be redirected (e.g., STDOUT or STDERR).
+ * Input            : path - The path to the file where output should be Help_Redirected.
+ *                    newFD - The file descriptor to be Help_Redirected (e.g., STDOUT or STDERR).
  * Output           : None
  * Return           : None
- * Notes            : The function uses `dup2` to redirect the output and `close` to close the original file descriptor.
+ * Notes            : The function uses `dup2` to Help_Redirect the output and `close` to close the original file descriptor.
  */
-void redirect(uint8* path, int newFD);
+void Help_Redirect(uint8* path, int newFD);
 
 /*
- * Name             : fork_redirectionExec
- * Description      : Forks a new process to execute a command with output redirection.
+ * Name             : Help_ForkAssistRedirectionExec
+ * Description      : Forks a new process to execute a command with output Help_Redirection.
  *                    The parent process waits for the child process to complete.
- * Input            : path - The path to the file for output redirection.
- *                    FD - The file descriptor to be redirected (e.g., STDOUT or STDERR).
+ * Input            : path - The path to the file for output Help_Redirection.
+ *                    FD - The file descriptor to be Help_Redirected (e.g., STDOUT or STDERR).
  * Output           : None
  * Return           : None
- * Notes            : The function uses `fork` to create a new process and `redirect` to handle output redirection.
+ * Notes            : The function uses `fork` to create a new process and `Help_Redirect` to handle output Help_Redirection.
  */
-void fork_redirectionExec(uint8* path, int FD, int NullFD);
+void Help_ForkAssistRedirectionExec(uint8* path, int FD, int NullFD);
 
 /*
- * Name             : FindRedirectionPath
- * Description      : Processes a string to extract a file path for error redirection.
+ * Name             : Help_FindRedirectionPath
+ * Description      : Processes a string to extract a file path for error Help_Redirection.
  *                    The function adjusts the input path to point to the correct file for error output.
  * Input            : path - The input string containing the file path prefixed with "2>".
  * Output           : None
- * Return           : uint8* - Returns the adjusted file path for error redirection.
+ * Return           : uint8* - Returns the adjusted file path for error Help_Redirection.
  * Notes            : The function updates the global parsing path and processes relative paths.
  */
-uint8* FindRedirectionPath(uint8* path);
+uint8* Help_FindRedirectionPath(uint8* path);
 
 /*
- * Name             : GetRelativePath
+ * Name             : Help_GetRelativePath
  * Description      : Computes the relative path from the provided absolute path.
  *                    If the path contains a specific keyword (e.g., "/home/shehabaldeen"),
  *                    it uses the path directly; otherwise, it constructs a relative path
@@ -269,10 +273,10 @@ uint8* FindRedirectionPath(uint8* path);
  * Return           : uint8* - Returns a pointer to the computed relative path.
  * Notes            : Allocates memory for the result path which should be freed by the caller.
  */
-uint8* GetRelativePath(uint8 path[]);
+uint8* Help_GetRelativePath(uint8 path[]);
 
 /*
- * Name             : DisplaySeq
+ * Name             : Help_DisplaySeq
  * Description      : Displays a sequence of information based on the input string.
  *                    This function processes the input string to generate formatted output,
  *                    possibly including command execution results or status messages.
@@ -281,10 +285,10 @@ uint8* GetRelativePath(uint8 path[]);
  * Return           : None
  * Notes            : The function may include formatted output and error handling as needed.
  */
-void DisplaySeq(uint8* str);
+void Help_DisplaySeq(uint8* str);
 
 /*
- * Name             : GetPathSeq
+ * Name             : Help_GetPathSeq
  * Description      : Retrieves and displays the current working directory or path sequence.
  *                    This function outputs the current path or path-related information
  *                    to provide context or debugging information.
@@ -293,10 +297,10 @@ void DisplaySeq(uint8* str);
  * Return           : None
  * Notes            : This function may include system calls like `getcwd` to fetch the current directory.
  */
-void GetPathSeq();
+void Help_GetPathSeq();
 
 /*
- * Name             : Help_Seq
+ * Name             : Help_AssistSeq
  * Description      : Provides help or guidance on using commands and functionalities.
  *                    This function displays information on available commands, usage,
  *                    and other relevant details to assist users.
@@ -305,11 +309,11 @@ void GetPathSeq();
  * Return           : None
  * Notes            : The function may include a list of commands, descriptions, and usage examples.
  */
-void Help_Seq();
+void Help_AssistSeq();
 
 
 /*
- * Name             : TypeSeq
+ * Name             : Help_TypeSeq
  * Description      : Processes and displays the content of the provided string.
  *                    This function interprets the input string, performs required operations,
  *                    and outputs the result, which may include formatted text or command output.
@@ -318,10 +322,10 @@ void Help_Seq();
  * Return           : None
  * Notes            : The function may involve text formatting and output to the console.
  */
-void TypeSeq(uint8* str);
+void Help_TypeSeq(uint8* str);
 
 /*
- * Name             : FreeSeq
+ * Name             : Help_FreeSeq
  * Description      : Frees resources allocated for handling sequences.
  *                    This function cleans up and deallocates any memory or resources used
  *                    for managing sequences or related operations.
@@ -330,10 +334,10 @@ void TypeSeq(uint8* str);
  * Return           : None
  * Notes            : Call this function to avoid memory leaks and ensure proper resource management.
  */
-void FreeSeq();
+void Help_FreeSeq();
 
 /*
- * Name             : uptimeSeq
+ * Name             : Help_uptimeSeq
  * Description      : Retrieves and displays the system's uptime and idle time.
  *                    This function reads uptime information from the system's `/proc/uptime`
  *                    file and prints both the total uptime and idle time to the console.
@@ -342,10 +346,10 @@ void FreeSeq();
  * Return           : None
  * Notes            : Uses system file operations to access uptime information and may handle errors.
  */
-void uptimeSeq();
+void Help_uptimeSeq();
 
 /*
- * Name             : printLocalVariables
+ * Name             : Help_PrintLocalVariables
  * Description      : Prints the value of a specified local variable.
  *                    This function searches for a local variable with the given name and
  *                    prints its value if found. If the variable does not exist, an error message is shown.
@@ -354,11 +358,11 @@ void uptimeSeq();
  * Return           : uint8 - Returns VALID if the variable is found and printed, otherwise INVALID.
  * Notes            : This function is used for debugging or displaying variable values in the shell.
  */
-uint8 printLocalVariables(char* var);
+uint8 Help_PrintLocalVariables(char* var);
 
 
 /*
- * Name             : pushProcessHistory
+ * Name             : Help_PushProcessHistory
  * Description      : Pushes a new entry into the process history stack.
  *                    Creates a new process history entry with the command and status.
  *                    Manages the stack size, removing the oldest entry if the stack is full.
@@ -369,7 +373,31 @@ uint8 printLocalVariables(char* var);
  * Return           : None
  * Notes            : The function dynamically allocates memory for the new history entry.
  */
-void pushProcessHistory(const uint8 *command, uint8 status);
+void Help_PushProcessHistory(const uint8 *command, uint8 status);
+
+
+/*
+ * Name             : Commands_SetLocalVariable
+ * Description      : Sets a local variable with a specified name and value.
+ *                    Updates or adds the variable to the local environment.
+ * Input            : 
+ *    - name: The name of the variable.
+ *    - value: The value to be assigned to the variable.
+ * Output           : None
+ * Return           : None
+ */
+void Help_SetLocalVariable(const char* name, const char* value);
+
+/*
+ * Name             : Help_CleanSharedString
+ * Description      : Frees the memory allocated for the shared string.
+ *                    Ensures that the shared string is properly cleaned up after use to prevent memory leaks.
+ * Input            : None
+ * Output           : None
+ * Return           : None
+ * Notes            : This function should be called whenever the shared string is no longer needed.
+ */
+void Help_CleanSharedString();
 
 /*
  * Name             : GetPathWithoutToken
@@ -379,30 +407,115 @@ void pushProcessHistory(const uint8 *command, uint8 status);
  * Return           : uint8* - The path of the current working directory.
  * Notes            : The function may handle path tokens or other modifications internally.
  */
-uint8* GetPathWithoutToken();
+uint8* Help_GetPathWithoutToken();
 
 /*
- * Name             : cleanSharedString
- * Description      : Frees the memory allocated for the shared string.
- *                    Ensures that the shared string is properly cleaned up after use to prevent memory leaks.
- * Input            : None
+ * Name             : Help_SearchOnSpaceBeforeArrow
+ * Description      : Searches for a space character immediately preceding an arrow ('>') in the provided path string.
+ * Input            : path - A pointer to the string where the search is to be performed.
+ * Output           : None
+ * Return           : Returns the index of the space character found before the arrow, 
+ *                    or -1 if no such space exists.
+ * Notes            : This function is typically used to validate syntax before handling 
+ *                    output Help_Redirection in commands.
+ */
+int     Help_SearchOnSpaceBeforeArrow (char* path);
+
+/*
+ * Name             : Help_RedirectionHandlerOfnoOption
+ * Description      : Handles Help_Redirection for commands without specific options, 
+ *                    typically involving '>' or '2>' for standard output or error Help_Redirection.
+ * Input            : command - A pointer to the command string that includes the Help_Redirection symbol.
+ * Output           : None
+ * Return           : Returns `SUCCESS` if the Help_Redirection was handled successfully, 
+ *                    or an error code otherwise.
+ * Notes            : The function modifies the command string to remove Help_Redirection symbols 
+ *                    and set up the appropriate file descriptors for Help_Redirection.
+ */
+uint8   Help_RedirectionHandlerOfnoOption(uint8* command);
+
+/*
+ * Name             : Help_RedirectionHandlerOfWithOption
+ * Description      : Handles Help_Redirection for commands with specific options, including input and output Help_Redirection.
+ * Input            : command - A pointer to the command string that includes Help_Redirection and options.
+ * Output           : None
+ * Return           : A pointer to the modified command string with Help_Redirection handled, 
+ *                    or an error code otherwise.
+ * Notes            : This function is used to handle more complex Help_Redirection scenarios 
+ *                    where both input and output need to be managed and there is an option from user also
+ */
+uint8*  Help_RedirectionHandlerOfWithOption(uint8* command);
+
+/*
+ * Name             : Help_HandleOptionRedirection
+ * Description      : Processes a command string to handle Help_Redirection based on specified delimiters.
+ * Input            : input      - The original command string.
+ *                    delimiters - A string containing the delimiters used to identify Help_Redirection points.
+ * Output           : None
+ * Return           : A pointer to a new string with Help_Redirection handled, 
+ *                    or NULL if no Help_Redirection is detected.
+ * Notes            : This function is designed to work with commands where Help_Redirection 
+ *                    needs to be parsed and processed separately.
+ */
+uint8*  Help_HandleOptionRedirection(const char *input, const char* delimiters);
+
+/*
+ * Name             : Help_TrimSpaces
+ * Description      : Removes leading and trailing spaces from the provided string.
+ * Input            : str - The string from which spaces will be trimmed.
  * Output           : None
  * Return           : None
- * Notes            : This function should be called whenever the shared string is no longer needed.
+ * Notes            : This function directly modifies the input string to eliminate any 
+ *                    unnecessary spaces before or after the command.
  */
-void cleanSharedString();
+void    Help_TrimSpaces(char *str);
+
+/*
+ * Name             : Help_ParseCommand
+ * Description      : Parses the input string into separate commands based on the pipe '|' delimiter.
+ * Input            : input    - The input command string to be parsed.
+ *                    commands - An array of strings where parsed commands will be stored.
+ * Output           : None
+ * Return           : The number of commands parsed from the input string.
+ * Notes            : This function splits the input string at each pipe '|' and stores 
+ *                    each command in the provided array.
+ */
+char    Help_ParseCommand(char *input, char **commands) ;
 
 
-int SearchOnSpaceBeforeArrow (char* path);
-uint8 RedirectionHandlerOfnoOption(uint8* command);
-uint8* RedirectionHandlerOfWithOption(uint8* command);
-void tokenizeInput(uint8 *input, char *args[], uint8 *argc) ;
-uint8* handleOptionRedirection(const char *input, const char* delimiters);
+/*
+ * Name             : Help_GetUserName
+ * Description      : Retrieves the username of the current user.
+ * Input            : None
+ * Output           : None
+ * Return           : const char* - The username of the current user.
+ * Notes            : This function typically uses system-specific methods to get the current username.
+ */
+const char* Help_GetUserName();
+
+/*
+ * Name             : Help_GetHostName
+ * Description      : Retrieves the hostname of the system.
+ *                    Copies the hostname into the provided buffer.
+ * Input            : 
+ *    - hostname: Buffer to store the hostname.
+ *    - size: The size of the buffer.
+ * Output           : None
+ * Return           : None
+ * Notes            : The buffer should be large enough to hold the hostname string.
+ */
+void Help_GetHostName(char *hostname, size_t size);
 
 
-int parse_commands(const char *input, char commands[MAX_COMMANDS][MAX_COMMAND_LENGTH]);
-void create_pipe(int pipefd[2]);
-pid_t fork_and_execute(const char *command, int input_fd, int output_fd) ;
-void wait_for_children(int num_children, pid_t pids[]);
+/*
+ * Name             : Help_SetSharedString
+ * Description      : Sets the shared string used for various operations in the shell.
+ *                    Duplicates the input string `str` and stores it in the global `sharedString` variable.
+ * Input            : str - The string to be set as the shared string.
+ * Output           : None
+ * Return           : None
+ * Notes            : The function uses `strdup` to duplicate the input string.
+ */
+void Help_SetSharedString(const uint8 * str);
 
 #endif
