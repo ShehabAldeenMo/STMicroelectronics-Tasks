@@ -75,7 +75,7 @@ Shellio is a custom command-line shell designed for basic file operations and te
   - Changes the current working directory to the specified directory.
   - Examples:
     - `cd ../`
-    - `cd "5- Shellio"`
+    - `cd 5- Shellio`
 
 - `type <command>`
   - Checks if the given command is built-in or external.
