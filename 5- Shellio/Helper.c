@@ -722,8 +722,8 @@ void cleanSharedString() {
 
 void tokenizeInput(uint8 *input, char *args[], uint8 *argc) {
     char* token = strtok( input ," ");
-    while (token != NULL ){
-        if ( strcmp(token,"2>") && strcmp(token," >") && strcmp(token,"<")  )
+    while (token != NULL ){       
+        if ( strcmp(token,"2>") && strcmp(token,">") && strcmp(token,"<")  )
             args[(*argc)++]= token;
         else 
             break ;
@@ -741,4 +741,63 @@ uint8* handleOptionRedirection(const char *input, const char* delimiters) {
         return File;
     }
     return NULL;
+}
+
+
+// Function to parse the input command into multiple commands separated by pipes
+int parse_commands(const char *input, char commands[MAX_COMMANDS][MAX_COMMAND_LENGTH]) {
+    int num_commands = 0;
+    char *pipe_pos = strtok(strdup(input), "|");
+
+    while (pipe_pos != NULL && num_commands < MAX_COMMANDS) {
+        strncpy(commands[num_commands], pipe_pos, MAX_COMMAND_LENGTH - 1);
+        commands[num_commands][MAX_COMMAND_LENGTH - 1] = '\0';
+        num_commands++;
+        pipe_pos = strtok(NULL, "|");
+    }
+
+    return num_commands;
+}
+
+
+// Function to create a pipe and handle errors
+void create_pipe(int pipefd[2]) {
+    if (pipe(pipefd) == -1) {
+        perror("pipe");
+        exit(EXIT_FAILURE);
+    }
+}
+
+// Function to fork a child process and execute a command
+pid_t fork_and_execute(const char *command, int input_fd, int output_fd) {
+    pid_t pid = fork();
+    if (pid == -1) {
+        perror("fork");
+        exit(EXIT_FAILURE);
+    }
+
+    if (pid == 0) { // Child process
+        if (input_fd != -1) {
+            dup2(input_fd, STDIN_FILENO);
+            close(input_fd);
+        }
+        if (output_fd != -1) {
+            dup2(output_fd, STDOUT_FILENO);
+            close(output_fd);
+        }
+
+        execlp("sh", "sh", "-c", command, (char *)NULL);
+        perror("execlp");
+        exit(EXIT_FAILURE);  // If execlp fails
+    }
+
+    return pid;
+}
+
+
+// Function to wait for child processes
+void wait_for_children(int num_children, pid_t pids[]) {
+    for (int i = 0; i < num_children; i++) {
+        waitpid(pids[i], NULL, 0);
+    }
 }

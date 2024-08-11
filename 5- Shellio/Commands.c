@@ -1080,59 +1080,59 @@ void setLocalVariable(const char* name, const char* value) {
     }
 }
 
+void Execute_Piped_Commands(char *input) {
+    int num_commands;
+    int pipefds[2 * (MAX_COMMANDS - 1)];
+    char commands[MAX_COMMANDS][MAX_COMMAND_LENGTH];
 
-char Shellio_HandlePiped(char argcPiped){
-    int pipefd[MAX_PIPED][2]={0} ;
-    int pid[MAX_PIPED*2] = {0};
-    char IteratedFlag = 0 ;
-    int NewFD = 0 ;
+    // Parse the input into commands
+    num_commands = parse_commands(input, commands);
 
-    char i = 0 ;
-    while ( i < argcPiped*2 && i < MAX_PIPED ){
-
-        if (IteratedFlag == 0)
-            NewFD = STDOUT ;
-        else
-            NewFD = STDIN ;
-
-        // Create a pipe
-        if (IteratedFlag == 0){
-            if (pipe(pipefd[i]) == INVALID_ID) {
-            perror("pipe");
-            return INVALID_ID;
-            }
-        }
-        
-        // Fork the first process
-        if ((pid[i] = fork()) == INVALID_ID) {
-            perror("fork");
-            return INVALID_ID;
-        }
-
-        if (pid[i] == 0) {
-            // Child process 1: Executes the first command
-
-            // Redirect STDOUT to pipe write end
-            dup2(pipefd[i][1], NewFD);
-            close(pipefd[i][0]); // Close unused read end
-            close(pipefd[i][1]); // Close write end after redirection
-
-            // Execute the first command
-            return i ;
-        }
-        i++;  
-        IteratedFlag = ! IteratedFlag;
-
+    // Create pipes
+    for (int i = 0; i < num_commands - 1; i++) {
+        create_pipe(pipefds + i * 2);
     }
 
-    // Parent process: Close both ends of the pipe
-    close(pipefd[0]);
-    close(pipefd[1]);
+    // Fork and execute each command
+    pid_t pids[MAX_COMMANDS];
+    for (int i = 0; i < num_commands; i++) {
+        int input_fd = (i == 0) ? -1 : pipefds[(i - 1) * 2]; // First command, no input redirection
+        int output_fd = (i == num_commands - 1) ? -1 : pipefds[i * 2 + 1]; // Last command, no output redirection
 
-    // Wait for childern processes to finish
-    int status = 0 ;
-    wait(status); 
+        pids[i] = fork_and_execute(commands[i], input_fd, output_fd);
 
-    /* to nake parent able to continue */
-    return INVALID_ID ;
+        // Close the pipe file descriptors in the parent
+        if (i > 0) {
+            close(pipefds[(i - 1) * 2]);
+        }
+        if (i < num_commands - 1) {
+            close(pipefds[i * 2 + 1]);
+        }
+    }
+
+    // Wait for all child processes to finish
+    wait_for_children(num_commands, pids);
+}
+
+
+
+void trim_spaces(char *str) {
+    char *start = str;
+    char *end = str + strlen(str) - 1;
+
+    // Trim leading spaces
+    while (*start && isspace((unsigned char)*start)) {
+        start++;
+    }
+
+    // Trim trailing spaces
+    while (end > start && isspace((unsigned char)*end)) {
+        end--;
+    }
+
+    // Write the trimmed string back to the original buffer
+    if (start != str) {
+        memmove(str, start, end - start + 1);
+    }
+    str[end - start + 1] = '\0';
 }

@@ -37,9 +37,8 @@
 #include <stdarg.h>         // Variable argument functions
 #include <sys/wait.h>       // Declarations for waiting for process termination
 #include <pwd.h>            // Functions for password database operations
-#include <stdbool.h>  // Include this for the bool type
-
-
+#include <stdbool.h>        // Include this for the bool type
+#include <ctype.h>
 
 /*==================================  Definitions ===========================*/
 #define MAX_PATH                             1024  // Maximum length for a file path
@@ -92,8 +91,11 @@
 #define ENVIR_PASS                            0
 #define ENV_VAR_PASS                          0
 #define BUFFER_SIZE                          1024
-#define MAX_PIPED                             5
-
+#define MAX_PIPES                             5
+#define PARENT                               -2
+#define MAX_INPUT_LENGTH                     512
+#define MAX_COMMANDS                          10
+#define MAX_COMMAND_LENGTH                   100
 
 // Color definitions for shell output
 // Regular Colors
@@ -132,6 +134,7 @@
 
 // Reset color to default
 #define COLOR_RESET "\033[0m"                // Reset color to terminal default
+
 
 // Custom data types
 typedef unsigned char uint8;                 // 8-bit unsigned integer type
@@ -393,9 +396,13 @@ void cleanSharedString();
 int SearchOnSpaceBeforeArrow (char* path);
 uint8 RedirectionHandlerOfnoOption(uint8* command);
 uint8* RedirectionHandlerOfWithOption(uint8* command);
-
 void tokenizeInput(uint8 *input, char *args[], uint8 *argc) ;
-
 uint8* handleOptionRedirection(const char *input, const char* delimiters);
+
+
+int parse_commands(const char *input, char commands[MAX_COMMANDS][MAX_COMMAND_LENGTH]);
+void create_pipe(int pipefd[2]);
+pid_t fork_and_execute(const char *command, int input_fd, int output_fd) ;
+void wait_for_children(int num_children, pid_t pids[]);
 
 #endif
