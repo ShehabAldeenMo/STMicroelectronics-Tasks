@@ -36,6 +36,99 @@ extern uint8 *sharedString ;
 
 
 /*===========================  Functions Implementations ======================*/
+
+void Commands_Loop(char* str){
+    uint8 *token;                      // Pointer to store each word of the command as a token
+    char* commands[MAX_PIPES] ;
+    uint8* separators = "============================================================================================";  // Separator line for formatting output
+    
+    /* to remove spaces in first and last of each command */
+    trim_spaces(str);        
+    // To share this input into the history
+    setSharedString(str);  // Store the input command in a global history buffer
+    /* Initial call to strtok */ 
+    token = strtok(str," ");  // Tokenize the input string using the specified delimiters
+
+    if (token != NULL) {  // If a token was found
+        /* print goodbye then exit */ 
+        if (strcmp(token, "leave") == EQUALED) {  // If the command is 'leave'
+            uint8 status = Shellio_Exit(token);  // Call the exit function
+            /* exit if it succeeded */
+            if (status == SUCCESS) {  // If the exit command succeeded
+                exit(0);  // Exit the loop and terminate the shell
+            }
+        }
+        /* clear screen with clear command */ 
+        else if (strcmp(token, "cls") == CLEARED) {  // If the command is 'cls' (clear screen)
+            Shellio_Clear(token);  // Clear the screen
+        }
+        /* get absolute path of current working directory */
+        else if (strcmp(token, "path") == PWD_PASS) {  // If the command is 'path'
+            Shellio_GetPath(token);  // Print the current working directory
+            printf("%s%s%s \n", COLOR_BOLD_BLUE, separators, COLOR_RESET);  // Print a separator line in blue
+        }
+        else if (strcmp(token, "display") == ECHO_PASS) {  // If the command is 'display'
+            Shellio_EchoInput(token);  // Echo the input back to the user
+            printf("%s%s%s \n", COLOR_BOLD_BLUE, separators, COLOR_RESET);  // Print a separator line in blue
+        }
+        else if (strcmp(token, "assist") == HELP_PASS) {  // If the command is 'assist'
+            Shellio_Help(token);  // Display help information
+            printf("%s%s%s \n", COLOR_BOLD_BLUE, separators, COLOR_RESET);  // Print a separator line in blue
+        }
+        else if (strcmp(token, "clone") == COPY_PASS) {  // If the command is 'clone'
+            Shellio_Copy(token);  // Copy a file or directory
+            printf("%s%s%s \n", COLOR_BOLD_BLUE, separators, COLOR_RESET);  // Print a separator line in blue
+        }
+        else if (strcmp(token, "shift") == MV_PASS) {  // If the command is 'shift'
+            Shellio_MoveFile(strcmp(token, "shift"));  // Move a file or directory
+            Shellio_Copy(token);  // Copy a file or directory
+            printf("%s%s%s \n", COLOR_BOLD_BLUE, separators, COLOR_RESET);  // Print a separator line in blue
+        }
+        else if (strcmp(token, "cd") == CD_PASS) {  // If the command is 'cd'
+            Shellio_ChangeDir(token);  // Change the current working directory
+        }
+        else if (strcmp(token, "type") == TYPE_PASS) {  // If the command is 'type'
+            Shellio_TypeCommand(token);  // Display the contents of a file
+        } 
+        else if (strcmp(token, "envir") == ENV_PASS) {  // If the command is 'envir'
+            uint8 * command = strdup(token);  // Duplicate the command string
+            token = strtok(NULL, "");  // Get the next token, which is the argument to 'envir'
+            if (token == NULL || *(token) == '2' || (*token ) == '>' && strstr(token, " < ") == NULL ) {  // If no argument or redirection is provided
+                Shellio_PrintEnv(command, token);  // Print the environment variables
+                printf("%s%s%s \n", COLOR_BOLD_BLUE, separators, COLOR_RESET);  // Print a separator line in blue
+            } else {
+                Shellio_PrintEnvVar(command, token);  // Print the value of a specific environment variable
+                printf("%s%s%s \n", COLOR_BOLD_BLUE, separators, COLOR_RESET);  // Print a separator line in blue
+            }
+            free(command);  // Free the memory allocated for the duplicated command
+        } 
+        else if (strcmp(token, "phist") == EXIT) {  // If the command is 'phist'
+            Shellio_Phist(token);  // Print the process history
+            printf("%s%s%s \n", COLOR_BOLD_BLUE, separators, COLOR_RESET);  // Print a separator line in blue
+        }
+        else if (strcmp(token, "free") == FREE_PASS) {  // If the command is 'free'
+            Shellio_Meminfo(token);  // Display memory usage information
+            printf("%s%s%s \n", COLOR_BOLD_BLUE, separators, COLOR_RESET);  // Print a separator line in blue
+        } 
+        else if (strcmp(token, "uptime") == UPTIME_PASS) {  // If the command is 'uptime'
+            Shellio_uptime(token);  // Display system uptime and idle time
+            printf("%s%s%s \n", COLOR_BOLD_BLUE, separators, COLOR_RESET);  // Print a separator line in blue
+        }
+        else if (strchr(token, '=') != NULL) {  // If the token contains an '=' character
+            Shellio_setVariable(token);  // Set a local variable with the format name=value
+        }
+        else if (strcmp(token, "allVar") == ALLVAR_PASS) {  // If the command is 'allVar'
+            Shellio_allVar();  // Print all local and environment variables
+            printf("%s%s%s \n", COLOR_BOLD_BLUE, separators, COLOR_RESET);  // Print a separator line in blue
+        }
+        else {
+            Shellio_ExecExternalCommands(token);  // Execute an external command
+            printf("%s%s%s \n", COLOR_BOLD_BLUE, separators, COLOR_RESET);  // Print a separator line in blue
+        }
+    }
+}
+
+
 void Shellio_GetPath(uint8* command) {
     uint8 Status = RedirectionHandlerOfnoOption(command);
 
@@ -807,17 +900,6 @@ void getHostName(char *hostname, size_t size) {
     }
 }
 
-// Function to print the command prompt with user and hostname information
-void printPrompt() {
-    const char *user = getUserName(); // Retrieve the username
-    char host[256]; // Buffer to store the hostname
-
-    getHostName(host, sizeof(host)); // Retrieve the hostname
-    // Print the username in bold green, followed by the hostname in bold green
-    printf("%s%s%s", COLOR_BOLD_GREEN, user, COLOR_RESET);
-    printf("@%s%s%s:", COLOR_BOLD_GREEN, host, COLOR_RESET);
-}
-
 void Shellio_Meminfo(uint8* command){
     uint8 Status = RedirectionHandlerOfnoOption(command);
 
@@ -1083,55 +1165,12 @@ void setLocalVariable(const char* name, const char* value) {
     }
 }
 
-char* Execute_Piped_Commands(char *input) {
-    // Number of commands parsed from the input
-    char num_commands;
+// Function to get the current working directory without a token
+uint8* GetPathWithoutToken() {
+    // Static buffer to store the current working directory
+    static char cwd[MAX_PATH];
 
-    // Array to hold file descriptors for the pipes
-    // (2 file descriptors per pipe, for reading and writing)
-    int pipefds[2 * (MAX_COMMANDS - 1)];
-
-    // Array to hold the parsed commands
-    char *commands[MAX_COMMANDS];
-
-    // Parse the input string into separate commands
-    num_commands = parse_commands(input, commands);
-
-    // Create pipes for inter-process communication
-    for (int i = 0; i < num_commands - 1; i++) {
-        // Create a pipe for each pair of commands (one less than the number of commands)
-        create_pipe(pipefds + i * 2);
-    }
-
-    // Array to hold process IDs of the child processes
-    pid_t pids[MAX_COMMANDS];
-
-    // Fork and execute each command
-    for (int i = 0; i < num_commands; i++) {
-        // Determine the input and output file descriptors for the current command
-        int input_fd = (i == 0) ? -1 : pipefds[(i - 1) * 2]; // For the first command, no input redirection, hence -1
-        int output_fd = (i == num_commands - 1) ? -1 : pipefds[i * 2 + 1]; // For the last command, no output redirection, hence -1
-
-        // Fork a new process and execute the command
-        pids[i] = ForkAndChildRedirection(input_fd, output_fd);
-
-        if (pids[i] == 0){
-            return commands[i] ;
-        }
-
-        // Close the pipe file descriptors in the parent process
-        if (i > 0) {
-            close(pipefds[(i - 1) * 2]);// Close the read end of the previous pipe if not the first command
-        }
-        if (i < num_commands - 1) {
-            close(pipefds[i * 2 + 1]);// Close the write end of the current pipe if not the last command
-        }
-    }
-
-    // Wait for all child processes to complete
-    // The number of commands is used to wait for all processes
-    wait_for_children(num_commands, pids);
-
-    return NULL ;
+    // Retrieve the current working directory
+    getcwd(cwd, sizeof(cwd));
+    return cwd; // Return the buffer containing the current working directory
 }
-

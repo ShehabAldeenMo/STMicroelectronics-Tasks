@@ -480,6 +480,7 @@ uint8 printLocalVariables(char* var) {
 void pushProcessHistory(const uint8 *command, uint8 status) {
     // Allocate memory for a new ProcessHistory entry
     ProcessHistory *newEntry = (ProcessHistory *)malloc(sizeof(ProcessHistory));
+    
     if (newEntry == NULL) {
         perror("Failed to allocate memory for new process history entry");
         exit(EXIT_FAILURE);  // Exit if memory allocation fails
@@ -512,16 +513,6 @@ void pushProcessHistory(const uint8 *command, uint8 status) {
     // Insert the new entry at the beginning of the stack
     PtrProcessHistory[0] = newEntry;
     processCounter++;  // Increase the counter to reflect the added entry
-}
-
-// Function to get the current working directory without a token
-uint8* GetPathWithoutToken() {
-    // Static buffer to store the current working directory
-    static char cwd[MAX_PATH];
-
-    // Retrieve the current working directory
-    getcwd(cwd, sizeof(cwd));
-    return cwd; // Return the buffer containing the current working directory
 }
 
 int SearchOnSpaceBeforeArrow(char* path) {
@@ -768,39 +759,6 @@ char parse_commands(char *input, char **commands) {
 
     return num_commands;
 }
-
-
-// Function to create a pipe and handle errors
-void create_pipe(int pipefd[2]) {
-    if (pipe(pipefd) == -1) {
-        perror("pipe");
-        exit(EXIT_FAILURE);
-    }
-}
-
-// Function to fork a child process and execute a command
-pid_t ForkAndChildRedirection(int input_fd, int output_fd) {
-    pid_t pid = fork();
-    if (pid == -1) {
-        perror("fork");
-        exit(EXIT_FAILURE);
-    }
-
-    if (pid == 0) { // Child process
-        if (input_fd != -1) {
-            dup2(input_fd, STDIN_FILENO);
-            close(input_fd);
-        }
-        if (output_fd != -1) {
-            dup2(output_fd, STDOUT_FILENO);
-            close(output_fd);
-        }
-        return 0; // return child process ID
-    }
-
-    return pid; // return parent process ID
-}
-
 
 // Function to wait for child processes
 void wait_for_children(int num_children, pid_t pids[]) {

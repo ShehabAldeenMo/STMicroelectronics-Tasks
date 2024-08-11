@@ -27,6 +27,19 @@
 /*==========================  Function Prototypes ===========================*/
 
 /*
+ * Name             : main
+ * Description      : Entry point for the Shellio application. Continuously reads user 
+ *                    commands, processes them, and executes the appropriate built-in or 
+ *                    external commands. It supports command piping and handles redirections.
+ * Input            : None
+ * Output           : None
+ * Return           : Returns 0 upon successful execution of the shell.
+ * Notes            : The main loop reads commands from the user, processes them to handle 
+ *                    piping and redirection, and executes them until the 'leave' command is issued.
+ */
+void Commands_Loop(char* str);
+
+/*
  * Name             : Shellio_GetPath
  * Description      : Prints the current working directory to standard output.
  *                    This function uses the `getcwd` system call to retrieve the 
@@ -260,16 +273,7 @@ const char* getUserName();
  */
 void getHostName(char *hostname, size_t size);
 
-/*
- * Name             : printPrompt
- * Description      : Prints the shell prompt for user input.
- *                    This function typically includes the username and hostname in the prompt.
- * Input            : None
- * Output           : None
- * Return           : None
- * Notes            : The format of the prompt can be customized.
- */
-void printPrompt();
+
 
 /*
  * Name             : Shellio_Meminfo
@@ -323,8 +327,5 @@ void Shellio_allVar();
  */
 void setLocalVariable(const char* name, const char* value);
 
-
-
-char* Execute_Piped_Commands(char* input);
 
 #endif /* Header Guard */

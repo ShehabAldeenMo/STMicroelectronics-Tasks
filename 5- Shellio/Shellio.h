@@ -22,32 +22,9 @@
 #define SHELLIO_H_
 
 /*===================================  Includes ===============================*/
-#include "Commands.h"      // Custom commands specific to Shellio
+#include "Utility.h"      // Custom commands specific to Shellio
 
 /*===================================  Definitions ============================*/
 #define MAXSIZE                              1024  // Maximum size for input strings
-#define EXIT                                  0    // Exit status code
-#define NOT_EXIT                              1    // Status code indicating no exit
-#define CLEARED                               0    // Status code indicating the screen is cleared
-#define NOT_CLEARED                           1    // Status code indicating the screen is not cleared
-#define RAISED                                1    // Status code indicating a flag is raised
-#define NEWLINE_INPUT                         11   // Status code indicating newline input
-#define PWD_PASS                              0    // Status code for a successful 'pwd' command
-#define ECHO_PASS                             0    // Status code for a successful 'echo' command
-#define MV_PASS                               0    // Status code for a successful 'mv' command
-#define COPY_PASS                             0    // Status code for a successful 'cp' command
-#define CD_PASS                               0    // Status code for a successful 'cd' command
-#define TYPE_PASS                             0    // Status code for a successful 'type' command
-#define ENV_PASS                              0    // Status code for a successful 'envir' command
-#define HELP_PASS                             0    // Status code for a successful 'assist' command
-#define VALID                                 1    // General status code for valid operations
-#define INVALID                               0    // General status code for invalid operations
-#define EQUALED                               0    // Status code indicating equality
-#define SUCCESS                               1    // Status code indicating success
-#define FAILED                                0    // Status code indicating failure
-#define PARENT                               -2
-#define FREE_PASS                             0    // Status code for a successful 'free' command
-#define UPTIME_PASS                           0    // Status code for a successful 'uptime' command
-#define ALLVAR_PASS                           0    // Status code for a successful 'allVar' command
 
 #endif /* Header Guard */

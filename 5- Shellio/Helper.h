@@ -39,6 +39,7 @@
 #include <pwd.h>            // Functions for password database operations
 #include <stdbool.h>        // Include this for the bool type
 #include <ctype.h>
+#include <signal.h>
 
 /*==================================  Definitions ===========================*/
 #define MAX_PATH                             1024  // Maximum length for a file path
@@ -96,6 +97,9 @@
 #define MAX_INPUT_LENGTH                     512
 #define MAX_COMMANDS                          10
 #define MAX_COMMAND_LENGTH                   100
+#define FREE_PASS                             0    // Status code for a successful 'free' command
+#define UPTIME_PASS                           0    // Status code for a successful 'uptime' command
+#define ALLVAR_PASS                           0    // Status code for a successful 'allVar' command
 
 // Color definitions for shell output
 // Regular Colors
@@ -371,15 +375,7 @@ uint8 printLocalVariables(char* var);
  */
 void pushProcessHistory(const uint8 *command, uint8 status);
 
-/*
- * Name             : GetPathWithoutToken
- * Description      : Retrieves the current working directory path without any additional tokens.
- * Input            : None
- * Output           : None
- * Return           : uint8* - The path of the current working directory.
- * Notes            : The function may handle path tokens or other modifications internally.
- */
-uint8* GetPathWithoutToken();
+
 
 /*
  * Name             : cleanSharedString
@@ -392,17 +388,87 @@ uint8* GetPathWithoutToken();
  */
 void cleanSharedString();
 
+/*
+ * Name             : GetPathWithoutToken
+ * Description      : Retrieves the current working directory path without any additional tokens.
+ * Input            : None
+ * Output           : None
+ * Return           : uint8* - The path of the current working directory.
+ * Notes            : The function may handle path tokens or other modifications internally.
+ */
+uint8* GetPathWithoutToken();
 
-int SearchOnSpaceBeforeArrow (char* path);
-uint8 RedirectionHandlerOfnoOption(uint8* command);
-uint8* RedirectionHandlerOfWithOption(uint8* command);
-uint8* handleOptionRedirection(const char *input, const char* delimiters);
+/*
+ * Name             : SearchOnSpaceBeforeArrow
+ * Description      : Searches for a space character immediately preceding an arrow ('>') in the provided path string.
+ * Input            : path - A pointer to the string where the search is to be performed.
+ * Output           : None
+ * Return           : Returns the index of the space character found before the arrow, 
+ *                    or -1 if no such space exists.
+ * Notes            : This function is typically used to validate syntax before handling 
+ *                    output redirection in commands.
+ */
+int     SearchOnSpaceBeforeArrow (char* path);
 
+/*
+ * Name             : RedirectionHandlerOfnoOption
+ * Description      : Handles redirection for commands without specific options, 
+ *                    typically involving '>' or '2>' for standard output or error redirection.
+ * Input            : command - A pointer to the command string that includes the redirection symbol.
+ * Output           : None
+ * Return           : Returns `SUCCESS` if the redirection was handled successfully, 
+ *                    or an error code otherwise.
+ * Notes            : The function modifies the command string to remove redirection symbols 
+ *                    and set up the appropriate file descriptors for redirection.
+ */
+uint8   RedirectionHandlerOfnoOption(uint8* command);
 
-char parse_commands(char *input, char **commands) ;
-void create_pipe(int pipefd[2]);
-pid_t ForkAndChildRedirection(int input_fd, int output_fd) ;
-void wait_for_children(int num_children, pid_t pids[]);
-void trim_spaces(char *str);
+/*
+ * Name             : RedirectionHandlerOfWithOption
+ * Description      : Handles redirection for commands with specific options, including input and output redirection.
+ * Input            : command - A pointer to the command string that includes redirection and options.
+ * Output           : None
+ * Return           : A pointer to the modified command string with redirection handled, 
+ *                    or an error code otherwise.
+ * Notes            : This function is used to handle more complex redirection scenarios 
+ *                    where both input and output need to be managed and there is an option from user also
+ */
+uint8*  RedirectionHandlerOfWithOption(uint8* command);
+
+/*
+ * Name             : handleOptionRedirection
+ * Description      : Processes a command string to handle redirection based on specified delimiters.
+ * Input            : input      - The original command string.
+ *                    delimiters - A string containing the delimiters used to identify redirection points.
+ * Output           : None
+ * Return           : A pointer to a new string with redirection handled, 
+ *                    or NULL if no redirection is detected.
+ * Notes            : This function is designed to work with commands where redirection 
+ *                    needs to be parsed and processed separately.
+ */
+uint8*  handleOptionRedirection(const char *input, const char* delimiters);
+
+/*
+ * Name             : parse_commands
+ * Description      : Parses the input string into separate commands based on the pipe '|' delimiter.
+ * Input            : input    - The input command string to be parsed.
+ *                    commands - An array of strings where parsed commands will be stored.
+ * Output           : None
+ * Return           : The number of commands parsed from the input string.
+ * Notes            : This function splits the input string at each pipe '|' and stores 
+ *                    each command in the provided array.
+ */
+char    parse_commands(char *input, char **commands) ;
+
+/*
+ * Name             : trim_spaces
+ * Description      : Removes leading and trailing spaces from the provided string.
+ * Input            : str - The string from which spaces will be trimmed.
+ * Output           : None
+ * Return           : None
+ * Notes            : This function directly modifies the input string to eliminate any 
+ *                    unnecessary spaces before or after the command.
+ */
+void    trim_spaces(char *str);
 
 #endif
