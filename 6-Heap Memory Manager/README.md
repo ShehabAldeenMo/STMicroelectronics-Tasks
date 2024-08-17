@@ -150,6 +150,10 @@ int main() {
 ### First Fit 
 ![Flow Diagram](https://github.com/user-attachments/assets/d5571c34-8855-4a03-903f-b85793bc1fee)
 
+#### Static array show
+![first fit array](https://github.com/user-attachments/assets/cfd7ebc7-2a03-4dc1-ae92-37274acada90)
+
+
 #### case 1 
 ![case 1](https://github.com/user-attachments/assets/ee64f89d-fc96-4b2d-a87c-8fe1bbe37137)
 
@@ -177,6 +181,9 @@ int main() {
 ### Best Fit 
 ![BestFit Flaw Chart 1](https://github.com/user-attachments/assets/d4df84ce-f4ab-493f-b405-b4ac42077962)
 ![BestFit Flaw Chart 2](https://github.com/user-attachments/assets/ba050377-3f8a-4127-bf2b-391a56acc7c9)
+
+#### Static array show
+![cases](https://github.com/user-attachments/assets/a00f108e-8960-48be-91cb-bc085dd31888)
 
 #### case 1 
 ![case 1](https://github.com/user-attachments/assets/36a9eb0c-45dd-4579-86af-1038fa8e69be)
