@@ -1,6 +1,10 @@
-Free
-FirstFitScreenShots
-BestFit ScreenShots
+Free/*.png
+Free/*.mp4
+FirstFitScreenShots/*.png
+FirstFitScreenShots/*.mp4
+BestFit ScreenShots/*.png
+BestFit ScreenShots/*.mp4
 a.out
 HMM
+stress_test.c
 
