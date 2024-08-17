@@ -183,7 +183,7 @@ int main() {
 ![BestFit Flaw Chart 2](https://github.com/user-attachments/assets/ba050377-3f8a-4127-bf2b-391a56acc7c9)
 
 #### Static array show
-![cases](https://github.com/user-attachments/assets/a00f108e-8960-48be-91cb-bc085dd31888)
+![cases ](https://github.com/user-attachments/assets/9a3950bd-9df9-43c7-bcf6-f631696dcf02)
 
 #### case 1 
 ![case 1](https://github.com/user-attachments/assets/36a9eb0c-45dd-4579-86af-1038fa8e69be)
