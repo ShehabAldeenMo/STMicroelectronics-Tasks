@@ -178,6 +178,6 @@ sint32 Helper_BestFit(uint32 size);
 * to enable first fit algorthim set 'ENABLE'
 * to disable it set 'DISABLE'
 */
-#define FIRSTFIT         ENABLE
+#define FIRSTFIT         DISABLE
 
 #endif

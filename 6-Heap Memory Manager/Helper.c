@@ -137,21 +137,13 @@ sint32 Helper_FirstFit(uint32 size){
                 }
            }
             /* handle simulated array if tail is suitable to allocate this size
-            *  that: 1.  define new tail index point to new free space and call Helper_sbrk to extend break index 
-            *        2. new tail -> previous free space point to old tail -> previous free space
-            *        3. new tail -> next free space point to !
-            *        4. remove old tail node 
-            */
+            *  that: 1. backword tail index to previous free slot 
+            *        2. backword tail -> next free space point to !
+            * */
            else if (i == Tail){
-                sint32 New_Tail = Helper_sbrk(ONE_K); 
-                if (New_Tail == INVALID){
-                    printf("Invalid state from Helper_sbrk function\n");
-                    exit(INVALID);
-                }
-                else {
-                    Helper_SetFreeSpaceNode(New_Tail, ONE_K, SimHeap[Tail+PREVIOUS_FREE_BLOCK_SHIFT] ,SYMBOL_OF_HEAP_NULL);  
-                    Tail = New_Tail ;
-                }
+                uint32 Backwork_Tail = SimHeap[i+PREVIOUS_FREE_BLOCK_SHIFT] ; 
+                Tail = Backwork_Tail ;
+                SimHeap[Tail+NEXT_FREE_BLOCK_SHIFT] = SYMBOL_OF_HEAP_NULL ;
            }
             /* handle simulated array if neither head or tail is suitable to allocate this size
             *  that: 1. make next node -> previous free space index point to temp -> previous free space
@@ -286,7 +278,7 @@ void Helper_FreeOperationMiddleNode(uint32 index,uint32 size){
         * 1- redefine new size for previous node because we extend it .
         * 2- previous node previousIndex and nextIndex stay the same 
         * */
-        Helper_SetFreeSpaceNode(PreIndex,NewSize,SimHeap[PreIndex+PREVIOUS_FREE_BLOCK_SHIFT],SimHeap[PreIndex+NEXT_FREE_BLOCK_SHIFT]);
+        SimHeap[PreIndex] = NewSize ;
     }
     // index point to node just before free node(y) from left so we will extend y node to join two adjecent free spaces
     else if (PositionOfPreviousBlock != index && PositionOfNextBlock == nextIndex){
@@ -401,8 +393,18 @@ sint32 Helper_BestFit(uint32 size){
         *        3. metadata will redefine in array and store remaining size of free space
         */
        if (SuitableIndex == Head){
-            Head = SuitableIndex + size + METADATA_CELL ;
-            Helper_SetFreeSpaceNode(Head,SimHeap[SuitableIndex] - size, SYMBOL_OF_HEAP_NULL,SimHeap[SuitableIndex+NEXT_FREE_BLOCK_SHIFT]);
+            uint32 NextIndex = SimHeap[SuitableIndex+NEXT_FREE_BLOCK_SHIFT];
+            /* to shift tail with first group calls for maollac*/
+            if (SetOfGroupMallocCalls == INVALID ){
+                Head = SuitableIndex + size + BEGIN_DATA_SHIFTER ;
+                Tail = Head ;
+                Helper_SetFreeSpaceNode(Head, SimHeap[SuitableIndex] - size - METADATA_CELL, SYMBOL_OF_HEAP_NULL,SYMBOL_OF_HEAP_NULL);
+            }
+            else {
+                Head = SuitableIndex + size + BEGIN_DATA_SHIFTER ;
+                Helper_SetFreeSpaceNode(Head, SimHeap[SuitableIndex] - size - METADATA_CELL, SYMBOL_OF_HEAP_NULL,SimHeap[SuitableIndex+NEXT_FREE_BLOCK_SHIFT]);
+                SimHeap[NextIndex+PREVIOUS_FREE_BLOCK_SHIFT] = Head ;
+            }
        }
         /* handle simulated array if tail is suitable to allocate this size
         *  that: 1. previous free space pointer will redefine in array but still point to the same cell
@@ -410,8 +412,11 @@ sint32 Helper_BestFit(uint32 size){
         *        3. metadata will redefine in array and store remaining size of free space
         */
        else if (SuitableIndex == Tail){
+            uint32 PreIndex = SimHeap[SuitableIndex+PREVIOUS_FREE_BLOCK_SHIFT];
+            SetOfGroupMallocCalls = VALID ; //to stop shifting tail with head because we already finish begining case
             Tail = SuitableIndex + size + BEGIN_DATA_SHIFTER ;
-            Helper_SetFreeSpaceNode(Tail, SimHeap[SuitableIndex] - size,SimHeap[SuitableIndex+PREVIOUS_FREE_BLOCK_SHIFT],SYMBOL_OF_HEAP_NULL); 
+            Helper_SetFreeSpaceNode(Tail, SimHeap[SuitableIndex] - size - METADATA_CELL,SimHeap[SuitableIndex+PREVIOUS_FREE_BLOCK_SHIFT],SYMBOL_OF_HEAP_NULL); 
+            SimHeap[PreIndex+NEXT_FREE_BLOCK_SHIFT] = Tail ;
        }
         /* handle simulated array if neither head or tail is suitable to allocate this size
         *  that: 1. previous free space pointer will redefine in array but still point to the same cell
@@ -420,7 +425,12 @@ sint32 Helper_BestFit(uint32 size){
         */
        else {
             uint32 Temp = SuitableIndex + size + BEGIN_DATA_SHIFTER ;
-            Helper_SetFreeSpaceNode(Temp, SimHeap[SuitableIndex] - size, SimHeap[SuitableIndex+PREVIOUS_FREE_BLOCK_SHIFT],SimHeap[SuitableIndex+NEXT_FREE_BLOCK_SHIFT]);  
+            uint32 PreIndex = SimHeap[SuitableIndex+PREVIOUS_FREE_BLOCK_SHIFT];
+            uint32 NextIndex = SimHeap[SuitableIndex+NEXT_FREE_BLOCK_SHIFT];
+            SetOfGroupMallocCalls = VALID ;//to stop shifting tail with head because we already finish begining case
+            Helper_SetFreeSpaceNode(Temp, SimHeap[SuitableIndex] - size - METADATA_CELL, SimHeap[SuitableIndex+PREVIOUS_FREE_BLOCK_SHIFT],SimHeap[SuitableIndex+NEXT_FREE_BLOCK_SHIFT]);  
+            SimHeap[PreIndex+NEXT_FREE_BLOCK_SHIFT] = SuitableIndex ;
+            SimHeap[NextIndex+PREVIOUS_FREE_BLOCK_SHIFT] = SuitableIndex ;
        }
         /* handle new allocation space
         *  that: 1. return value point to the beginning of data space
@@ -437,6 +447,11 @@ sint32 Helper_BestFit(uint32 size){
        if (SuitableIndex == Head){
             Head = SimHeap[SuitableIndex+NEXT_FREE_BLOCK_SHIFT] ;
             SimHeap[Head+PREVIOUS_FREE_BLOCK_SHIFT] = SYMBOL_OF_HEAP_NULL ; 
+            
+            /* to shift tail with first group calls for maollac*/
+            if (SetOfGroupMallocCalls == INVALID ){
+                Tail = Head ;
+            }
        }
         /* handle simulated array if tail is suitable to allocate this size
         *  that: 1.  define new tail index point to new free space and call Helper_sbrk to extend break index 
@@ -445,15 +460,9 @@ sint32 Helper_BestFit(uint32 size){
         *        4. remove old tail node 
         */
        else if (SuitableIndex == Tail){
-            sint32 New_Tail = Helper_sbrk(ONE_K); 
-            if (New_Tail == INVALID){
-                printf("Invalid state from Helper_sbrk function\n");
-                exit(INVALID);
-            }
-            else {
-                Helper_SetFreeSpaceNode(New_Tail, ONE_K, SimHeap[Tail+PREVIOUS_FREE_BLOCK_SHIFT] ,SYMBOL_OF_HEAP_NULL);  
-                Tail = New_Tail ;
-            }
+            uint32 Backwork_Tail = SimHeap[SuitableIndex+PREVIOUS_FREE_BLOCK_SHIFT] ; 
+            Tail = Backwork_Tail ;
+            SimHeap[Tail+NEXT_FREE_BLOCK_SHIFT] = SYMBOL_OF_HEAP_NULL ;
        }
         /* handle simulated array if neither head or tail is suitable to allocate this size
         *  that: 1. make next node -> previous free space index point to temp -> previous free space

@@ -6,4 +6,5 @@ BestFit ScreenShots/*.png
 BestFit ScreenShots/*.mp4
 a.out
 HMM
+stress_test.c
 
