@@ -172,7 +172,7 @@ int main() {
 ![Extend Break](https://github.com/user-attachments/assets/31a43104-f978-4ee5-af31-73ba118e8121)
 
 
-
+-------------------------------------------------------------------------------------------------------------------
 
 ### Best Fit 
 ![BestFit Flaw Chart 1](https://github.com/user-attachments/assets/d4df84ce-f4ab-493f-b405-b4ac42077962)
@@ -199,6 +199,7 @@ int main() {
 #### Extended Break pointer
 ![Extend Break](https://github.com/user-attachments/assets/774aefcb-1bb8-40c7-b014-9757ee76a74c)
 
+-------------------------------------------------------------------------------------------------------------------
 
 ### Free Block 
 ![Free FlowChart](https://github.com/user-attachments/assets/1fe684cc-8207-4e69-93a8-d85b9f10917e)
@@ -215,6 +216,7 @@ int main() {
 #### case 3
 ![case3](https://github.com/user-attachments/assets/2e188503-3247-4128-8e83-1e04db2c01dd)
 
+-------------------------------------------------------------------------------------------------------------------
 
 ## Build Instruction
 To build the Heap Memory Manager project, follow these steps:
