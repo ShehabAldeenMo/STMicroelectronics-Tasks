@@ -39,6 +39,9 @@ extern uint32 Head;                             // define first index of free sp
 extern uint32 Tail;                             // define last index of free spaces
 
 
+/*============================  Local Global Variable ==============================*/
+static sint8 SetOfGroupMallocCalls = INVALID ; // to fix issue related to fixed tail at 0 althought we call malloc several times
+
 /*=========================  Functions Implementation ===========================*/
 sint32 Helper_sbrk (sint32 size){
     sint32 result = CurBreak+size ; // to use it in check size condition
@@ -71,8 +74,16 @@ sint32 Helper_FirstFit(uint32 size){
             *        3. metadata will redefine in array and store remaining size of free space
             */
            if (i == Head){
-                Head = i + size + BEGIN_DATA_SHIFTER ;
-                Helper_SetFreeSpaceNode(Head, SimHeap[i] - size, SYMBOL_OF_HEAP_NULL,SimHeap[i+NEXT_FREE_BLOCK_SHIFT]);
+                /* to shift tail with first group calls for maollac*/
+                if (SetOfGroupMallocCalls == INVALID ){
+                    Head = i + size + BEGIN_DATA_SHIFTER ;
+                    Tail = Head ;
+                    Helper_SetFreeSpaceNode(Head, SimHeap[i] - size - METADATA_CELL, SYMBOL_OF_HEAP_NULL,SYMBOL_OF_HEAP_NULL);
+                }
+                else {
+                    Head = i + size + BEGIN_DATA_SHIFTER ;
+                    Helper_SetFreeSpaceNode(Head, SimHeap[i] - size - METADATA_CELL, SYMBOL_OF_HEAP_NULL,SimHeap[i+NEXT_FREE_BLOCK_SHIFT]);
+                }
            }
             /* handle simulated array if tail is suitable to allocate this size
             *  that: 1. previous free space pointer will redefine in array but still point to the same cell
@@ -80,8 +91,9 @@ sint32 Helper_FirstFit(uint32 size){
             *        3. metadata will redefine in array and store remaining size of free space
             */
            else if (i == Tail){
+                SetOfGroupMallocCalls = VALID ; //to stop shifting tail with head because we already finish begining case
                 Tail = i + size + BEGIN_DATA_SHIFTER ;
-                Helper_SetFreeSpaceNode(Tail, SimHeap[i] - size,SimHeap[i+PREVIOUS_FREE_BLOCK_SHIFT],SYMBOL_OF_HEAP_NULL); 
+                Helper_SetFreeSpaceNode(Tail, SimHeap[i] - size - METADATA_CELL,SimHeap[i+PREVIOUS_FREE_BLOCK_SHIFT],SYMBOL_OF_HEAP_NULL); 
            }
             /* handle simulated array if neither head or tail is suitable to allocate this size
             *  that: 1. previous free space pointer will redefine in array but still point to the same cell
@@ -90,7 +102,8 @@ sint32 Helper_FirstFit(uint32 size){
             */
            else {
                 uint32 Temp = i + size + BEGIN_DATA_SHIFTER ;
-                Helper_SetFreeSpaceNode(Temp, SimHeap[i] - size, SimHeap[i+PREVIOUS_FREE_BLOCK_SHIFT],SimHeap[i+NEXT_FREE_BLOCK_SHIFT]);  
+                SetOfGroupMallocCalls = VALID ;//to stop shifting tail with head because we already finish begining case
+                Helper_SetFreeSpaceNode(Temp, SimHeap[i] - size - METADATA_CELL, SimHeap[i+PREVIOUS_FREE_BLOCK_SHIFT],SimHeap[i+NEXT_FREE_BLOCK_SHIFT]);  
            }
             /* handle new allocation space
             *  that: 1. return value point to the beginning of data space
@@ -108,6 +121,11 @@ sint32 Helper_FirstFit(uint32 size){
            if (i == Head){
                 Head = SimHeap[i+NEXT_FREE_BLOCK_SHIFT] ;
                 SimHeap[Head+PREVIOUS_FREE_BLOCK_SHIFT] = SYMBOL_OF_HEAP_NULL ; 
+
+                /* to shift tail with first group calls for maollac*/
+                if (SetOfGroupMallocCalls == INVALID ){
+                    Tail = Head ;
+                }
            }
             /* handle simulated array if tail is suitable to allocate this size
             *  that: 1.  define new tail index point to new free space and call Helper_sbrk to extend break index 
@@ -182,6 +200,7 @@ void Helper_SetFreeSpaceNode(uint32 index, uint32 metadata, uint32 previous_cont
 
 
 void Helper_FreeOperationBeforeHead(uint32 index, uint32 size){
+    SetOfGroupMallocCalls = VALID ; //to stop shifting tail with head because we already finish begining case
     uint32 PositionOfFreeBlock = index + size + 1 ; // to check that the target free block is adjecent for head or away from.
      /* if ptr is pointing to node before head node and away from it
      *  that : 1- define new node 
@@ -306,10 +325,14 @@ void Helper_FreeOperationMiddleNode(uint32 index,uint32 size){
         * 2- size for new node will be the same of deallocated memory.
         * 3- new node -> previous index will equal next node -> previous index
         * 4- new node -> next index will equal Previous node -> next index
+        * 5- prevoius node -> next index = index
+        * 6- next node -> pre index = index
         * */
         uint32 PreviousIndexContent = SimHeap[nextIndex+PREVIOUS_FREE_BLOCK_SHIFT] ;
         uint32 NextIndexContent = SimHeap[PreIndex+NEXT_FREE_BLOCK_SHIFT] ;
         Helper_SetFreeSpaceNode(index,size,PreviousIndexContent,NextIndexContent);
+        SimHeap[PreIndex+NEXT_FREE_BLOCK_SHIFT] = index ;
+        SimHeap[nextIndex+PREVIOUS_FREE_BLOCK_SHIFT] = index ;
     }
 }
 

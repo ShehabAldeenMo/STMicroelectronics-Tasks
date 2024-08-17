@@ -69,7 +69,7 @@ uint32* HMM_Malloc(uint32 size);
  *                    the block to be freed relative to the head and tail nodes. It ensures 
  *                    optimal memory usage by merging adjacent free blocks when possible.
  */
-void HMM_Free(uint32* ptr);
+    void HMM_Free(uint32* ptr);
 
 /*
  * Name             : HMM_Init
