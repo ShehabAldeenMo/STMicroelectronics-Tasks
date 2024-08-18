@@ -33,7 +33,7 @@
 
 /*============================  extern Global Variable ==============================*/
 extern uint32 SimHeap[MAX_HEAPLENGHT];          // simulated heap
-extern sint32 CurBreak;                         // break pointer on simulated heap
+extern sint64 CurBreak;                         // break pointer on simulated heap
 extern uint8* border;
 extern uint32 Head;                             // define first index of free space
 extern uint32 Tail;                             // define last index of free spaces
@@ -43,9 +43,9 @@ extern uint32 Tail;                             // define last index of free spa
 static sint8 SetOfGroupMallocCalls = INVALID ; // to fix issue related to fixed tail at 0 althought we call malloc several times
 
 /*=========================  Functions Implementation ===========================*/
-sint32 Helper_sbrk (sint32 size){
-    sint32 result = CurBreak+size ; // to use it in check size condition
-    sint32 temp = 0 ; // to point of new free space allocation
+sint64 Helper_sbrk (sint64 size){
+    sint64 result = (sint64)((sint64)CurBreak+(sint64)size) ; // to use it in check size condition
+    sint64 temp = 0 ; // to point of new free space allocation
 
     /*to ensure that the new current break in heap limitions*/
     if ( result < 0 ){
@@ -66,6 +66,8 @@ sint32 Helper_sbrk (sint32 size){
 sint32 Helper_FirstFit(uint32 size){
     sint32 Ret_SuitableIndex = INVALID ;  // to return which index is valid to alllocate into
     uint32 i = Head ;    // index to indicate which point that you stop on 
+    size += NUMBER_OF_FREE_NODE_ELEMENTS ; // to resize the block with the new size. Because we are use three blocks for represent free node 
+
     while(i != (uint32) SYMBOL_OF_HEAP_NULL ){ // while its next node is not jump over break
         if (SimHeap[i] > size){
             /* handle simulated array if head is suitable to allocate this size
@@ -175,7 +177,7 @@ sint32 Helper_FirstFit(uint32 size){
     *        4. remove old tail node 
     */
     if ( i == (uint32) SYMBOL_OF_HEAP_NULL  ){
-        sint32 New_Tail = Helper_sbrk(ONE_K); 
+        sint64 New_Tail = Helper_sbrk(ONE_K); 
         if (New_Tail == INVALID){
             printf("Invalid state from Helper_sbrk function\n");
             Ret_SuitableIndex = INVALID ;
@@ -267,8 +269,8 @@ void Helper_FreeOperationMiddleNode(uint32 index,uint32 size){
     * 1) index point to node just after free node(x) from right so we will extend x node to join two adjecent free spaces.
     * 2) index point to node just before free node(y) from left so we will extend y node to join two adjecent free spaces
     */
-    uint32 PositionOfPreviousBlock = PreIndex + SimHeap[PreIndex] + 1 ; // deallcated block in right
-    uint32 PositionOfNextBlock = index + size + 1 ; // deallcated block in left
+    uint32 PositionOfPreviousBlock = PreIndex + SimHeap[PreIndex] + METADATA_CELL ; // deallcated block in right
+    uint32 PositionOfNextBlock = index + size + METADATA_CELL ; // deallcated block in left
 
     // index point to node just after free node(x) from right so we will extend x node to join two adjecent free spaces.
     if (PositionOfPreviousBlock == index && PositionOfNextBlock != nextIndex){
@@ -288,7 +290,8 @@ void Helper_FreeOperationMiddleNode(uint32 index,uint32 size){
         * 1- define new node merge between deallocation and next node
         * 2- new node size will equal deallocation memory and next node metadata.
         * 3- new node previousIndex and nextIndex stay the same of old node
-        * 4- update free list
+        * 4- update previous index -> next free node
+        * 5- update next index -> previous free node  
         * */
         Helper_SetFreeSpaceNode(index,NewSize,SimHeap[nextIndex+PREVIOUS_FREE_BLOCK_SHIFT],SimHeap[nextIndex+NEXT_FREE_BLOCK_SHIFT]);
         SimHeap[PreIndex+NEXT_FREE_BLOCK_SHIFT] = index ;
@@ -373,7 +376,7 @@ sint32 Helper_BestFit(uint32 size){
     *        4. remove old tail node 
     */
     if ( FlagOfNoFreeSpace == (INVALID)  ){
-        sint32 New_Tail = Helper_sbrk(ONE_K); 
+        sint64 New_Tail = Helper_sbrk(ONE_K); 
         if (New_Tail == INVALID){
             printf("Invalid state from Helper_sbrk function\n");
             Ret_SuitableIndex = INVALID ;

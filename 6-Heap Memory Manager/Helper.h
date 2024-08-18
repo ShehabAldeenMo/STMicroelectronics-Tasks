@@ -37,7 +37,7 @@
 
 /*==================================  Definitions ===========================*/
 #define ONE_K                                   1024
-#define MAX_HEAPLENGHT                         20*ONE_K  // Maximum length for static array used to simulated heap
+#define MAX_HEAPLENGHT                         20*ONE_K*ONE_K  // Maximum length for static array used to simulated heap
 #define INVALID                                  -1
 #define VALID                                     0
 #define PREVIOUS_FREE_BLOCK_SHIFT                 1
@@ -47,6 +47,7 @@
 #define METADATA_CELL                             1
 #define ENABLE                                    1
 #define DISABLE                                   0 
+#define NUMBER_OF_FREE_NODE_ELEMENTS              3
 
 /*==========================  typedef   =====================================*/
 typedef unsigned char boolean         ;
@@ -76,7 +77,7 @@ typedef double float64                ;
  * Notes            : This function is used to manage the dynamic allocation of memory within 
  *                    the simulated heap by effectively controlling the size of the heap.
  */
-sint32 Helper_sbrk (sint32 size);
+sint64 Helper_sbrk (sint64 size);
 
 
 /*
@@ -178,6 +179,6 @@ sint32 Helper_BestFit(uint32 size);
 * to enable first fit algorthim set 'ENABLE'
 * to disable it set 'DISABLE'
 */
-#define FIRSTFIT         DISABLE
+#define FIRSTFIT         ENABLE
 
 #endif
