@@ -41,8 +41,6 @@ uint32 Head;                             // define first index of free space
 uint32 Tail;                             // define last index of free spaces
 
 
-
-
 /*==========================  Function Prototypes ===========================*/
 /*
  * Name             : HMM_Malloc

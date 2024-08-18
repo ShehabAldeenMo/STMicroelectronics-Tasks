@@ -38,7 +38,6 @@ extern uint8* border;
 extern uint32 Head;                             // define first index of free space
 extern uint32 Tail;                             // define last index of free spaces
 
-
 /*============================  Local Global Variable ==============================*/
 static sint8 SetOfGroupMallocCalls = INVALID ; // to fix issue related to fixed tail at 0 althought we call malloc several times
 

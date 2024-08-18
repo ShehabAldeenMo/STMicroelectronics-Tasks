@@ -34,7 +34,6 @@
 #include <string.h>         // String manipulation functions
 
 
-
 /*==================================  Definitions ===========================*/
 #define ONE_K                                   1024
 #define MAX_HEAPLENGHT                         20*ONE_K*ONE_K  // Maximum length for static array used to simulated heap
