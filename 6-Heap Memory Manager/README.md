@@ -119,39 +119,12 @@ Simulates the `sbrk()` system call to increase or decrease the size of the heap.
 
 Initialize the memory manager with `HMM_Init()` before performing any allocation or deallocation operations.
 
-### Allocation and Deallocation
-
-To allocate and free memory:
-
-```c
-#include "heap_manager.h"
-
-int main() {
-    // Initialize the heap memory manager
-    HMM_Init();
-
-    // Allocate memory
-    void *ptr1 = HmmAlloc(8);
-    void *ptr2 = HmmAlloc(8);
-    void *ptr3 = HmmAlloc(8);
-
-    // Use the allocated memory...
-
-    // Free the memory
-    HmmFree(ptr1);
-    HmmFree(ptr2);
-    HmmFree(ptr3);
-
-    return 0;
-}
-```
-
 ## Flow Chart
 ### First Fit 
 ![Flow Diagram](https://github.com/user-attachments/assets/d5571c34-8855-4a03-903f-b85793bc1fee)
 
 #### Static array show
-![first fit array](https://github.com/user-attachments/assets/cfd7ebc7-2a03-4dc1-ae92-37274acada90)
+![Screenshot from 2024-08-21 01-46-11](https://github.com/user-attachments/assets/e5cbd50a-edcf-49c1-893d-7d842f8b7422)
 
 
 #### case 1 
@@ -173,7 +146,16 @@ int main() {
 ![case 3`](https://github.com/user-attachments/assets/4c5c7489-279d-4cc4-8f07-7ed532f3ae00)
 
 #### Extended Break pointer
-![Extend Break](https://github.com/user-attachments/assets/31a43104-f978-4ee5-af31-73ba118e8121)
+![Screenshot from 2024-08-21 01-48-25](https://github.com/user-attachments/assets/685594ce-424f-4329-9afc-2e09522a7f67)
+
+![Screenshot from 2024-08-21 01-48-54](https://github.com/user-attachments/assets/efb2223b-80b1-4070-8614-52dd5f567a6b)
+
+![Screenshot from 2024-08-21 01-49-32](https://github.com/user-attachments/assets/daffccb6-5c6a-4c09-84cd-d4a94698baa7)
+
+![Screenshot from 2024-08-21 01-50-07](https://github.com/user-attachments/assets/5a58f471-ee57-40f1-9d90-a962dbcd6b1c)
+
+#### Avoid Padding
+![Screenshot from 2024-08-21 01-50-29](https://github.com/user-attachments/assets/e85acd2b-c203-4aa0-82be-95cf28e6edc8)
 
 
 -------------------------------------------------------------------------------------------------------------------
@@ -183,28 +165,7 @@ int main() {
 ![BestFit Flaw Chart 2](https://github.com/user-attachments/assets/ba050377-3f8a-4127-bf2b-391a56acc7c9)
 
 #### Static array show
-![cases ](https://github.com/user-attachments/assets/9a3950bd-9df9-43c7-bcf6-f631696dcf02)
-
-#### case 1 
-![case 1](https://github.com/user-attachments/assets/36a9eb0c-45dd-4579-86af-1038fa8e69be)
-
-#### case 2
-![case 2](https://github.com/user-attachments/assets/2738d0b5-d037-4379-8050-59f481c60ecc)
-
-#### case 3
-![case 3](https://github.com/user-attachments/assets/0f6e81e7-6102-40cc-a055-14dbd6304470)
-
-#### case1`
-![case 1`](https://github.com/user-attachments/assets/ca30475b-ab61-407f-aa74-3615b8f2340f)
-
-#### case2`
-![case 2`](https://github.com/user-attachments/assets/78fb1c49-dde6-4092-8e41-6153734087e7)
-
-#### case3`
-![case 3`](https://github.com/user-attachments/assets/49781a7e-21b9-4df6-aece-ffd6668c30c7)
-
-#### Extended Break pointer
-![Extend Break](https://github.com/user-attachments/assets/774aefcb-1bb8-40c7-b014-9757ee76a74c)
++ the same concept of first fit figures
 
 -------------------------------------------------------------------------------------------------------------------
 
@@ -221,7 +182,13 @@ int main() {
 ![case2](https://github.com/user-attachments/assets/28e0d67e-72bc-4e4f-9e18-5530bea2cc2a)
 
 #### case 3
-![case3](https://github.com/user-attachments/assets/2e188503-3247-4128-8e83-1e04db2c01dd)
+![Screenshot from 2024-08-21 01-53-25](https://github.com/user-attachments/assets/6340f580-859a-4253-8d2d-3a466101b4ef)
+
+![Screenshot from 2024-08-21 01-54-03](https://github.com/user-attachments/assets/06a7c834-e211-4fe1-b309-41ad8bb253bc)
+
+![Screenshot from 2024-08-21 01-54-25](https://github.com/user-attachments/assets/64a8be88-9aad-4cd3-8272-1f42d22b3c30)
+
+![Screenshot from 2024-08-21 01-54-47](https://github.com/user-attachments/assets/8ddf9a55-0635-4b02-b62d-90a071263d84)
 
 -------------------------------------------------------------------------------------------------------------------
 
