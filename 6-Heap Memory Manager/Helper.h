@@ -36,17 +36,23 @@
 
 /*==================================  Definitions ===========================*/
 #define ONE_K                                   1024
-#define MAX_HEAPLENGHT                         20*ONE_K*ONE_K  // Maximum length for static array used to simulated heap
-#define INVALID                                  -1
-#define VALID                                     0
+#define MAX_HEAPLENGHT                         200*ONE_K*ONE_K  // Maximum length for static array used to simulated heap
+#define INVALID                                  -2
+#define VALID                                    -1
 #define PREVIOUS_FREE_BLOCK_SHIFT                 1
 #define NEXT_FREE_BLOCK_SHIFT                     2
-#define SYMBOL_OF_HEAP_NULL                      '!'
+#define SYMBOL_OF_HEAP_NULL                      -1
 #define BEGIN_DATA_SHIFTER                        1
 #define METADATA_CELL                             1
 #define ENABLE                                    1
 #define DISABLE                                   0 
 #define NUMBER_OF_FREE_NODE_ELEMENTS              3
+#define NOT_ENTER                                 1
+#define ENTERED                                   0
+#define BREAK_STEP_SIZE                          ONE_K
+#define STATE1                                   INVALID
+#define STATE2                                   VALID
+#define INFO_NODE                                 2
 
 /*==========================  typedef   =====================================*/
 typedef unsigned char boolean         ;
@@ -76,7 +82,7 @@ typedef double float64                ;
  * Notes            : This function is used to manage the dynamic allocation of memory within 
  *                    the simulated heap by effectively controlling the size of the heap.
  */
-sint64 Helper_sbrk (sint64 size);
+sint32 Helper_sbrk (sint32 size);
 
 
 /*
@@ -92,7 +98,7 @@ sint64 Helper_sbrk (sint64 size);
  *                    at the head, tail, or in between, adjusting the linked list of free blocks 
  *                    to reflect the new allocation.
  */
-sint32 Helper_FirstFit(uint32 size);
+sint32 Helper_FirstFit(sint32 size);
 
 /*
  * Name             : Helper_SetFreeSpaceNode
@@ -106,7 +112,7 @@ sint32 Helper_FirstFit(uint32 size);
  * Notes            : This function sets the previous and next free block pointers and the metadata for 
  *                    the free space node at the specified index in the simulated heap.
  */
-void Helper_SetFreeSpaceNode(uint32 index, uint32 metadata, uint32 previous_content, uint32 next_content);
+void Helper_SetFreeSpaceNode(sint32 index, sint32 metadata, sint32 previous_content, sint32 next_content);
 
 /*
  * Name             : Helper_FreeOperationBeforeHead
@@ -123,7 +129,7 @@ void Helper_SetFreeSpaceNode(uint32 index, uint32 metadata, uint32 previous_cont
  *                    - If the freed block is just before the head and adjacent, it extends the current head 
  *                      block to include the freed block.
  */
-void Helper_FreeOperationBeforeHead(uint32 index, uint32 size);
+void Helper_FreeOperationBeforeHead(sint32 index, sint32 size);
 
 /*
  * Name             : Helper_FreeOperationAfterTail
@@ -136,7 +142,7 @@ void Helper_FreeOperationBeforeHead(uint32 index, uint32 size);
  *                    - If the freed block is separate from the tail, it creates a new free block node and adjusts pointers.
  *                    - If the freed block is adjacent to the tail, it extends the current tail block to include the freed block.
  */
-void Helper_FreeOperationAfterTail(uint32 index,uint32 size);
+void Helper_FreeOperationAfterTail(sint32 index,sint32 size);
 
 /*
  * Name             : Helper_FreeOperationMiddleNode
@@ -151,7 +157,7 @@ void Helper_FreeOperationAfterTail(uint32 index,uint32 size);
  *                    - If the freed block is between two adjacent free blocks, it merges all three blocks into a single larger block.
  *                    - If the freed block is not adjacent to any free block, it creates a new free block and adjusts pointers accordingly.
  */
-void Helper_FreeOperationMiddleNode(uint32 index,uint32 size);
+void Helper_FreeOperationMiddleNode(sint32 index,sint32 size);
 
 /*
  * Name             : Helper_BestFit
@@ -170,8 +176,13 @@ void Helper_FreeOperationMiddleNode(uint32 index,uint32 size);
  * 5. Updates the free list and the metadata of the free blocks accordingly.
  */
 
-sint32 Helper_BestFit(uint32 size);
+sint32 Helper_BestFit(sint32 size);
 
+
+sint32 Helper_InsertPartFromNode (sint32 index, sint32 size, sint8 flag);
+sint32 Helper_RemoveCompleteNode (sint32 index, sint32 size, sint8 flag);
+sint32 Helper_sbrk_Resize(sint32 size,sint8 flag);
+sint32 Helper_AllocateMemory(sint32 index, sint32 size, sint8 flag);
 
 /*============================  Configurations ==============================*/
 /*
