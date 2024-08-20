@@ -34,11 +34,10 @@
 
 
 /*=============================  Global Variables ==============================*/
-uint32 SimHeap[MAX_HEAPLENGHT];          // simulated heap
-sint64 CurBreak;                         // break pointer on simulated heap
-uint8* border="---------------------------------------------------------------------------------";
-uint32 Head;                             // define first index of free space
-uint32 Tail;                             // define last index of free spaces
+sint32 SimHeap[MAX_HEAPLENGHT];          // simulated heap
+sint32 CurBreak;                         // break pointer on simulated heap
+sint32 Head;                             // define first index of free space
+sint32 Tail;                             // define last index of free spaces
 
 
 /*==========================  Function Prototypes ===========================*/
@@ -54,7 +53,7 @@ uint32 Tail;                             // define last index of free spaces
  *                    strategy defined by the user. If FIRSTFIT is enabled, the allocation uses 
  *                    the First Fit strategy; otherwise, it uses the Best Fit strategy.
  */
-uint32* HMM_Malloc(uint32 size);
+sint32* HMM_Malloc(sint32 size);
 
 /*
  * Name             : HMM_Free
@@ -67,7 +66,7 @@ uint32* HMM_Malloc(uint32 size);
  *                    the block to be freed relative to the head and tail nodes. It ensures 
  *                    optimal memory usage by merging adjacent free blocks when possible.
  */
-    void HMM_Free(uint32* ptr);
+void HMM_Free(sint32* ptr);
 
 /*
  * Name             : HMM_Init
@@ -84,12 +83,25 @@ static void HMM_Init();
 
 
 
-/*==================================  main =====================================*/
+/*==================================  testing =====================================*/
 #include <time.h>
 #define NUM_ALLOCS 10000
-#define MAX_SIZE 10240
-#define MAX_ITERATIONS 10000
+#define MAX_SIZE 102
+#define MAX_ITERATIONS 650
 
+
+void PrintFreeListFromHead();
+
+void printHeapState() {
+    printf("-----------------------------------------------------------------------------------------\n");
+    printf("Head: %d, Tail: %d\n", Head, Tail);
+    printf("SimHeap[Head]: %d, SimHeap[Head+1]: %d, SimHeap[Head+2]: %d\n",
+        SimHeap[Head], SimHeap[Head+1], SimHeap[Head+2]);
+    printf("SimHeap[Tail]: %d, SimHeap[Tail+1]: %d, SimHeap[Tail+2]: %d\n",
+        SimHeap[Tail], SimHeap[Tail+1], SimHeap[Tail+2]);
+    printf("-----------------------------------------------------------------------------------------\n");
+
+}
 
 void random_alloc_free_test() {
     srand((unsigned int)time(NULL));
@@ -101,32 +113,125 @@ void random_alloc_free_test() {
         if (pointers[index] == NULL) {
             // Allocate memory
             size_t size = (size_t)(rand() % MAX_SIZE) + 1;
+            printf("\n\n\nBefore Malloc function\n");
+            printHeapState();
             pointers[index] = HMM_Malloc(size);
             if (pointers[index] != NULL) {
                 printf("Allocated memory of size %zu at address %p\n", size, pointers[index]);
+                printf("size = %ld\n",size);
+                printf("After Malloc function\n");
+                printHeapState();
+                printf("\n\n\n");
             } else {
                 fprintf(stderr, "Allocation failed for size %zu\n", size);
             }
         } else {
             // Free memory
-            printf("Freeing memory at address %p\n", pointers[index]);
             HMM_Free(pointers[index]);
+            // Calculate the target index
+            sint32 targetIndex = (sint32)(((sint32*)((uint8*)pointers[index] - sizeof(sint32))) - SimHeap);
+    
+            // Print the relevant information for the current free node
+            printf("\n-------------------  Free Memory in this index only  ----------------------------\n");
+            printf("| Index | Block Size | Prev Free Block | Next Free Block |\n");
+            printf("----------------------------------------------------\n");
+            printf("| %5d | %10d | %15d | %15d |\n", 
+                   targetIndex, 
+                   SimHeap[targetIndex], 
+                   SimHeap[targetIndex + PREVIOUS_FREE_BLOCK_SHIFT], 
+                   SimHeap[targetIndex + NEXT_FREE_BLOCK_SHIFT]);
             pointers[index] = NULL;
         }
     }
-    
+
+    uint8* border = " ============================================================================" ; 
+    printf("%s\n%s\n",border,border);
+
     // Free remaining allocated memory
     for (int i = 0; i < NUM_ALLOCS; ++i) {
         if (pointers[i] != NULL) {
-            printf("Freeing remaining memory at address %p\n", pointers[i]);
+            // Free memory
             HMM_Free(pointers[i]);
+
+            // Calculate the target index
+            sint32 targetIndex = (sint32)(((sint32*)((uint8*)pointers[i] - sizeof(sint32))) - SimHeap);
+
+            // Print the relevant information for the current free node
+            printf("\n-------------------------  Free Remaining Memory   ---------------------------\n");
+            printf("| Index | Block Size | Prev Free Block | Next Free Block |\n");
+            printf("----------------------------------------------------\n");
+            printf("| %5d | %10d | %15d | %15d |\n", 
+                   targetIndex, 
+                   SimHeap[targetIndex], 
+                   SimHeap[targetIndex + PREVIOUS_FREE_BLOCK_SHIFT], 
+                   SimHeap[targetIndex + NEXT_FREE_BLOCK_SHIFT]);
+
+            // Clear the pointer
             pointers[i] = NULL;
         }
     }
 }
 
+void PrintFreeListFromHead() {
+    sint32 current = Head;
+
+    printf("Free List From Head:\n");
+    printf("----------------------------------------------------\n");
+    printf("| Index | Block Size | Prev Free Block | Next Free Block |\n");
+    printf("----------------------------------------------------\n");
+
+    sint32 size = SimHeap[current];
+    sint32 prev = SimHeap[current + PREVIOUS_FREE_BLOCK_SHIFT];
+    sint32 next = SimHeap[current + NEXT_FREE_BLOCK_SHIFT];
+
+    while (current != SYMBOL_OF_HEAP_NULL && current != prev) {
+        size = SimHeap[current];
+        prev = SimHeap[current + PREVIOUS_FREE_BLOCK_SHIFT];
+        next = SimHeap[current + NEXT_FREE_BLOCK_SHIFT];
+
+        printf("| %5d | %10d | %15d | %15d |\n", current, size, prev, next);
+
+        current = next;
+    }
+
+    printf("----------------------------------------------------\n");
+}
+
+
+
+
+void PrintFreeListFromTail() {
+    sint32 current = Tail;
+
+    printf("Free List From Tail:\n");
+    printf("----------------------------------------------------\n");
+    printf("| Index | Block Size | Prev Free Block | Next Free Block |\n");
+    printf("----------------------------------------------------\n");
+
+    sint32 size = SimHeap[current];
+    sint32 prev = SimHeap[current + PREVIOUS_FREE_BLOCK_SHIFT];
+    sint32 next = SimHeap[current + NEXT_FREE_BLOCK_SHIFT];
+
+    while (current != SYMBOL_OF_HEAP_NULL && current != next) {
+        size = SimHeap[current];
+        prev = SimHeap[current + PREVIOUS_FREE_BLOCK_SHIFT];
+        next = SimHeap[current + NEXT_FREE_BLOCK_SHIFT];
+
+        printf("| %5d | %10d | %15d | %15d |\n", current, size, prev, next);
+
+        current = prev;
+    }
+
+    printf("----------------------------------------------------\n");
+}
+/*==================================  main =====================================*/
 uint8 main (){
     HMM_Init();
+    //sint32* ptr[10] ;
+    /*for (uint8 i =0 ; i < 10 ; i++){
+        size_t size = (size_t)(rand() % MAX_SIZE) + 1;
+        ptr[i] = HMM_Malloc(size);
+    }*/
 
     printf("Starting random allocation and deallocation test...\n");
     random_alloc_free_test();
@@ -138,18 +243,18 @@ uint8 main (){
 
 
 /*============================== Functions Implementation =====================*/
-uint32* HMM_Malloc(uint32 size){
+sint32* HMM_Malloc(sint32 size){
 #if (FIRSTFIT == ENABLE )
-    uint32 index = Helper_FirstFit(size);
+    sint32 index = Helper_FirstFit(size);
 #else
-    uint32 index = Helper_BestFit(size);
+    sint32 index = Helper_BestFit(size);
 #endif
-    return  (uint32*) (&(SimHeap[index])) ;
+    return  (sint32*) (&(SimHeap[index])) ;
 }
 
-void HMM_Free(uint32* ptr){
-    uint32 sizeOfptr = *(ptr-1); // to know size  of this pointer
-    uint32 indexOfptr = 0 ;          // to know what is the index in simulated heap for ptr 
+void HMM_Free(sint32* ptr){
+    sint32 sizeOfptr = *(ptr-1); // to know size  of this pointer
+    sint32 indexOfptr = 0 ;          // to know what is the index in simulated heap for ptr 
 
     while ( &SimHeap[indexOfptr++] != (ptr-1) ); // to stop on index of ptr
     indexOfptr--;                           // to stop on index of metadata for ptr
@@ -182,8 +287,9 @@ void HMM_Free(uint32* ptr){
 void HMM_Init(){
     Head = 0 ;
     Tail = 0 ;
-    CurBreak = ONE_K-1 ;
-    SimHeap[Head] = ONE_K-1 ;
+    CurBreak = BREAK_STEP_SIZE-1 ;
+    SimHeap[Head] = BREAK_STEP_SIZE-1 ;
     SimHeap[Head+PREVIOUS_FREE_BLOCK_SHIFT] = SYMBOL_OF_HEAP_NULL ; 
     SimHeap[Head+NEXT_FREE_BLOCK_SHIFT] = SYMBOL_OF_HEAP_NULL ; 
-}
+    printHeapState();
+} 
