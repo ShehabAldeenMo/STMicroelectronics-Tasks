@@ -86,8 +86,8 @@ static void HMM_Init();
 /*==================================  testing =====================================*/
 #include <time.h>
 #define NUM_ALLOCS 10000
-#define MAX_SIZE 102
-#define MAX_ITERATIONS 650
+#define MAX_SIZE 10240
+#define MAX_ITERATIONS 10000
 
 
 void PrintFreeListFromHead();

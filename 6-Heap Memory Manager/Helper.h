@@ -36,7 +36,7 @@
 
 /*==================================  Definitions ===========================*/
 #define ONE_K                                   1024
-#define MAX_HEAPLENGHT                         20*ONE_K*ONE_K  // Maximum length for static array used to simulated heap
+#define MAX_HEAPLENGHT                         200*ONE_K*ONE_K  // Maximum length for static array used to simulated heap
 #define INVALID                                  -2
 #define VALID                                    -1
 #define PREVIOUS_FREE_BLOCK_SHIFT                 1
