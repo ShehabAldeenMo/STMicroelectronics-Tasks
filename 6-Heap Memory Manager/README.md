@@ -1,11 +1,9 @@
 # Heap Memory Manager
 
 ## Table of Contents
-
 - [Description](#description)
+- [Abstration](#abstraction)
 - [Features](#features)
-- [Function Descriptions](#function-descriptions)
-- [Usage](#usage)
 - [Flow Chart](#flow-chart)
 - [Build Instruction](#build-instruction)
 - [Notes](#notes)
@@ -13,6 +11,33 @@
 ## Description
 
 The Heap Memory Manager (HMM) provides dynamic memory allocation services to user-space programs by simulating a heap using a large statically allocated array and a variable representing the program break. This implementation does not use kernel-level memory management but instead operates entirely in user space for simplicity and ease of debugging.
+
+## Abstraction
+![Screenshot from 2024-08-21 20-10-59](https://github.com/user-attachments/assets/c1c9d5db-843e-422a-abe9-0b4fbff9a856)
+
+```
+6-Heap Memory Manager/
+|
+├── Level_1/
+│   ├── HeapTest.h
+│   ├── HeapTest.c
+|
+├── Level_2/
+│   ├── HeapExtras.h
+│   ├── HeapExtras.c
+│   ├── HeapManager.h
+│   ├── HeapManager.c
+|
+├── Level_3/
+│   ├── HeapUtils.h
+│   ├── HeapUtils.c
+|
+└── main.c
+└── track_freelist.gdb
+└── README.md
+└── MakeFile
+└── .gitignore
+```
 
 ## Features
 
@@ -23,127 +48,22 @@ The Heap Memory Manager (HMM) provides dynamic memory allocation services to use
 - **Free Space Management**: Handle merging and splitting of free blocks in the heap.
 - **Heap Expansion and Shrinking**: Simulate heap size adjustments by modifying the program break.
 
-## Function Descriptions
-
-### `void HMM_Init()`
-
-Initializes the heap memory manager.
-
-### `void *HmmAlloc(size_t size)`
-
-Allocates a block of memory of the specified size.
-
-**Parameters:**
-- `size`: The size of the memory block to allocate, in bytes.
-
-**Returns:**
-- A pointer to the allocated memory block, or `NULL` if the allocation fails.
-
-### `void HmmFree(void *ptr)`
-
-Frees a previously allocated memory block.
-
-**Parameters:**
-- `ptr`: A pointer to the memory block to be freed.
-
-**Returns:**
-- None.
-
-### `sint32 Helper_BestFit(uint32 size)`
-
-Finds the best-fit block of memory for the specified size.
-
-**Parameters:**
-- `size`: The size of the memory block to find.
-
-**Returns:**
-- The index of the best-fit block, or `INVALID` if no suitable block is found.
-
-### `sint32 Helper_FirstFit(uint32 size)`
-
-Finds the first-fit block of memory for the specified size.
-
-**Parameters:**
-- `size`: The size of the memory block to find.
-
-**Returns:**
-- The index of the first-fit block, or `INVALID` if no suitable block is found.
-
-### `void Helper_FreeOperationAfterTail(uint32 index, uint32 size)`
-
-Manages free space when a new block is freed after the tail of the heap.
-
-**Parameters:**
-- `index`: The index of the newly freed block.
-- `size`: The size of the newly freed block.
-
-### `void Helper_FreeOperationBeforeHead(uint32 index, uint32 size)`
-
-Manages free space when a new block is freed before the head of the heap.
-
-**Parameters:**
-- `index`: The index of the newly freed block.
-- `size`: The size of the newly freed block.
-
-### `void Helper_FreeOperationMiddleNode(uint32 index, uint32 size)`
-
-Manages free space when a new block is freed in the middle of the heap.
-
-**Parameters:**
-- `index`: The index of the newly freed block.
-- `size`: The size of the newly freed block.
-
-### `void Helper_SetFreeSpaceNode(uint32 index, uint32 metadata, uint32 previous_content, uint32 next_content)`
-
-Sets up a new free space node in the heap.
-
-**Parameters:**
-- `index`: The index of the new free space node.
-- `metadata`: Metadata for the new free space node.
-- `previous_content`: The previous free block index.
-- `next_content`: The next free block index.
-
-### `sint32 Helper_sbrk(sint32 size)`
-
-Simulates the `sbrk()` system call to increase or decrease the size of the heap.
-
-**Parameters:**
-- `size`: The amount to increase or decrease the heap size.
-
-**Returns:**
-- The new program break index, or `INVALID` if the operation fails.
-
-## Usage
-
-### Initialization
-
-Initialize the memory manager with `HMM_Init()` before performing any allocation or deallocation operations.
-
 ## Flow Chart
 ### First Fit 
-![Flow Diagram](https://github.com/user-attachments/assets/d5571c34-8855-4a03-903f-b85793bc1fee)
+![Screenshot from 2024-08-21 20-31-56](https://github.com/user-attachments/assets/13ada887-5035-4f4c-afe2-74191acdd6c1)
 
 #### Static array show
 ![Screenshot from 2024-08-21 01-46-11](https://github.com/user-attachments/assets/e5cbd50a-edcf-49c1-893d-7d842f8b7422)
 
 
 #### case 1 
-![case 1](https://github.com/user-attachments/assets/ee64f89d-fc96-4b2d-a87c-8fe1bbe37137)
+![Screenshot from 2024-08-21 20-45-01](https://github.com/user-attachments/assets/a6853a71-7a87-4593-8904-c7b830938d43)
 
 #### case 2
-![case 2](https://github.com/user-attachments/assets/f0823bbe-2e91-46bf-a7f2-80e3146d34af)
+![Screenshot from 2024-08-21 20-46-43](https://github.com/user-attachments/assets/2ca76c33-1b6e-459b-a64c-8c0aed579582)
 
 #### case 3
-![case 3](https://github.com/user-attachments/assets/b7dd8ea7-057b-4edf-a80a-5723321635e1)
-
-#### case1`
-![case 1`](https://github.com/user-attachments/assets/808a4926-9426-433b-b835-3c5d82897a1c)
-
-#### case2`
-![case 2`](https://github.com/user-attachments/assets/2456e1f1-95b3-4348-a5c5-18be4fbb9b9f)
-
-#### case3`
-![case 3`](https://github.com/user-attachments/assets/4c5c7489-279d-4cc4-8f07-7ed532f3ae00)
+![Screenshot from 2024-08-21 20-49-13](https://github.com/user-attachments/assets/bf775638-2eae-4351-968c-3532546dff78)
 
 #### Extended Break pointer
 ![Screenshot from 2024-08-21 01-48-25](https://github.com/user-attachments/assets/685594ce-424f-4329-9afc-2e09522a7f67)
@@ -161,8 +81,7 @@ Initialize the memory manager with `HMM_Init()` before performing any allocation
 -------------------------------------------------------------------------------------------------------------------
 
 ### Best Fit 
-![BestFit Flaw Chart 1](https://github.com/user-attachments/assets/d4df84ce-f4ab-493f-b405-b4ac42077962)
-![BestFit Flaw Chart 2](https://github.com/user-attachments/assets/ba050377-3f8a-4127-bf2b-391a56acc7c9)
+![Screenshot from 2024-08-21 21-13-28](https://github.com/user-attachments/assets/a5985c56-e0b5-4f21-8552-f1b8bd1e8df5)
 
 #### Static array show
 + the same concept of first fit figures
@@ -170,7 +89,7 @@ Initialize the memory manager with `HMM_Init()` before performing any allocation
 -------------------------------------------------------------------------------------------------------------------
 
 ### Free Block 
-![Free FlowChart](https://github.com/user-attachments/assets/1fe684cc-8207-4e69-93a8-d85b9f10917e)
+![Screenshot from 2024-08-21 21-46-51](https://github.com/user-attachments/assets/285e3f78-9fb6-4eec-a29b-37b532321a47)
 
 #### General Cases 
 ![cases](https://github.com/user-attachments/assets/82beee69-6c88-4df7-8b61-6af25fdadc42)
@@ -184,10 +103,13 @@ Initialize the memory manager with `HMM_Init()` before performing any allocation
 #### case 3
 ![Screenshot from 2024-08-21 01-53-25](https://github.com/user-attachments/assets/6340f580-859a-4253-8d2d-3a466101b4ef)
 
+#### case 3-1
 ![Screenshot from 2024-08-21 01-54-03](https://github.com/user-attachments/assets/06a7c834-e211-4fe1-b309-41ad8bb253bc)
 
+#### case 3-2
 ![Screenshot from 2024-08-21 01-54-25](https://github.com/user-attachments/assets/64a8be88-9aad-4cd3-8272-1f42d22b3c30)
 
+#### case 3-3
 ![Screenshot from 2024-08-21 01-54-47](https://github.com/user-attachments/assets/8ddf9a55-0635-4b02-b62d-90a071263d84)
 
 -------------------------------------------------------------------------------------------------------------------
@@ -203,15 +125,21 @@ cd heap-memory-manager
 ```
 
 2. Compilation:
-  Compile the project using GCC. Navigate to the project directory and use the following command:
+   The Makefile supports different build types, such as DEBUG. You can set the build type by modifying the BUILD_TYPE variable in the Makefile:
 ```
-gcc -o heap_manager HMM.c Helper.c
+BUILD_TYPE=DEBUG
 ```
 
 3. Running the Program:
   After successful compilation, you can run the heap manager by executing:
 ```
 ./heap_manager
+```
+
+4. Clean the Build:
+To clean up the compiled files, you can use the clean target:
+```
+make clean
 ```
 
 
