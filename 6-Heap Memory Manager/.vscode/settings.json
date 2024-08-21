@@ -2,6 +2,7 @@
     "C_Cpp.intelliSenseEngineFallback": "enabled",
     "C_Cpp.default.compilerPath": "/usr/bin/gcc",
     "files.associations": {
-        "helper.h": "c"
+        "helper.h": "c",
+        "heaptest.h": "c"
     }
 }
