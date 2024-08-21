@@ -87,7 +87,7 @@ static void HMM_Init();
 #include <time.h>
 #define NUM_ALLOCS 10000
 #define MAX_SIZE 10240
-#define MAX_ITERATIONS 10000
+#define MAX_ITERATIONS 1000000
 
 
 void PrintFreeListFromHead();
@@ -245,11 +245,11 @@ uint8 main (){
 /*============================== Functions Implementation =====================*/
 sint32* HMM_Malloc(sint32 size){
 #if (FIRSTFIT == ENABLE )
-    sint32 index = Helper_FirstFit(size);
+    sint32 indexOfData = Helper_FirstFit(size);
 #else
     sint32 index = Helper_BestFit(size);
 #endif
-    return  (sint32*) (&(SimHeap[index])) ;
+    return  (sint32*) (&(SimHeap[indexOfData])) ;
 }
 
 void HMM_Free(sint32* ptr){

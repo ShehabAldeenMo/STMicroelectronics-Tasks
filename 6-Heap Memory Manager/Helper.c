@@ -62,12 +62,12 @@ sint32 Helper_sbrk (sint32 size){
 sint32 Helper_FirstFit(sint32 size){ // size is sint32 but we will sure the this value will be positive but we define it signed to compare it with SimHeap[i]
     /*
     * - TailSbrkState: express about `if head and tail point to the same index and just before break pointer in your heap`
-    * - Ret_SuitableIndex: used as the return value of target index that used to point to data 
+    * - Ret_DataIndex: used as the return value of target index that used to point to data 
     * - i: iterate in while loop
     * - size: resize the block with the new size. Because we are use three blocks for represent free node.
     */
     sint8 TailSbrkState = STATE1 ; 
-    sint32 Ret_SuitableIndex = INVALID ;  
+    sint32 Ret_DataIndex = INVALID ;  
     sint32 i = Head ;  
 
     /* if head and tail are point to the same index before break index in heap
@@ -84,9 +84,9 @@ sint32 Helper_FirstFit(sint32 size){ // size is sint32 but we will sure the this
     * iterate to reserve some memory for required pointer
     * */
     while( i != (sint32) SYMBOL_OF_HEAP_NULL){ // while its next node is not jump over break
-        Ret_SuitableIndex = Helper_AllocateMemory(i,size,TailSbrkState);
+        Ret_DataIndex = Helper_AllocateMemory(i,size,TailSbrkState);
 
-        if (Ret_SuitableIndex != INVALID){
+        if (Ret_DataIndex != INVALID){
             break ;
         }
         else {
@@ -100,22 +100,22 @@ sint32 Helper_FirstFit(sint32 size){ // size is sint32 but we will sure the this
     * so we will move sbrk pointer and update our free list
     */
     if ( i == (sint32) SYMBOL_OF_HEAP_NULL ){
-        Ret_SuitableIndex = Helper_sbrk_Resize(size, TailSbrkState);
+        Ret_DataIndex = Helper_sbrk_Resize(size, TailSbrkState);
     }
 
     /* return index of allocation new space -> data */
-    return Ret_SuitableIndex ;
+    return Ret_DataIndex ;
 }
 
 sint32 Helper_sbrk_Resize(sint32 size, sint8 flag){
     /*
-    * - Ret_SuitableIndex: used as the return value of target index that used to point to data 
+    * - Ret_DataIndex: used as the return value of target index that used to point to data 
     * - New_Tail: express what is the new created node.
     */
-    sint32 Ret_SuitableIndex = INVALID ;  
+    sint32 Ret_DataIndex = INVALID ;  
     sint32 New = INVALID ;
 
-    while (Ret_SuitableIndex == INVALID){
+    while (Ret_DataIndex == INVALID){
         New = Helper_sbrk(BREAK_STEP_SIZE);
 
         /* if there is no space */
@@ -147,15 +147,14 @@ sint32 Helper_sbrk_Resize(sint32 size, sint8 flag){
             SimHeap[Tail] += BREAK_STEP_SIZE;
         }
         flag = STATE2 ;
-        Ret_SuitableIndex = Helper_AllocateMemory(Tail, size, flag);
+        Ret_DataIndex = Helper_AllocateMemory(Tail, size, flag);
     }
 
-    Ret_SuitableIndex +=  BEGIN_DATA_SHIFTER ;
-    return Ret_SuitableIndex ;
+    return Ret_DataIndex ;
 }
 
 sint32 Helper_InsertPartFromNode (sint32 index,sint32 size, sint8 flag){
-    sint32 Ret_SuitableIndex ; 
+    sint32 Ret_DataIndex ; 
 
     /* head and tail point to the same node */
     sint8 HeadAndTail = INVALID ;
@@ -220,14 +219,14 @@ sint32 Helper_InsertPartFromNode (sint32 index,sint32 size, sint8 flag){
     *  that: 1. return value point to the beginning of data space
     *        2. edit metadata of new allocation to new allocation available space
     */
-    Ret_SuitableIndex = index  + BEGIN_DATA_SHIFTER;
+    Ret_DataIndex = index  + BEGIN_DATA_SHIFTER;
     SimHeap[index] = size ;
 
-    return Ret_SuitableIndex ;
+    return Ret_DataIndex ;
 }
 
 sint32 Helper_RemoveCompleteNode (sint32 index, sint32 size, sint8 flag){
-    sint32 Ret_SuitableIndex ; 
+    sint32 Ret_DataIndex ; 
     
     /* head and tail point to the same node */
     sint8 HeadAndTail = INVALID ;
@@ -283,9 +282,9 @@ sint32 Helper_RemoveCompleteNode (sint32 index, sint32 size, sint8 flag){
     }
 
     SimHeap[index] = size;
-    Ret_SuitableIndex = index  + BEGIN_DATA_SHIFTER;
+    Ret_DataIndex = index  + BEGIN_DATA_SHIFTER;
 
-    return Ret_SuitableIndex ;
+    return Ret_DataIndex ;
 }
 
 // define new node with new info or update on some node
@@ -298,6 +297,13 @@ void Helper_SetFreeSpaceNode(sint32 index, sint32 metadata, sint32 previous_cont
 
 
 void Helper_FreeOperationBeforeHead(sint32 index, sint32 size){
+    /*================ Debugging=================================*/
+    printf("Free Before Head\n");
+    printf("| Index | Block Size |\n");
+    printf("----------------------------------------------------\n");
+    printf("| %5d | %10d |\n", 
+            index, SimHeap[index]);
+    /*=============================================================*/
     sint32 PositionOfFreeBlock = index + size + METADATA_CELL ; // to check that the target free block is adjecent for head or away from.
      /* if ptr is pointing to node before head node and away from it
      *  that : 1- define new node 
@@ -328,6 +334,13 @@ void Helper_FreeOperationBeforeHead(sint32 index, sint32 size){
 
 
 void Helper_FreeOperationAfterTail(sint32 index, sint32 size){
+    /*================ Debugging=================================*/
+    printf("Free After Tail\n");
+    printf("| Index | Block Size |\n");
+    printf("----------------------------------------------------\n");
+    printf("| %5d | %10d |\n", 
+            index, SimHeap[index]);
+    /*=============================================================*/
     sint32 PositionOfTailBlock = Tail + SimHeap[Tail] + METADATA_CELL ; // to check that the target free block is adjecent for tail or away from.
      /* if ptr is pointing to tail before node node is away from
      *  that : 1- define new node
@@ -350,6 +363,13 @@ void Helper_FreeOperationAfterTail(sint32 index, sint32 size){
 }
 
 void Helper_FreeOperationMiddleNode(sint32 index,sint32 size){
+    /*================ Middle Node =================================*/
+    printf("Free Middle Node\n");
+    printf("| Index | Block Size |\n");
+    printf("----------------------------------------------------\n");
+    printf("| %5d | %10d |\n", 
+            index, SimHeap[index]);
+    /*=============================================================*/
     sint32 nextIndex = Head ; // to store the next free slot after index
     sint32 PreIndex = 0 ;     // to store the previous free slot before index
 
@@ -512,18 +532,21 @@ sint32 Helper_BestFit(sint32 size){
 }
 
 sint32 Helper_AllocateMemory(sint32 index, sint32 size, sint8 flag){
-    sint32 Ret_SuitableIndex = INVALID ;  
+    sint32 Ret_DataIndex = INVALID ;  
     sint32 padding =  SimHeap[index] - size ;
 
-    if (padding < NUMBER_OF_FREE_NODE_ELEMENTS){
-        size += padding ;
+    // Handle padding cases
+    if (padding >= 0 && padding < NUMBER_OF_FREE_NODE_ELEMENTS) {
+        // If padding is 0, 1, or 2, we adjust the requested size to include the padding
+        size += padding;
     }
+    
     /* memory allocation action */
     if (SimHeap[index] > size){
-        Ret_SuitableIndex = Helper_InsertPartFromNode (index,size,flag);
+        Ret_DataIndex = Helper_InsertPartFromNode (index,size,flag);
     }
     else if (SimHeap[index] == size){
-        Ret_SuitableIndex = Helper_RemoveCompleteNode (index,size,flag);
+        Ret_DataIndex = Helper_RemoveCompleteNode (index,size,flag);
     } 
-    return Ret_SuitableIndex ; 
+    return Ret_DataIndex ; 
 }
