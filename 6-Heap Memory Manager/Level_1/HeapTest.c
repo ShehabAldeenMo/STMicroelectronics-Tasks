@@ -91,11 +91,6 @@ void HeapTest_RandomAllocateFreeTest() {
         }
     }
 
-#if DEBUGGING == ENABLE
-    uint8* border = " ============================================================================" ; 
-    printf("%s\n%s\n",border,border);
-#endif
-
     // Free remaining allocated memory
     for (int i = 0; i < NUM_ALLOCS; ++i) {
         if (pointers[i] != NULL) {
