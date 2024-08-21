@@ -42,7 +42,7 @@ extern sint32 Tail;                             // define last index of free spa
 
 
 /*=========================  Functions Implementation ===========================*/
-sint32 HeapUtils_AllocationCoreLoop(sint32 index, sint32 size, sint8 flag){
+sint32 HeapUtils_AllocationCoreLoop(sint32 index, sint32 size){
     sint32 Ret_DataIndex = INVALID ;  
     sint32 padding =  SimHeap[index] - size ;
 
@@ -54,10 +54,10 @@ sint32 HeapUtils_AllocationCoreLoop(sint32 index, sint32 size, sint8 flag){
     
     /* memory allocation action */
     if (SimHeap[index] > size){
-        Ret_DataIndex = HeapUtils_SplitFreeBlock (index,size,flag);
+        Ret_DataIndex = HeapUtils_SplitFreeBlock (index,size);
     }
     else if (SimHeap[index] == size){
-        Ret_DataIndex = HeapUtils_RemoveFreeBlock (index,size,flag);
+        Ret_DataIndex = HeapUtils_RemoveFreeBlock (index,size);
     } 
     return Ret_DataIndex ; 
 }
@@ -127,7 +127,7 @@ sint32 HeapUtils_sbrkResize(sint32 size,sint8 flag){
             SimHeap[Tail] += BREAK_STEP_SIZE;
         }
         flag = STATE2 ;
-        Ret_DataIndex = HeapUtils_AllocationCoreLoop(Tail, size, flag);
+        Ret_DataIndex = HeapUtils_AllocationCoreLoop(Tail, size);
     }
 
     return Ret_DataIndex ;
@@ -136,7 +136,7 @@ sint32 HeapUtils_sbrkResize(sint32 size,sint8 flag){
 
 
 
-sint32 HeapUtils_SplitFreeBlock (sint32 index, sint32 size, sint8 flag){
+sint32 HeapUtils_SplitFreeBlock (sint32 index, sint32 size){
     sint32 Ret_DataIndex ; 
 
     /* head and tail point to the same node */
@@ -210,7 +210,7 @@ sint32 HeapUtils_SplitFreeBlock (sint32 index, sint32 size, sint8 flag){
 
 
 
-sint32 HeapUtils_RemoveFreeBlock (sint32 index, sint32 size, sint8 flag){
+sint32 HeapUtils_RemoveFreeBlock (sint32 index, sint32 size){
     sint32 Ret_DataIndex ; 
     
     /* head and tail point to the same node */

@@ -64,7 +64,7 @@ sint32 HeapExtras_FirstFit(sint32 size){
     * iterate to reserve some memory for required pointer
     * */
     while( i != (sint32) SYMBOL_OF_HEAP_NULL){ // while its next node is not jump over break
-        Ret_DataIndex = HeapUtils_AllocationCoreLoop(i,size,TailSbrkState);
+        Ret_DataIndex = HeapUtils_AllocationCoreLoop(i,size);
 
         if (Ret_DataIndex != INVALID){
             break ;
@@ -332,7 +332,7 @@ sint32 HeapExtras_BestFit(sint32 size){
         Ret_SuitableIndex = HeapUtils_sbrkResize(size, TailSbrkState);
     }
     else {
-        Ret_SuitableIndex = HeapUtils_AllocationCoreLoop(SuitableIndex,size,TailSbrkState);
+        Ret_SuitableIndex = HeapUtils_AllocationCoreLoop(SuitableIndex,size);
         Ret_SuitableIndex += BEGIN_DATA_SHIFTER;
     }
     

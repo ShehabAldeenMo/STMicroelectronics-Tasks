@@ -80,7 +80,6 @@ typedef double float64                ;
  *                    the allocation process by managing padding and updating the simulated heap.
  * Input            : index - The starting index in the heap where allocation is to be attempted.
  *                    size - The size of memory to be allocated.
- *                    flag - A flag indicating allocation mode or state.
  * Output           : None
  * Return           : Returns the index of the allocated memory if successful, or `INVALID` if 
  *                    allocation fails.
@@ -88,7 +87,7 @@ typedef double float64                ;
  *                    fits partially or exactly in the available space. It calls helper functions 
  *                    to manage memory allocation and node adjustments.
  */
-sint32 HeapUtils_AllocationCoreLoop(sint32 index, sint32 size, sint8 flag);
+sint32 HeapUtils_AllocationCoreLoop(sint32 index, sint32 size);
 
 /*
  * Name             : HeapUtils_sbrk
@@ -127,14 +126,13 @@ sint32 HeapUtils_sbrkResize(sint32 size,sint8 flag);
  *                    to maintain the integrity of the free list.
  * Input            : index - The starting index of the free block to split.
  *                    size - The size of memory to allocate from the free block.
- *                    flag - A flag indicating the state or mode for splitting.
  * Output           : None
  * Return           : Returns the index of the newly allocated memory.
  * Notes            : This function handles different scenarios for splitting free blocks, 
  *                    including cases where the block is at the head or tail of the free list. 
  *                    It updates the metadata and pointers to reflect the split.
  */
-sint32 HeapUtils_SplitFreeBlock (sint32 index, sint32 size, sint8 flag);
+sint32 HeapUtils_SplitFreeBlock (sint32 index, sint32 size);
 
 /*
  * Name             : HeapUtils_RemoveFreeBlock
@@ -143,14 +141,13 @@ sint32 HeapUtils_SplitFreeBlock (sint32 index, sint32 size, sint8 flag);
  *                    after the block has been removed.
  * Input            : index - The starting index of the free block to remove.
  *                    size - The size of the block to remove.
- *                    flag - A flag indicating the state or mode for removal.
  * Output           : None
  * Return           : Returns the index of the newly allocated memory after removal.
  * Notes            : This function handles different cases for removing free blocks, including 
  *                    updates to the head and tail of the free list and adjusting pointers to 
  *                    maintain the heap's free list structure.
  */
-sint32 HeapUtils_RemoveFreeBlock (sint32 index, sint32 size, sint8 flag);
+sint32 HeapUtils_RemoveFreeBlock (sint32 index, sint32 size);
 
 /*
  * Name             : HeapUtils_SetFreeNodeInfo

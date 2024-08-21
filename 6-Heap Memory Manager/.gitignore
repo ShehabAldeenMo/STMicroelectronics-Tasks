@@ -7,4 +7,8 @@ BestFit ScreenShots/*.mp4
 a.out
 HMM
 stress_test.c
-
+Level_1/*.o
+Level_2/*.o
+Level_3/*.o
+*.o
+heap_manager

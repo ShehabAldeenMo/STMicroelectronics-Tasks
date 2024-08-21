@@ -3,6 +3,7 @@
     "C_Cpp.default.compilerPath": "/usr/bin/gcc",
     "files.associations": {
         "helper.h": "c",
-        "heaptest.h": "c"
+        "heaptest.h": "c",
+        "heapmanager.h": "c"
     }
 }

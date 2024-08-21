@@ -106,6 +106,6 @@ sint32 HeapExtras_BestFit(sint32 size);
  * Notes            : This function must be called before any memory allocation or deallocation 
  *                    operations to ensure that the simulated heap is properly initialized.
  */
-static void HeapExtras_Init();
+void HeapExtras_Init();
 
 #endif

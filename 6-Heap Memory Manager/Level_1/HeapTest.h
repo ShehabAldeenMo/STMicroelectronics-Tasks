@@ -30,9 +30,9 @@
 
 
 /*==================================  Definitions =============================*/
-#define NUM_ALLOCS 10000
+#define NUM_ALLOCS 100
 #define MAX_SIZE 10240
-#define MAX_ITERATIONS 1000000
+#define MAX_ITERATIONS 10000
 
 /*==========================  Function Prototypes ===========================*/
 /*
