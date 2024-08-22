@@ -85,14 +85,22 @@ static void HMM_Init();
 
 /*==================================  testing =====================================*/
 #include <time.h>
-#define NUM_ALLOCS 10000
+#define NUM_ALLOCS 10
 #define MAX_SIZE 10240
-#define MAX_ITERATIONS 1000000
+#define MAX_ITERATIONS 10000
 
+#define ENABLE 1
+#define DISABLE 0
+#define DEBUGGING ENABLE
 
-void PrintFreeListFromHead();
+sint32 getIndex(sint32* ptr){
+    sint32 indexOfptr = 0 ;          // to know what is the index in simulated heap for ptr 
+    while ( &SimHeap[indexOfptr++] != (ptr-1) ); // to stop on index of ptr
+    indexOfptr--;  
+    return indexOfptr ;
+}
 
-void printHeapState() {
+void HeapTest_PrintBordersState() {
     printf("-----------------------------------------------------------------------------------------\n");
     printf("Head: %d, Tail: %d\n", Head, Tail);
     printf("SimHeap[Head]: %d, SimHeap[Head+1]: %d, SimHeap[Head+2]: %d\n",
@@ -103,7 +111,7 @@ void printHeapState() {
 
 }
 
-void random_alloc_free_test() {
+void HeapTest_RandomAllocateFreeTest() {
     srand((unsigned int)time(NULL));
     
     void* pointers[NUM_ALLOCS] = {NULL};
@@ -112,22 +120,28 @@ void random_alloc_free_test() {
         int index = rand() % NUM_ALLOCS;
         if (pointers[index] == NULL) {
             // Allocate memory
-            size_t size = (size_t)(rand() % MAX_SIZE) + 1;
+            sint32 size = (sint32)(rand() % MAX_SIZE) + 1;
+#if DEBUGGING == ENABLE
             printf("\n\n\nBefore Malloc function\n");
-            printHeapState();
+            HeapTest_PrintBordersState();
+#endif
             pointers[index] = HMM_Malloc(size);
             if (pointers[index] != NULL) {
-                printf("Allocated memory of size %zu at address %p\n", size, pointers[index]);
-                printf("size = %ld\n",size);
-                printf("After Malloc function\n");
-                printHeapState();
+                printf("Allocated memory of size %5d at address %p\n", size, pointers[index]);
+#if DEBUGGING == ENABLE
+                printf("size = %5d\n",size);
+                printf("After Malloc function Allcoate at : %5d\n", getIndex(pointers[index]) );
+                HeapTest_PrintBordersState();
                 printf("\n\n\n");
+#endif
             } else {
-                fprintf(stderr, "Allocation failed for size %zu\n", size);
+                fprintf(stderr, "Allocation failed for size %5d\n", size);
             }
         } else {
             // Free memory
+            printf("Freeing memory at address %p\n", pointers[index]);
             HMM_Free(pointers[index]);
+#if DEBUGGING == ENABLE
             // Calculate the target index
             sint32 targetIndex = (sint32)(((sint32*)((uint8*)pointers[index] - sizeof(sint32))) - SimHeap);
     
@@ -140,19 +154,19 @@ void random_alloc_free_test() {
                    SimHeap[targetIndex], 
                    SimHeap[targetIndex + PREVIOUS_FREE_BLOCK_SHIFT], 
                    SimHeap[targetIndex + NEXT_FREE_BLOCK_SHIFT]);
+#endif
             pointers[index] = NULL;
         }
     }
-
-    uint8* border = " ============================================================================" ; 
-    printf("%s\n%s\n",border,border);
 
     // Free remaining allocated memory
     for (int i = 0; i < NUM_ALLOCS; ++i) {
         if (pointers[i] != NULL) {
             // Free memory
+            printf("Freeing remaining memory at address %p\n", pointers[i]);
             HMM_Free(pointers[i]);
-
+            
+#if DEBUGGING == ENABLE
             // Calculate the target index
             sint32 targetIndex = (sint32)(((sint32*)((uint8*)pointers[i] - sizeof(sint32))) - SimHeap);
 
@@ -165,14 +179,14 @@ void random_alloc_free_test() {
                    SimHeap[targetIndex], 
                    SimHeap[targetIndex + PREVIOUS_FREE_BLOCK_SHIFT], 
                    SimHeap[targetIndex + NEXT_FREE_BLOCK_SHIFT]);
-
+#endif
             // Clear the pointer
             pointers[i] = NULL;
         }
     }
 }
 
-void PrintFreeListFromHead() {
+void HeapTest_PrintFreeListFromHead() {
     sint32 current = Head;
 
     printf("Free List From Head:\n");
@@ -200,7 +214,7 @@ void PrintFreeListFromHead() {
 
 
 
-void PrintFreeListFromTail() {
+void HeapTest_PrintFreeListFromTail() {
     sint32 current = Tail;
 
     printf("Free List From Tail:\n");
@@ -224,6 +238,7 @@ void PrintFreeListFromTail() {
 
     printf("----------------------------------------------------\n");
 }
+
 /*==================================  main =====================================*/
 uint8 main (){
     HMM_Init();
@@ -234,7 +249,7 @@ uint8 main (){
     }*/
 
     printf("Starting random allocation and deallocation test...\n");
-    random_alloc_free_test();
+    HeapTest_RandomAllocateFreeTest();
     printf("Test complete.\n");
 
     return 0 ;
@@ -287,9 +302,8 @@ void HMM_Free(sint32* ptr){
 void HMM_Init(){
     Head = 0 ;
     Tail = 0 ;
-    CurBreak = BREAK_STEP_SIZE-1 ;
+    CurBreak = BREAK_STEP_SIZE ;
     SimHeap[Head] = BREAK_STEP_SIZE-1 ;
     SimHeap[Head+PREVIOUS_FREE_BLOCK_SHIFT] = SYMBOL_OF_HEAP_NULL ; 
     SimHeap[Head+NEXT_FREE_BLOCK_SHIFT] = SYMBOL_OF_HEAP_NULL ; 
-    printHeapState();
 } 

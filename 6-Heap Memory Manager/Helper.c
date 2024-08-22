@@ -48,14 +48,14 @@ sint32 Helper_sbrk (sint32 size){
         printf("Invalid passing negative size parameter\n");
         return INVALID ;
     }
-    else if (result > (MAX_HEAPLENGHT-1 ) ){
+    else if (result > (MAX_HEAPLENGHT-1) ){
         printf("Invalid passing positive size parameter\n");
         return INVALID ;
     }
 
     /*update heap break*/
     temp = CurBreak ;
-    CurBreak += size;   
+    CurBreak += size;
     return temp ;
 }
 
@@ -75,7 +75,7 @@ sint32 Helper_FirstFit(sint32 size){ // size is sint32 but we will sure the this
     * - state 1 : tail point to node but not just before break pointer
     * - state 2 : tail point to node and just before break pointer
     */
-    sint32 AdjecentNode = Tail + SimHeap[Tail]  ;
+    sint32 AdjecentNode = Tail + SimHeap[Tail];
     if (AdjecentNode == CurBreak){
         TailSbrkState = STATE2 ; // used to call Helper_sbrk if it is needed.
     }
@@ -137,6 +137,7 @@ sint32 Helper_sbrk_Resize(sint32 size, sint8 flag){
             */
             SimHeap[Tail+NEXT_FREE_BLOCK_SHIFT]= New;
             Helper_SetFreeSpaceNode(New,BREAK_STEP_SIZE, Tail,SYMBOL_OF_HEAP_NULL);
+            flag = STATE2 ;
             Tail = New ;
         }
         else if (flag == STATE2){
@@ -146,7 +147,6 @@ sint32 Helper_sbrk_Resize(sint32 size, sint8 flag){
             * */
             SimHeap[Tail] += BREAK_STEP_SIZE;
         }
-        flag = STATE2 ;
         Ret_DataIndex = Helper_AllocateMemory(Tail, size, flag);
     }
 
@@ -154,7 +154,7 @@ sint32 Helper_sbrk_Resize(sint32 size, sint8 flag){
 }
 
 sint32 Helper_InsertPartFromNode (sint32 index,sint32 size, sint8 flag){
-    sint32 Ret_DataIndex ; 
+    sint32 Ret_DataIndex = INVALID; 
 
     /* head and tail point to the same node */
     sint8 HeadAndTail = INVALID ;
@@ -162,6 +162,7 @@ sint32 Helper_InsertPartFromNode (sint32 index,sint32 size, sint8 flag){
         HeadAndTail = VALID ;
     } 
 
+    sint8 InFreeList = Helper_SearchOnIndexInFreeList(index);
     /* handle simulated array if head is suitable to allocate this size so you will cut section from head
     *  that: 1. previous free space pointer will redefine in array and store ! in this cell
     *        2. next free space pointer will redefine in array but still point to the same cell
@@ -198,7 +199,7 @@ sint32 Helper_InsertPartFromNode (sint32 index,sint32 size, sint8 flag){
    else if (index == Tail){
         sint32 PreIndex = SimHeap[index+PREVIOUS_FREE_BLOCK_SHIFT];
         Tail = index + size + BEGIN_DATA_SHIFTER ;
-        Helper_SetFreeSpaceNode(Tail, SimHeap[index] - size - METADATA_CELL,PreIndex,SYMBOL_OF_HEAP_NULL); 
+        Helper_SetFreeSpaceNode(Tail, (SimHeap[index] - size - METADATA_CELL),PreIndex,SYMBOL_OF_HEAP_NULL); 
         SimHeap[PreIndex+NEXT_FREE_BLOCK_SHIFT] = Tail ;
    }
     /* handle simulated array if neither head or tail is suitable to allocate this size
@@ -207,13 +208,18 @@ sint32 Helper_InsertPartFromNode (sint32 index,sint32 size, sint8 flag){
     *        3. metadata will redefine in array and store remaining size of free space
     *        4. update previous index ->next and Next index -> Pre
     */
-   else {
+   else if (InFreeList == VALID){
         sint32 New = index + size + BEGIN_DATA_SHIFTER ;
         sint32 PreIndex = SimHeap[index+PREVIOUS_FREE_BLOCK_SHIFT];
         sint32 NextIndex = SimHeap[index+NEXT_FREE_BLOCK_SHIFT];
         Helper_SetFreeSpaceNode(New, SimHeap[index] - size - METADATA_CELL, PreIndex,NextIndex);  
         SimHeap[PreIndex+NEXT_FREE_BLOCK_SHIFT] = New ;
         SimHeap[NextIndex+PREVIOUS_FREE_BLOCK_SHIFT] = New ;
+   }
+   else {
+        printf("allocate size with %5d\n",size);
+        printf("Not Exist In Free List index : %5d from split functionwith index size: %5d\n" , index, SimHeap[index]);
+        exit(INVALID);
    }
     /* handle new allocation space
     *  that: 1. return value point to the beginning of data space
@@ -233,6 +239,8 @@ sint32 Helper_RemoveCompleteNode (sint32 index, sint32 size, sint8 flag){
     if (Head == Tail){
         HeadAndTail = VALID ;
     } 
+
+    sint8 InFreeList = Helper_SearchOnIndexInFreeList(index);
 
     /* handle simulated array if head is suitable to allocate this size and will take whole space
     *  that  1. shift head node to next node
@@ -274,15 +282,20 @@ sint32 Helper_RemoveCompleteNode (sint32 index, sint32 size, sint8 flag){
     *        2. make previous node -> next free space index point to temp -> next free space
     *        3. remove temp node 
     */
-   else {
+   else if (InFreeList == VALID){
         sint32 PreTemp = SimHeap[index+PREVIOUS_FREE_BLOCK_SHIFT] ;
         sint32 NextTemp = SimHeap[index+NEXT_FREE_BLOCK_SHIFT] ;
         SimHeap[NextTemp+PREVIOUS_FREE_BLOCK_SHIFT] = PreTemp ; 
         SimHeap[PreTemp+NEXT_FREE_BLOCK_SHIFT] = NextTemp ; 
     }
+    else {
+        printf("allocate size with %5d",size);
+        printf("Not Exist In Free List index: %5d from remove function with index size: %5d\n" , index, SimHeap[index]);
+        exit(INVALID);
+    }
 
-    SimHeap[index] = size;
     Ret_DataIndex = index  + BEGIN_DATA_SHIFTER;
+    SimHeap[index] = size;
 
     return Ret_DataIndex ;
 }
@@ -330,6 +343,10 @@ void Helper_FreeOperationBeforeHead(sint32 index, sint32 size){
         SimHeap[nextIndex+PREVIOUS_FREE_BLOCK_SHIFT] = index ;
         Head = index ;
     }
+    else {
+        printf("error in freeing before head %5d\n",size);
+        exit(INVALID);
+    }
 }
 
 
@@ -360,6 +377,10 @@ void Helper_FreeOperationAfterTail(sint32 index, sint32 size){
     else if (PositionOfTailBlock == index){
          SimHeap[Tail] += ( size + METADATA_CELL );
     }
+    else {
+        printf("error in freeing after tail %5d\n",size);
+        exit(INVALID);
+    }
 }
 
 void Helper_FreeOperationMiddleNode(sint32 index,sint32 size){
@@ -378,6 +399,9 @@ void Helper_FreeOperationMiddleNode(sint32 index,sint32 size){
         nextIndex = SimHeap[nextIndex+NEXT_FREE_BLOCK_SHIFT];
     }
     PreIndex = SimHeap[nextIndex+PREVIOUS_FREE_BLOCK_SHIFT]; // to store the previous free slot before index
+    printf("Previous = %5d",PreIndex);
+    printf("NextIndex = %5d",nextIndex);
+    
     sint32 SizeOfPrev = SimHeap[PreIndex] ;
     sint32 SizeOfNext = SimHeap[nextIndex] ;
 
@@ -391,7 +415,7 @@ void Helper_FreeOperationMiddleNode(sint32 index,sint32 size){
 
     // index point to node just after free node(x) from right so we will extend x node to join two adjecent free spaces.
     if (PositionOfPreviousBlock == index && PositionOfNextBlock != nextIndex){
-        printf("\n Free from 1 \n");
+        printf("\n Free from right \n");
         sint32 NewSize = SizeOfPrev+size+METADATA_CELL ;
         /*
         * operation will be :
@@ -404,7 +428,7 @@ void Helper_FreeOperationMiddleNode(sint32 index,sint32 size){
     }
     // index point to node just before free node(y) from left so we will extend y node to join two adjecent free spaces
     else if (PositionOfPreviousBlock != index && PositionOfNextBlock == nextIndex){
-        printf("\n Free from 2 \n");
+        printf("\n Free from left \n");
         sint32 NewSize = SizeOfNext+size+METADATA_CELL ;
         sint32 NextNextNodeIndex = SimHeap[nextIndex+NEXT_FREE_BLOCK_SHIFT];
         /*
@@ -420,28 +444,26 @@ void Helper_FreeOperationMiddleNode(sint32 index,sint32 size){
 
         /* update Tail to point on new update node */
         if (nextIndex == Tail){
-            printf("\n Free from 2 Tail \n");
+            printf("\n Free from left next to Tail \n");
             Tail = index ;
         }
         else{
-            printf("\n Free from 1 no Tail \n");
             SimHeap[NextNextNodeIndex+PREVIOUS_FREE_BLOCK_SHIFT] = index ;
         }
     }
     // indexOfptr point to node just after free node(x) and before free node(y) from right so we will extend x,y node to join three adjecent free spaces    
     else if (PositionOfPreviousBlock == index && PositionOfNextBlock == nextIndex){
-        printf("\n Free from 3 \n");
+        printf("\n Free from between two free slots \n");
         sint32 NewSize = SizeOfPrev+size+SizeOfNext+2*METADATA_CELL ;
         sint32 NextNextIndex = SimHeap[nextIndex+NEXT_FREE_BLOCK_SHIFT];
 
         /* update Tail to point on new update node */
         if (nextIndex == Tail){
-            printf("\n Free from 3 Tail \n");
+            printf("\n Free from between two free slots next to tail \n");
             Helper_SetFreeSpaceNode(PreIndex,NewSize,SimHeap[PreIndex+PREVIOUS_FREE_BLOCK_SHIFT],SYMBOL_OF_HEAP_NULL);
             Tail = PreIndex ;
         }
         else{
-            printf("\n Free from 3 no Tail \n");
             Helper_SetFreeSpaceNode(PreIndex,NewSize,SimHeap[PreIndex+PREVIOUS_FREE_BLOCK_SHIFT],NextNextIndex);
             SimHeap[NextNextIndex+PREVIOUS_FREE_BLOCK_SHIFT] = PreIndex ;
         }
@@ -458,7 +480,7 @@ void Helper_FreeOperationMiddleNode(sint32 index,sint32 size){
         * 5- prevoius node -> next index = index
         * 6- next node -> pre index = index
         * */
-       printf("\n Free from 4 \n");
+       printf("\n Free between two reserved slots \n");
        sint32 PreviousIndexContent = SimHeap[nextIndex+PREVIOUS_FREE_BLOCK_SHIFT] ;
        sint32 NextIndexContent = SimHeap[PreIndex+NEXT_FREE_BLOCK_SHIFT] ;
        Helper_SetFreeSpaceNode(index,size,PreviousIndexContent,NextIndexContent);
@@ -548,5 +570,19 @@ sint32 Helper_AllocateMemory(sint32 index, sint32 size, sint8 flag){
     else if (SimHeap[index] == size){
         Ret_DataIndex = Helper_RemoveCompleteNode (index,size,flag);
     } 
+    
     return Ret_DataIndex ; 
+}
+
+sint8 Helper_SearchOnIndexInFreeList(sint32 index){
+    sint32 i = Head ;
+    while( i != (sint32) SYMBOL_OF_HEAP_NULL){ // while its next node is not jump over break
+        if (index == i ){
+            return VALID ;
+        }
+        else {
+            i = SimHeap[i+NEXT_FREE_BLOCK_SHIFT] ;
+        }
+    }
+    return INVALID ;
 }

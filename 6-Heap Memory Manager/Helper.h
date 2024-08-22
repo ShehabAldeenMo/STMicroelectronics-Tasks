@@ -183,6 +183,7 @@ sint32 Helper_InsertPartFromNode (sint32 index, sint32 size, sint8 flag);
 sint32 Helper_RemoveCompleteNode (sint32 index, sint32 size, sint8 flag);
 sint32 Helper_sbrk_Resize(sint32 size,sint8 flag);
 sint32 Helper_AllocateMemory(sint32 index, sint32 size, sint8 flag);
+sint8 Helper_SearchOnIndexInFreeList(sint32 index);
 
 /*============================  Configurations ==============================*/
 /*
