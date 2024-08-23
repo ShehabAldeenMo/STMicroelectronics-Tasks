@@ -58,7 +58,7 @@ sint32 HeapExtras_FirstFit(sint32 size){
     sint32 AdjecentNode = Tail + SimHeap[Tail]  ;
     if (AdjecentNode == CurBreak){
         TailSbrkState = STATE2 ; // used to call Helper_sbrk if it is needed.
-    }
+    } // rather that will be continue on state 1
 
     /*
     * iterate to reserve some memory for required pointer
@@ -81,7 +81,8 @@ sint32 HeapExtras_FirstFit(sint32 size){
     */
     if ( i == (sint32) SYMBOL_OF_HEAP_NULL ){
         Ret_DataIndex = HeapUtils_sbrkResize(size, TailSbrkState);
-    }
+    } // rather that will be continue on state 1
+
 
     /* return index of allocation new space -> data */
     return Ret_DataIndex ;
@@ -122,6 +123,11 @@ void   HeapExtras_FreeOperationBeforeHead(sint32 index, sint32 size){
         SimHeap[nextIndex+PREVIOUS_FREE_BLOCK_SHIFT] = index ;
         Head = index ;
     }
+    else {
+        printf("error in freeing before head %5d with PositionOfFreeBlock = %5d\n",size,PositionOfFreeBlock);
+        while(1);///////////////////////////// for testing
+        exit(INVALID);
+    }
 }
 
 
@@ -153,6 +159,11 @@ void   HeapExtras_FreeOperationAfterTail(sint32 index,sint32 size){
     else if (PositionOfTailBlock == index){
          SimHeap[Tail] += ( size + METADATA_CELL );
     }
+    else {
+        printf("error in freeing after tail %5d with PositionOfTailBlock = %5d\n",size,PositionOfTailBlock);
+        while(1);///////////////////////////// for testing
+        exit(INVALID);
+    }
 }
 
 
@@ -165,7 +176,7 @@ void   HeapExtras_FreeOperationMiddleNode(sint32 index,sint32 size){
             index, SimHeap[index]);
 #endif
     sint32 nextIndex = Head ; // to store the next free slot after index
-    sint32 PreIndex = 0 ;     // to store the previous free slot before index
+    sint32 PreIndex = INVALID ;     // to store the previous free slot before index
 
     // till reach to the strict next free slot after index  
     while (nextIndex < index){
@@ -184,9 +195,9 @@ void   HeapExtras_FreeOperationMiddleNode(sint32 index,sint32 size){
     sint32 PositionOfNextBlock = index + size + METADATA_CELL ; // deallcated block in left
 
     // index point to node just after free node(x) from right so we will extend x node to join two adjecent free spaces.
-    if (PositionOfPreviousBlock == index && PositionOfNextBlock != nextIndex){
+    if (PositionOfPreviousBlock == index && PositionOfNextBlock < nextIndex){
 #if DEBUGGING == ENABLE
-        printf("\n Free from 1 \n");
+        printf("\n Free from right \n");
 #endif
         sint32 NewSize = SizeOfPrev+size+METADATA_CELL ;
         /*
@@ -199,9 +210,9 @@ void   HeapExtras_FreeOperationMiddleNode(sint32 index,sint32 size){
         SimHeap[nextIndex+PREVIOUS_FREE_BLOCK_SHIFT] = PreIndex ;
     }
     // index point to node just before free node(y) from left so we will extend y node to join two adjecent free spaces
-    else if (PositionOfPreviousBlock != index && PositionOfNextBlock == nextIndex){
+    else if (PositionOfPreviousBlock < index && PositionOfNextBlock == nextIndex){
 #if DEBUGGING == ENABLE
-        printf("\n Free from 2 \n");
+        printf("\n Free from left \n");
 #endif
         sint32 NewSize = SizeOfNext+size+METADATA_CELL ;
         sint32 NextNextNodeIndex = SimHeap[nextIndex+NEXT_FREE_BLOCK_SHIFT];
@@ -233,7 +244,7 @@ void   HeapExtras_FreeOperationMiddleNode(sint32 index,sint32 size){
     // indexOfptr point to node just after free node(x) and before free node(y) from right so we will extend x,y node to join three adjecent free spaces    
     else if (PositionOfPreviousBlock == index && PositionOfNextBlock == nextIndex){
 #if DEBUGGING == ENABLE
-        printf("\n Free from 3 \n");
+        printf("\n Free from between two free slots \n");
 #endif
         sint32 NewSize = SizeOfPrev+size+SizeOfNext+2*METADATA_CELL ;
         sint32 NextNextIndex = SimHeap[nextIndex+NEXT_FREE_BLOCK_SHIFT];
@@ -256,7 +267,7 @@ void   HeapExtras_FreeOperationMiddleNode(sint32 index,sint32 size){
 
     }
     // indexOfptr point to node away not adjecent for any free node so we willn't extend and free node
-    else {
+    else if (PositionOfPreviousBlock < index && PositionOfNextBlock < nextIndex){
         /*
         * operation will be :
         * 1- define new node 
@@ -267,13 +278,18 @@ void   HeapExtras_FreeOperationMiddleNode(sint32 index,sint32 size){
         * 6- next node -> pre index = index
         * */
 #if DEBUGGING == ENABLE
-       printf("\n Free from 4 \n");
+       printf("\n Free between two reserved slots \n");
 #endif
        sint32 PreviousIndexContent = SimHeap[nextIndex+PREVIOUS_FREE_BLOCK_SHIFT] ;
        sint32 NextIndexContent = SimHeap[PreIndex+NEXT_FREE_BLOCK_SHIFT] ;
        HeapUtils_SetFreeNodeInfo(index,size,PreviousIndexContent,NextIndexContent);
        SimHeap[PreIndex+NEXT_FREE_BLOCK_SHIFT] = index ;
        SimHeap[nextIndex+PREVIOUS_FREE_BLOCK_SHIFT] = index ;
+    }
+    else {
+        printf("error in freeing middle node %5d with PositionOfPreviousBlock = %5d and PositionOfNextBlock = %5d\n",size,PositionOfPreviousBlock,PositionOfNextBlock);
+        while(1);///////////////////////////// for testing
+        exit(INVALID);
     }
 }
 
@@ -289,7 +305,7 @@ sint32 HeapExtras_BestFit(sint32 size){
     sint8 TailSbrkState = STATE1 ; 
     sint32 Ret_SuitableIndex = INVALID;  
     sint32 i = Head ;    // index to indicate which point that you stop on 
-    sint32 SuitableIndex = 0 ;
+    sint32 SuitableIndex = INVALID ;
     sint8  FlagOfNoFreeSpace = INVALID ;
 
     /*
@@ -301,7 +317,7 @@ sint32 HeapExtras_BestFit(sint32 size){
             FlagOfNoFreeSpace = VALID ;
             i = SimHeap[i+NEXT_FREE_BLOCK_SHIFT];
             break;
-        }
+        } // else while be contiune
         i = SimHeap[i+NEXT_FREE_BLOCK_SHIFT];
     }
 
@@ -311,7 +327,7 @@ sint32 HeapExtras_BestFit(sint32 size){
     while(i != (sint32) SYMBOL_OF_HEAP_NULL && FlagOfNoFreeSpace == VALID){
         if (SimHeap[i] < SimHeap[SuitableIndex] && SimHeap[i] >= size){
             SuitableIndex =  i ;
-        }
+        } // else while be contiune
         i = SimHeap[i+NEXT_FREE_BLOCK_SHIFT];
     }
 
@@ -323,7 +339,7 @@ sint32 HeapExtras_BestFit(sint32 size){
     sint32 AdjecentNode = Tail + SimHeap[Tail]  ;
     if (AdjecentNode == CurBreak){
         TailSbrkState = STATE2 ; // used to call Helper_sbrk if it is needed.
-    }
+    } // else while be contiune on state 1
 
     /* if you exist from while because that there is no suitable free space 
     * so we will move sbrk pointer and update our free list
@@ -345,8 +361,9 @@ sint32 HeapExtras_BestFit(sint32 size){
 void HeapExtras_Init(){
     Head = 0 ;
     Tail = 0 ;
-    CurBreak = BREAK_STEP_SIZE-1 ;
+    CurBreak = BREAK_STEP_SIZE ;
     SimHeap[Head] = BREAK_STEP_SIZE-1 ;
     SimHeap[Head+PREVIOUS_FREE_BLOCK_SHIFT] = SYMBOL_OF_HEAP_NULL ; 
     SimHeap[Head+NEXT_FREE_BLOCK_SHIFT] = SYMBOL_OF_HEAP_NULL ; 
 } 
+

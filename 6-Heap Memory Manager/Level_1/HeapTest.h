@@ -87,5 +87,5 @@ void HeapTest_PrintFreeListFromHead(void);
  */
 void HeapTest_PrintFreeListFromTail(void);
 
-
+sint32 getIndex(sint32* ptr);
 #endif

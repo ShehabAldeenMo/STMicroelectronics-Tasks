@@ -46,8 +46,13 @@ sint32* HeapManager_Malloc(sint32 size){
 #if (FIRSTFIT == ENABLE )
     sint32 indexOfData = HeapExtras_FirstFit(size);
 #else
-    sint32 index = HeapExtras_BestFit(size);
+    sint32 indexOfData = HeapExtras_BestFit(size);
 #endif
+
+    if (indexOfData == INVALID){
+        return NULL;
+    }
+
     return  (sint32*) (&(SimHeap[indexOfData])) ;
 }
 
@@ -80,5 +85,10 @@ void HeapManager_Free(sint32* ptr){
     * */
     else if (indexOfptr > Head && indexOfptr < Tail){
         HeapExtras_FreeOperationMiddleNode(indexOfptr,sizeOfptr);
+    }
+    else {
+        printf("error in freeing heap that indexOfptr is not exist in limits : %5d\n",indexOfptr);
+        while(1);///////////////////////////// for testing
+        exit(INVALID);
     }
 }

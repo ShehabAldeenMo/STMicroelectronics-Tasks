@@ -166,4 +166,7 @@ sint32 HeapUtils_RemoveFreeBlock (sint32 index, sint32 size);
 void   HeapUtils_SetFreeNodeInfo(sint32 index, sint32 metadata, sint32 previous_content, sint32 next_content);
 
 
+sint8 HeapUtils_SearchOnIndexInFreeList(sint32 index);
+
+
 #endif

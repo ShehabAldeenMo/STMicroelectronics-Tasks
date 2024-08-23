@@ -1,41 +1,44 @@
-# Set a breakpoint at the start of your function(s) that modify the free list
-break Helper_FreeOperationMiddleNode
-break Helper_FreeOperationBeforeHead
-break Helper_FreeOperationAfterTail
+# Define global variables
+set $SYMBOL_OF_HEAP_NULL = -1
+set $PREVIOUS_FREE_BLOCK_SHIFT = 1
+set $NEXT_FREE_BLOCK_SHIFT = 2
 
-# Command to run when hitting the breakpoint
-commands
-    # Print the current state of the free list before any modifications
-    echo \n--- Free List State Before Modification ---\n
-    set $i = Head
-    while ($i != SYMBOL_OF_HEAP_NULL)
-        printf "Block at index %d: size = %d, next = %d, prev = %d\n", $i, SimHeap[$i], SimHeap[$i + NEXT_FREE_BLOCK_SHIFT], SimHeap[$i + PREVIOUS_FREE_BLOCK_SHIFT]
-        set $i = SimHeap[$i + NEXT_FREE_BLOCK_SHIFT]
-    end
-    echo \n--- End of Free List ---\n
+# Define a custom GDB command to print the free list from the head
+define PrintFreeListFromHead 
+  set $current = Head
+  printf "Free List From Head:\n"
+  printf "----------------------------------------------------\n"
+  printf "| Index | Block Size | Prev Free Block | Next Free Block |\n"
+  printf "----------------------------------------------------\n"
 
-    # Continue to the next line of code after the breakpoint
-    continue
+  while ($current != $SYMBOL_OF_HEAP_NULL && $current != SimHeap[$current + $PREVIOUS_FREE_BLOCK_SHIFT ])
+    set $size = SimHeap[$current]
+    set $prev = SimHeap[$current + $PREVIOUS_FREE_BLOCK_SHIFT ]
+    set $next = SimHeap[$current + $NEXT_FREE_BLOCK_SHIFT]
+
+    printf "| %5d | %10d | %15d | %15d |\n", $current, $size, $prev, $next
+    set $current = $next
+  end
+
+  printf "----------------------------------------------------\n"
 end
 
-# Watch the SimHeap array's critical elements (e.g., head, tail, next, previous pointers)
-watch SimHeap[Head]
-watch SimHeap[Tail]
-watch SimHeap[Head + NEXT_FREE_BLOCK_SHIFT]
-watch SimHeap[Tail + PREVIOUS_FREE_BLOCK_SHIFT]
+# Define a custom GDB command to print the free list from the tail
+define PrintFreeListFromTail
+  set $current = Tail
+  printf "Free List From Tail:\n"
+  printf "----------------------------------------------------\n"
+  printf "| Index | Block Size | Prev Free Block | Next Free Block |\n"
+  printf "----------------------------------------------------\n"
 
-# Command to run when a watchpoint is hit
-commands
-    echo \n--- Watchpoint Hit: Free List Modified ---\n
-    # Print the current state of the free list after the modification
-    set $i = Head
-    while ($i != SYMBOL_OF_HEAP_NULL)
-        printf "Block at index %d: size = %d, next = %d, prev = %d\n", $i, SimHeap[$i], SimHeap[$i + NEXT_FREE_BLOCK_SHIFT], SimHeap[$i + PREVIOUS_FREE_BLOCK_SHIFT]
-        set $i = SimHeap[$i + NEXT_FREE_BLOCK_SHIFT]
-    end
-    echo \n--- End of Free List ---\n
+  while ($current != $SYMBOL_OF_HEAP_NULL && $current != SimHeap[$current + $NEXT_FREE_BLOCK_SHIFT])
+    set $size = SimHeap[$current]
+    set $prev = SimHeap[$current + $PREVIOUS_FREE_BLOCK_SHIFT]
+    set $next = SimHeap[$current + $NEXT_FREE_BLOCK_SHIFT]
 
-    # Continue execution
-    continue
+    printf "| %5d | %10d | %15d | %15d |\n", $current, $size, $prev, $next
+    set $current = $prev
+  end
+
+  printf "----------------------------------------------------\n"
 end
-

@@ -32,6 +32,13 @@ extern sint32 Tail;                             // define last index of free spa
 
 
 /*=========================  Functions Implementation ===========================*/
+sint32 getIndex(sint32* ptr){
+    sint32 indexOfptr = 0 ;          // to know what is the index in simulated heap for ptr 
+    while ( &SimHeap[indexOfptr++] != (ptr-1) ); // to stop on index of ptr
+    indexOfptr--;  
+    return indexOfptr ;
+}
+
 void HeapTest_PrintBordersState() {
     printf("-----------------------------------------------------------------------------------------\n");
     printf("Head: %d, Tail: %d\n", Head, Tail);
@@ -52,22 +59,22 @@ void HeapTest_RandomAllocateFreeTest() {
         int index = rand() % NUM_ALLOCS;
         if (pointers[index] == NULL) {
             // Allocate memory
-            size_t size = (size_t)(rand() % MAX_SIZE) + 1;
-            pointers[index] = HeapManager_Malloc(size);
+            sint32 size = (sint32)(rand() % MAX_SIZE) + 1;
 #if DEBUGGING == ENABLE
             printf("\n\n\nBefore Malloc function\n");
             HeapTest_PrintBordersState();
 #endif
+            pointers[index] = HeapManager_Malloc(size);
             if (pointers[index] != NULL) {
-                printf("Allocated memory of size %zu at address %p\n", size, pointers[index]);
+                printf("Allocated memory of size %5d at address %p\n", size, pointers[index]);
 #if DEBUGGING == ENABLE
-                printf("size = %ld\n",size);
-                printf("After Malloc function\n");
+                printf("size = %5d\n",size);
+                printf("After Malloc function Allcoate at : %5d\n", getIndex(pointers[index]) );
                 HeapTest_PrintBordersState();
                 printf("\n\n\n");
 #endif
             } else {
-                fprintf(stderr, "Allocation failed for size %zu\n", size);
+                fprintf(stderr, "Allocation failed for size %5d\n", size);
             }
         } else {
             // Free memory
