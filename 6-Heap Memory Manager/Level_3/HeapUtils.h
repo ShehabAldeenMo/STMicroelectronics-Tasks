@@ -56,7 +56,7 @@
 
 
 /*==============================  Configurations   =====================================*/
-#define DEBUGGING                                ENABLE
+#define DEBUGGING                                DISABLE
 
 
 /*==============================  typedef   =====================================*/
@@ -124,15 +124,15 @@ sint32 HeapUtils_sbrkResize(sint32 size,sint8 flag);
  * Description      : Splits a free block of memory in the simulated heap to allocate a specific 
  *                    size. It updates the metadata of the free blocks and adjusts pointers 
  *                    to maintain the integrity of the free list.
- * Input            : index - The starting index of the free block to split.
- *                    size - The size of memory to allocate from the free block.
+ * Input            : Node - The starting index of the free block to split.
+ *                    spliting_size - The size of memory to allocate from the free block.
  * Output           : None
  * Return           : Returns the index of the newly allocated memory.
  * Notes            : This function handles different scenarios for splitting free blocks, 
  *                    including cases where the block is at the head or tail of the free list. 
  *                    It updates the metadata and pointers to reflect the split.
  */
-sint32 HeapUtils_SplitFreeBlock (sint32 index, sint32 size);
+sint32 HeapUtils_SplitFreeBlock (sint32 Node, sint32 spliting_size);
 
 /*
  * Name             : HeapUtils_RemoveFreeBlock

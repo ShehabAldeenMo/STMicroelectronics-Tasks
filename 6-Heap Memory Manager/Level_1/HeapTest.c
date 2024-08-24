@@ -67,6 +67,12 @@ void HeapTest_RandomAllocateFreeTest() {
             pointers[index] = HeapManager_Malloc(size);
             if (pointers[index] != NULL) {
                 printf("Allocated memory of size %5d at address %p\n", size, pointers[index]);
+                
+            /* to allocate random data into memory that you reserved */
+            for (sint32 j = 0; j < (sint32)(size / sizeof(sint32)); j++) {
+                ((sint32*)pointers[index])[j] = 3;
+            }
+
 #if DEBUGGING == ENABLE
                 printf("size = %5d\n",size);
                 printf("After Malloc function Allcoate at : %5d\n", getIndex(pointers[index]) );

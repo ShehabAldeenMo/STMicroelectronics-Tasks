@@ -98,16 +98,25 @@ void   HeapExtras_FreeOperationBeforeHead(sint32 index, sint32 size){
             index, SimHeap[index]);
 #endif
     sint32 PositionOfFreeBlock = index + size + METADATA_CELL ; // to check that the target free block is adjecent for head or away from.
-     /* if ptr is pointing to node before head node and away from it
-     *  that : 1- define new node 
-     *         2- make this node -> previous free space = !  
-     *         3- this node -> next free space = old head
-     *         4- old head -> previous free space = index
-     *         5- update head to point to index
-     * */
+
+    // Handle padding cases
+    sint32 Padding = Head - PositionOfFreeBlock;
+    if (Padding > (-1*NUMBER_OF_FREE_NODE_ELEMENTS) && Padding < NUMBER_OF_FREE_NODE_ELEMENTS) {
+        // If padding is 0, 1, or 2, we adjust the requested size to include the padding
+        PositionOfFreeBlock = Head;
+        size += Padding ;
+    }
+
+    /* if ptr is pointing to node before head node and away from it
+    *  that : 1- define new node 
+    *         2- make this node -> previous free space = !  
+    *         3- this node -> next free space = old head
+    *         4- old head -> previous free space = index
+    *         5- update head to point to index
+    * */
     if (PositionOfFreeBlock < Head ){
         HeapUtils_SetFreeNodeInfo(index,size,SYMBOL_OF_HEAP_NULL,Head);
-        SimHeap[Head+PREVIOUS_FREE_BLOCK_SHIFT] = index ; 
+        HeapUtils_SetFreeNodeInfo(Head,SimHeap[Head],index,SimHeap[Head+NEXT_FREE_BLOCK_SHIFT]);
         Head = index ;
     }
      /* if ptr is pointing to node just before head node and adjecent for it
@@ -119,9 +128,9 @@ void   HeapExtras_FreeOperationBeforeHead(sint32 index, sint32 size){
     else if (PositionOfFreeBlock == Head ){
         sint32 sizeOfhead = SimHeap[Head];
         sint32 nextIndex = SimHeap[Head+NEXT_FREE_BLOCK_SHIFT];
-        HeapUtils_SetFreeNodeInfo(index, size+sizeOfhead+METADATA_CELL ,SYMBOL_OF_HEAP_NULL,nextIndex);
-        SimHeap[nextIndex+PREVIOUS_FREE_BLOCK_SHIFT] = index ;
         Head = index ;
+        HeapUtils_SetFreeNodeInfo(Head, size+sizeOfhead+METADATA_CELL ,SYMBOL_OF_HEAP_NULL,nextIndex);
+        HeapUtils_SetFreeNodeInfo(nextIndex,SimHeap[nextIndex],Head,SimHeap[nextIndex+NEXT_FREE_BLOCK_SHIFT]);
     }
     else {
         printf("error in freeing before head %5d with PositionOfFreeBlock = %5d\n",size,PositionOfFreeBlock);
@@ -141,23 +150,32 @@ void   HeapExtras_FreeOperationAfterTail(sint32 index,sint32 size){
             index, SimHeap[index]);
 #endif
     sint32 PositionOfTailBlock = Tail + SimHeap[Tail] + METADATA_CELL ; // to check that the target free block is adjecent for tail or away from.
-     /* if ptr is pointing to tail before node node is away from
-     *  that : 1- define new node
-     *         2- this node -> previous free space = tail  
-     *         3- this node -> next free space = !
-     *         4- old tail -> next free space = index
-     *         5- update tail to point to index
-     * */
+    
+    // Handle padding cases
+    sint32 Padding = index - PositionOfTailBlock;
+    if (Padding > (-1*NUMBER_OF_FREE_NODE_ELEMENTS) && Padding < NUMBER_OF_FREE_NODE_ELEMENTS) {
+        // If padding is 0, 1, or 2, we adjust the requested size to include the padding
+        PositionOfTailBlock = index;
+        SimHeap[Tail] += Padding ;
+    }
+
+    /* if ptr is pointing to tail before node node is away from
+    *  that : 1- define new node
+    *         2- this node -> previous free space = tail  
+    *         3- this node -> next free space = !
+    *         4- old tail -> next free space = index
+    *         5- update tail to point to index
+    * */
     if (PositionOfTailBlock < index){
         HeapUtils_SetFreeNodeInfo(index,size,Tail,SYMBOL_OF_HEAP_NULL);
-        SimHeap[Tail+NEXT_FREE_BLOCK_SHIFT] = index ; 
+        HeapUtils_SetFreeNodeInfo(Tail,SimHeap[Tail],SimHeap[Tail+PREVIOUS_FREE_BLOCK_SHIFT],index);
         Tail = index ;
     }
      /* if ptr is pointing to node just after tail node and adjecent for it
      *  redefine new metdata for free space to be equal the margin of new free space and tail space
      * */
     else if (PositionOfTailBlock == index){
-         SimHeap[Tail] += ( size + METADATA_CELL );
+        HeapUtils_SetFreeNodeInfo(Tail,SimHeap[Tail]+size+METADATA_CELL,SimHeap[Tail+PREVIOUS_FREE_BLOCK_SHIFT],SYMBOL_OF_HEAP_NULL);
     }
     else {
         printf("error in freeing after tail %5d with PositionOfTailBlock = %5d\n",size,PositionOfTailBlock);
@@ -183,6 +201,10 @@ void   HeapExtras_FreeOperationMiddleNode(sint32 index,sint32 size){
         nextIndex = SimHeap[nextIndex+NEXT_FREE_BLOCK_SHIFT];
     }
     PreIndex = SimHeap[nextIndex+PREVIOUS_FREE_BLOCK_SHIFT]; // to store the previous free slot before index
+    
+    sint32 PrevPrevNode = SimHeap[PreIndex+PREVIOUS_FREE_BLOCK_SHIFT];
+    sint32 NextNextNode = SimHeap[nextIndex+NEXT_FREE_BLOCK_SHIFT];
+
     sint32 SizeOfPrev = SimHeap[PreIndex] ;
     sint32 SizeOfNext = SimHeap[nextIndex] ;
 
@@ -193,6 +215,24 @@ void   HeapExtras_FreeOperationMiddleNode(sint32 index,sint32 size){
     */
     sint32 PositionOfPreviousBlock = PreIndex + SizeOfPrev + METADATA_CELL ; // deallcated block in right
     sint32 PositionOfNextBlock = index + size + METADATA_CELL ; // deallcated block in left
+
+    // Handle padding cases
+    sint32 Padding = index - PositionOfPreviousBlock;
+    if (Padding > (-1*NUMBER_OF_FREE_NODE_ELEMENTS) && Padding < NUMBER_OF_FREE_NODE_ELEMENTS) {
+        // If padding is 0, 1, or 2, we adjust the requested size to include the padding
+        PositionOfPreviousBlock = index;
+        SizeOfPrev += Padding ;
+        SimHeap[PreIndex] += Padding ;
+    }
+
+    // Handle padding cases
+    Padding = nextIndex - PositionOfNextBlock;
+    if (Padding > (-1*NUMBER_OF_FREE_NODE_ELEMENTS) && Padding < NUMBER_OF_FREE_NODE_ELEMENTS) {
+        // If padding is 0, 1, or 2, we adjust the requested size to include the padding
+        PositionOfNextBlock = nextIndex;
+        SizeOfNext += Padding;
+        SimHeap[nextIndex] += Padding ;
+    }
 
     // index point to node just after free node(x) from right so we will extend x node to join two adjecent free spaces.
     if (PositionOfPreviousBlock == index && PositionOfNextBlock < nextIndex){
@@ -205,9 +245,8 @@ void   HeapExtras_FreeOperationMiddleNode(sint32 index,sint32 size){
         * 1- redefine new size for previous node because we extend it .
         * 2- previous node previousIndex and nextIndex stay the same 
         * */
-        SimHeap[PreIndex] = NewSize ;
-        SimHeap[PreIndex+NEXT_FREE_BLOCK_SHIFT] = nextIndex;
-        SimHeap[nextIndex+PREVIOUS_FREE_BLOCK_SHIFT] = PreIndex ;
+       HeapUtils_SetFreeNodeInfo(PreIndex,NewSize,PrevPrevNode,nextIndex);
+       HeapUtils_SetFreeNodeInfo(nextIndex,SizeOfNext,PreIndex,NextNextNode);
     }
     // index point to node just before free node(y) from left so we will extend y node to join two adjecent free spaces
     else if (PositionOfPreviousBlock < index && PositionOfNextBlock == nextIndex){
@@ -215,7 +254,6 @@ void   HeapExtras_FreeOperationMiddleNode(sint32 index,sint32 size){
         printf("\n Free from left \n");
 #endif
         sint32 NewSize = SizeOfNext+size+METADATA_CELL ;
-        sint32 NextNextNodeIndex = SimHeap[nextIndex+NEXT_FREE_BLOCK_SHIFT];
         /*
         * operation will be :
         * 1- define new node merge between deallocation and next node
@@ -224,45 +262,43 @@ void   HeapExtras_FreeOperationMiddleNode(sint32 index,sint32 size){
         * 4- update previous index -> next free node
         * 5- update next index -> previous free node  
         * */
-        HeapUtils_SetFreeNodeInfo(index,NewSize,PreIndex,NextNextNodeIndex);
-        SimHeap[PreIndex+NEXT_FREE_BLOCK_SHIFT] = index ;
+        HeapUtils_SetFreeNodeInfo(index,NewSize,PreIndex,NextNextNode);
+        HeapUtils_SetFreeNodeInfo(PreIndex,SizeOfPrev,PrevPrevNode,index);
 
         /* update Tail to point on new update node */
         if (nextIndex == Tail){
 #if DEBUGGING == ENABLE
-            printf("\n Free from 2 Tail \n");
+            printf("\n Free from left with Tail \n");
 #endif
             Tail = index ;
         }
         else{
 #if DEBUGGING == ENABLE
-            printf("\n Free from 1 no Tail \n");
+            printf("\n Free from left without Tail \n");
 #endif
-            SimHeap[NextNextNodeIndex+PREVIOUS_FREE_BLOCK_SHIFT] = index ;
+            HeapUtils_SetFreeNodeInfo(NextNextNode,SimHeap[NextNextNode],index,SimHeap[NextNextNode+NEXT_FREE_BLOCK_SHIFT]);
         }
     }
     // indexOfptr point to node just after free node(x) and before free node(y) from right so we will extend x,y node to join three adjecent free spaces    
     else if (PositionOfPreviousBlock == index && PositionOfNextBlock == nextIndex){
 #if DEBUGGING == ENABLE
-        printf("\n Free from between two free slots \n");
+        printf("\n Free between two free slots \n");
 #endif
         sint32 NewSize = SizeOfPrev+size+SizeOfNext+2*METADATA_CELL ;
-        sint32 NextNextIndex = SimHeap[nextIndex+NEXT_FREE_BLOCK_SHIFT];
+        HeapUtils_SetFreeNodeInfo(PreIndex,NewSize,PrevPrevNode,NextNextNode);
 
         /* update Tail to point on new update node */
         if (nextIndex == Tail){
 #if DEBUGGING == ENABLE
-            printf("\n Free from 3 Tail \n");
+            printf("\n Free between two free slots with Tail \n");
 #endif
-            HeapUtils_SetFreeNodeInfo(PreIndex,NewSize,SimHeap[PreIndex+PREVIOUS_FREE_BLOCK_SHIFT],SYMBOL_OF_HEAP_NULL);
             Tail = PreIndex ;
         }
         else{
 #if DEBUGGING == ENABLE
-            printf("\n Free from 3 no Tail \n");
+            printf("\n Free between two free slots without Tail \n");
 #endif
-            HeapUtils_SetFreeNodeInfo(PreIndex,NewSize,SimHeap[PreIndex+PREVIOUS_FREE_BLOCK_SHIFT],NextNextIndex);
-            SimHeap[NextNextIndex+PREVIOUS_FREE_BLOCK_SHIFT] = PreIndex ;
+            HeapUtils_SetFreeNodeInfo(NextNextNode,SimHeap[NextNextNode],PreIndex,SimHeap[NextNextNode+NEXT_FREE_BLOCK_SHIFT]);
         }
 
     }
@@ -280,11 +316,9 @@ void   HeapExtras_FreeOperationMiddleNode(sint32 index,sint32 size){
 #if DEBUGGING == ENABLE
        printf("\n Free between two reserved slots \n");
 #endif
-       sint32 PreviousIndexContent = SimHeap[nextIndex+PREVIOUS_FREE_BLOCK_SHIFT] ;
-       sint32 NextIndexContent = SimHeap[PreIndex+NEXT_FREE_BLOCK_SHIFT] ;
-       HeapUtils_SetFreeNodeInfo(index,size,PreviousIndexContent,NextIndexContent);
-       SimHeap[PreIndex+NEXT_FREE_BLOCK_SHIFT] = index ;
-       SimHeap[nextIndex+PREVIOUS_FREE_BLOCK_SHIFT] = index ;
+       HeapUtils_SetFreeNodeInfo(index,size,PreIndex,nextIndex);
+       HeapUtils_SetFreeNodeInfo(PreIndex,SizeOfPrev,PrevPrevNode,index);
+       HeapUtils_SetFreeNodeInfo(nextIndex,SizeOfNext,index,NextNextNode);
     }
     else {
         printf("error in freeing middle node %5d with PositionOfPreviousBlock = %5d and PositionOfNextBlock = %5d\n",size,PositionOfPreviousBlock,PositionOfNextBlock);

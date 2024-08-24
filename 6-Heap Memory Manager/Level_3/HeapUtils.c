@@ -117,7 +117,7 @@ sint32 HeapUtils_sbrkResize(sint32 size,sint8 flag){
             *        3. new tail -> next free space point to !
             *        4. remove old tail node 
             */
-            SimHeap[Tail+NEXT_FREE_BLOCK_SHIFT]= New;
+            HeapUtils_SetFreeNodeInfo(Tail,SimHeap[Tail], SimHeap[Tail+PREVIOUS_FREE_BLOCK_SHIFT],New);
             HeapUtils_SetFreeNodeInfo(New,BREAK_STEP_SIZE, Tail,SYMBOL_OF_HEAP_NULL);
             Tail = New ;
         }
@@ -138,8 +138,9 @@ sint32 HeapUtils_sbrkResize(sint32 size,sint8 flag){
 
 
 
-sint32 HeapUtils_SplitFreeBlock (sint32 index, sint32 size){
+sint32 HeapUtils_SplitFreeBlock (sint32 Node, sint32 spliting_size){
     sint32 Ret_DataIndex = INVALID; 
+    sint32 TotalSizeOfNode = SimHeap[Node];
 
     /* head and tail point to the same node */
     sint8 HeadAndTail = INVALID ;
@@ -147,13 +148,13 @@ sint32 HeapUtils_SplitFreeBlock (sint32 index, sint32 size){
         HeadAndTail = VALID ;
     } 
 
-    sint8 InFreeList = HeapUtils_SearchOnIndexInFreeList(index);
+    sint8 InFreeList = HeapUtils_SearchOnIndexInFreeList(Node);
     /* handle simulated array if head is suitable to allocate this size so you will cut section from head
     *  that: 1. previous free space pointer will redefine in array and store ! in this cell
     *        2. next free space pointer will redefine in array but still point to the same cell
     *        3. metadata will redefine in array and store remaining size of free space
     */
-   if (index == Head){
+   if (Node == Head){
         /* when don't we need this local variable  `NextIndex`?
         * - in shifting head and tail to point the same index in first calling collection of calls to malloc
         * without free statments. we don't need it because we don't need to define the previous free index in 
@@ -166,14 +167,14 @@ sint32 HeapUtils_SplitFreeBlock (sint32 index, sint32 size){
         
         /* to shift tail with first group calls for maollac*/
         if (HeadAndTail == INVALID){
-            Head = index + size + BEGIN_DATA_SHIFTER ;
-            HeapUtils_SetFreeNodeInfo(Head, SimHeap[index] - size - METADATA_CELL, SYMBOL_OF_HEAP_NULL,NextIndex);
+            Head += spliting_size + METADATA_CELL ;
+            HeapUtils_SetFreeNodeInfo(Head, (TotalSizeOfNode-spliting_size-METADATA_CELL), SYMBOL_OF_HEAP_NULL,NextIndex);
             SimHeap[NextIndex+PREVIOUS_FREE_BLOCK_SHIFT] = Head ;
         }
         else if (HeadAndTail == VALID){
-            Head = index + size + BEGIN_DATA_SHIFTER ; 
+            Head += spliting_size + METADATA_CELL ; 
             Tail = Head ;
-            HeapUtils_SetFreeNodeInfo(Head, SimHeap[index] - size - METADATA_CELL, SYMBOL_OF_HEAP_NULL,SYMBOL_OF_HEAP_NULL);
+            HeapUtils_SetFreeNodeInfo(Head,(TotalSizeOfNode-spliting_size-METADATA_CELL), SYMBOL_OF_HEAP_NULL,SYMBOL_OF_HEAP_NULL);
         }
    }
     /* handle simulated array if tail is suitable to allocate this size
@@ -181,10 +182,10 @@ sint32 HeapUtils_SplitFreeBlock (sint32 index, sint32 size){
     *        2. next free space pointer will redefine in array and store ! in this cell
     *        3. metadata will redefine in array and store remaining size of free space
     */
-   else if (index == Tail){
-        sint32 PreIndex = SimHeap[index+PREVIOUS_FREE_BLOCK_SHIFT];
-        Tail = index + size + BEGIN_DATA_SHIFTER ;
-        HeapUtils_SetFreeNodeInfo(Tail, SimHeap[index] - size - METADATA_CELL,PreIndex,SYMBOL_OF_HEAP_NULL); 
+   else if (Node == Tail){
+        sint32 PreIndex = SimHeap[Node+PREVIOUS_FREE_BLOCK_SHIFT];
+        Tail = Node + spliting_size + BEGIN_DATA_SHIFTER ;
+        HeapUtils_SetFreeNodeInfo(Tail,(TotalSizeOfNode-spliting_size-METADATA_CELL),PreIndex,SYMBOL_OF_HEAP_NULL); 
         SimHeap[PreIndex+NEXT_FREE_BLOCK_SHIFT] = Tail ;
    }
     /* handle simulated array if neither head or tail is suitable to allocate this size
@@ -193,17 +194,17 @@ sint32 HeapUtils_SplitFreeBlock (sint32 index, sint32 size){
     *        3. metadata will redefine in array and store remaining size of free space
     *        4. update previous index ->next and Next index -> Pre
     */
-   else if (InFreeList == VALID){
-        sint32 New = index + size + BEGIN_DATA_SHIFTER ;
-        sint32 PreIndex = SimHeap[index+PREVIOUS_FREE_BLOCK_SHIFT];
-        sint32 NextIndex = SimHeap[index+NEXT_FREE_BLOCK_SHIFT];
-        HeapUtils_SetFreeNodeInfo(New, SimHeap[index] - size - METADATA_CELL, PreIndex,NextIndex);  
-        SimHeap[PreIndex+NEXT_FREE_BLOCK_SHIFT] = New ;
-        SimHeap[NextIndex+PREVIOUS_FREE_BLOCK_SHIFT] = New ;
+    else if (InFreeList == VALID){
+        sint32 NewNode = Node + spliting_size + METADATA_CELL ;
+        sint32 PreIndex = SimHeap[Node+PREVIOUS_FREE_BLOCK_SHIFT];
+        sint32 NextIndex = SimHeap[Node+NEXT_FREE_BLOCK_SHIFT];
+        HeapUtils_SetFreeNodeInfo(NewNode,(TotalSizeOfNode-spliting_size-METADATA_CELL), PreIndex,NextIndex);  
+        SimHeap[PreIndex+NEXT_FREE_BLOCK_SHIFT] = NewNode ;
+        SimHeap[NextIndex+PREVIOUS_FREE_BLOCK_SHIFT] = NewNode ;
     }
     else {
-        printf("allocate size with %5d\n",size);
-        printf("Not Exist In Free List index : %5d from split functionwith index size: %5d\n" , index, SimHeap[index]);
+        printf("allocate size with %5d\n",spliting_size);
+        printf("Not Exist In Free List index : %5d from split function with index size: %5d\n" , Node, SimHeap[Node]);
         while(1);///////////////////////////// for testing
         exit(INVALID);
     }
@@ -212,8 +213,8 @@ sint32 HeapUtils_SplitFreeBlock (sint32 index, sint32 size){
     *  that: 1. return value point to the beginning of data space
     *        2. edit metadata of new allocation to new allocation available space
     */
-    Ret_DataIndex = index  + BEGIN_DATA_SHIFTER;
-    SimHeap[index] = size ;
+    Ret_DataIndex = Node  + BEGIN_DATA_SHIFTER;
+    HeapUtils_SetFreeNodeInfo(Node,spliting_size, SYMBOL_OF_HEAP_NULL,SYMBOL_OF_HEAP_NULL);  
 
     return Ret_DataIndex ;
 }
@@ -242,7 +243,7 @@ sint32 HeapUtils_RemoveFreeBlock (sint32 index, sint32 size){
         * */
         /* to shift tail with first group calls for maollac*/
         if (HeadAndTail == INVALID){
-            Head = SimHeap[index+NEXT_FREE_BLOCK_SHIFT] ;
+            Head = SimHeap[Head+NEXT_FREE_BLOCK_SHIFT] ;
             SimHeap[Head+PREVIOUS_FREE_BLOCK_SHIFT] = SYMBOL_OF_HEAP_NULL ;
         }
         else if (HeadAndTail == VALID ){
@@ -263,7 +264,7 @@ sint32 HeapUtils_RemoveFreeBlock (sint32 index, sint32 size){
     *        2. backword tail -> next free space point to !
     * */
    else if (index == Tail){
-        sint32 Backwork_Tail = SimHeap[index+PREVIOUS_FREE_BLOCK_SHIFT] ; 
+        sint32 Backwork_Tail = SimHeap[Tail+PREVIOUS_FREE_BLOCK_SHIFT] ; 
         Tail = Backwork_Tail ;
         SimHeap[Tail+NEXT_FREE_BLOCK_SHIFT] = SYMBOL_OF_HEAP_NULL ;
    }
@@ -285,8 +286,12 @@ sint32 HeapUtils_RemoveFreeBlock (sint32 index, sint32 size){
         exit(INVALID);
     }
 
-    SimHeap[index] = size;
+    /* handle new allocation space
+    *  that: 1. return value point to the beginning of data space
+    *        2. edit metadata of new allocation to new allocation available space
+    */
     Ret_DataIndex = index  + BEGIN_DATA_SHIFTER;
+    HeapUtils_SetFreeNodeInfo(index,size, SYMBOL_OF_HEAP_NULL,SYMBOL_OF_HEAP_NULL); 
 
     return Ret_DataIndex ;
 }
