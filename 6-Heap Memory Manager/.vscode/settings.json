@@ -4,6 +4,8 @@
     "files.associations": {
         "helper.h": "c",
         "heaptest.h": "c",
-        "heapmanager.h": "c"
+        "heapmanager.h": "c",
+        "heapextras.h": "c",
+        "heaputils.h": "c"
     }
 }

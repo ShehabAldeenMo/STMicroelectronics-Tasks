@@ -26,10 +26,15 @@
 
 
 /*==================================  main =====================================*/
-uint8 main (){
+int main (){
     printf("Starting random allocation and deallocation test...\n");
     HeapTest_RandomAllocateFreeTest();
     printf("Test complete.\n");
     return 0 ;
 }
 
+/*
+* - variables should be initialized
+* - there is no if without else condition for unexpected beheviour
+* - while(1) to testing at each exit statement
+*/

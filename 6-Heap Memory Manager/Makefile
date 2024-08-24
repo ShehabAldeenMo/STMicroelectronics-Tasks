@@ -30,13 +30,13 @@ all: $(TARGET)
 main.o: main.c
 	$(CC) $(CFLAGS) -o main.o -c main.c
 
-Level_1/HeapTest.o: Level_1/HeapTest.c Level_1/HeapTest.h
+Level_1/HeapTest.o: Level_1/HeapTest.c Level_1/HeapTest.h Level_3/HeapUtils.h
 	$(CC) $(CFLAGS) -o Level_1/HeapTest.o -c Level_1/HeapTest.c
 
-Level_2/HeapExtras.o: Level_2/HeapExtras.c Level_2/HeapExtras.h
+Level_2/HeapExtras.o: Level_2/HeapExtras.c Level_2/HeapExtras.h Level_3/HeapUtils.h
 	$(CC) $(CFLAGS) -o Level_2/HeapExtras.o -c Level_2/HeapExtras.c
 
-Level_2/HeapManager.o: Level_2/HeapManager.c Level_2/HeapManager.h
+Level_2/HeapManager.o: Level_2/HeapManager.c Level_2/HeapManager.h Level_3/HeapUtils.h
 	$(CC) $(CFLAGS) -o Level_2/HeapManager.o -c Level_2/HeapManager.c
 
 Level_3/HeapUtils.o: Level_3/HeapUtils.c Level_3/HeapUtils.h
