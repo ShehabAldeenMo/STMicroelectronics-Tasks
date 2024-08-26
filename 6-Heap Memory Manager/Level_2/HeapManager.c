@@ -25,70 +25,55 @@
 
 
 
-
 /*===================================  Includes ===============================*/
 #include "HeapManager.h"
 
 
 /*=============================  Global Variables ==============================*/
-sint32 SimHeap[MAX_HEAPLENGHT];          // simulated heap
-sint32 CurBreak;                         // break pointer on simulated heap
-sint32 Head;                             // define first index of free space
-sint32 Tail;                             // define last index of free spaces
-static uint8 InitFlag = ON ;
+sint64       SimHeap[MAX_HEAPLENGHT];                      // simulated heap
+FreeBlock*   ptrHead     = NULL ;
+FreeBlock*   ptrTail     = NULL ;
+static uint8 InitFlag    = ON ;
+sint8*       CurBreak    = NULL;                           // break pointer on simulated heap
 
-sint32* HeapManager_Malloc(sint32 size){
-    if (InitFlag == ON){
+
+void* HeapManager_Malloc(size_t size) {
+    if (InitFlag == ON) {
         HeapExtras_Init();
-        InitFlag = OFF ;
+        InitFlag = OFF;
     }
-    
-#if (FIRSTFIT == ENABLE )
-    sint32 indexOfData = HeapExtras_FirstFit(size);
-#else
-    sint32 indexOfData = HeapExtras_BestFit(size);
-#endif
+ 
+    sint8* ptrOfData = HeapExtras_FirstFit(size);
 
-    if (indexOfData == INVALID){
-        return NULL;
-    }
-
-    return  (sint32*) (&(SimHeap[indexOfData])) ;
+    // Return a pointer to the allocated memory, cast to void*
+    return (void*)ptrOfData;
 }
 
-void HeapManager_Free(sint32* ptr){
-    sint32 sizeOfptr = *(ptr-1); // to know size  of this pointer
-    sint32 indexOfptr = 0 ;          // to know what is the index in simulated heap for ptr 
 
-    while ( &SimHeap[indexOfptr++] != (ptr-1) ); // to stop on index of ptr
-    indexOfptr--;                           // to stop on index of metadata for ptr
+void HeapManager_Free(void* ptr){
+    if (ptr == NULL) {
+        printf("Passing NULL to free function\n");
+        exit(INVALID);
+    }
 
-    /* if indexOfptr is pointing to node before head node, there are two scenarios
-    * 1) indexOfptr point to node away from head
-    * 2) indexOfptr point to node just before head from left so we will extend head node to join two adjecent free spaces
-    * */
-    if ( indexOfptr < Head ){
-        HeapExtras_FreeOperationBeforeHead(indexOfptr,sizeOfptr);
+    // Calculate the address of the FreeBlock metadata
+    FreeBlock* deletedBlock = (FreeBlock*)((sint8*)ptr - sizeof(size_t));
+    
+    // If `deletedBlock` is pointing to a node before the head node
+    if (deletedBlock < ptrHead) {
+        HeapExtras_FreeOperationBeforeHead(deletedBlock);
     }
-    /* if indexOfptr is pointing to node after tail node, there are two scenarios
-    * 1) indexOfptr point to node away from tail
-    * 2) indexOfptr point to node just after tail from right so we will extend tail node to join two adjecent free spaces
-    * */
-    else if (indexOfptr > Tail){
-        HeapExtras_FreeOperationAfterTail(indexOfptr,sizeOfptr);
+    // If `deletedBlock` is pointing to a node after the tail node
+    else if (deletedBlock > ptrTail) {
+        HeapExtras_FreeOperationAfterTail(deletedBlock);
     }
-    /* if indexOfptr is pointing to node after head node and before tail node, there are four scenarios
-    * 1) indexOfptr point to node away not adjecent for any free node so we willn't extend and free node
-    * 2) indexOfptr point to node just after free node(x) from right so we will extend x node to join two adjecent free spaces
-    * 3) indexOfptr point to node just before free node(y) from left so we will extend y node to join two adjecent free spaces
-    * 4) indexOfptr point to node just after free node(x) and before free node(y) from right so we will extend x,y node to join three adjecent free spaces
-    * */
-    else if (indexOfptr > Head && indexOfptr < Tail){
-        HeapExtras_FreeOperationMiddleNode(indexOfptr,sizeOfptr);
+    // If `deletedBlock` is pointing to a node between head and tail nodes
+    else if (deletedBlock > ptrHead && deletedBlock < ptrTail) {
+        HeapExtras_FreeOperationMiddleNode(deletedBlock);
     }
     else {
-        printf("error in freeing heap that indexOfptr is not exist in limits : %5d\n",indexOfptr);
-        while(1);///////////////////////////// for testing
+        printf("Error: deletedBlock is not within valid heap limits \n");
+        while (1); // For testing purposes
         exit(INVALID);
     }
 }

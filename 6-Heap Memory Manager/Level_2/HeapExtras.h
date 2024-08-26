@@ -27,85 +27,71 @@
 /*===================================  Includes ===============================*/
 #include "../Level_3/HeapUtils.h"
 
-
 /*
  * Name             : HeapExtras_FirstFit
- * Description      : Finds the first free block in the heap that is large enough to accommodate the requested size. 
- *                     If no suitable block is found, the function resizes the heap using sbrk to accommodate the request.
- * Input            : sint32 size - The size of the memory block requested.
- * Output           : sint32 - The index of the allocated memory block, or INVALID if no suitable block is found and resizing is required.
- * Return           : sint32 - The index of the allocated memory block, or INVALID if resizing is needed.
- * Notes            : 
- * - The function first checks if the free list head and tail are adjacent to the heap break pointer to determine if resizing is necessary.
- * - If the free list has a suitable block, it is allocated. Otherwise, the heap is resized to accommodate the request.
+ * Description      : Allocates memory using the first-fit strategy from the heap's free list. 
+ *                    If no suitable free block is found, the heap is expanded using sbrk.
+ * Input            : size - The requested size of memory to allocate.
+ * Output           : None.
+ * Return           : Pointer to the allocated memory block if successful, or NULL if the allocation fails.
+ * Notes            : The function ensures that the requested size is aligned to an 8-byte boundary 
+ *                    and that the size is at least as large as the FreeBlock structure to prevent overwriting.
  */
-sint32 HeapExtras_FirstFit(sint32 size);
+sint8* HeapExtras_FirstFit(size_t size);
+
+/*
+ * Name             : HeapExtras_Init
+ * Description      : Initializes the simulated heap by setting up the initial free block. 
+ *                    This function sets the head and tail of the free list to point to the 
+ *                    initial block and sets the break pointer (CurBreak) to the end of the simulated heap.
+ * Input            : None.
+ * Output           : None.
+ * Return           : None.
+ * Notes            : The function assumes that the simulated heap (SimHeap) has been declared and 
+ *                    is available for use. The size of the heap is assumed to be ONE_K.
+ */
+void   HeapExtras_Init();
 
 /*
  * Name             : HeapExtras_FreeOperationBeforeHead
- * Description      : Manages the freeing of memory blocks located before or at the head of the free list.
- * Input            : sint32 index - The index of the block to be freed.
- *                     sint32 size  - The size of the block to be freed.
- * Output           : None
- * Return           : None
- * Notes            :
- * - If the block to be freed is before the current head of the free list, it updates the head to point to the new block.
- * - If the block is adjacent to the head, it merges the block with the head and updates pointers accordingly.
+ * Description      : Handles the operation of freeing a block of memory located before the current head 
+ *                    of the free list. Depending on the position of the block relative to the head, 
+ *                    the function either inserts the block as the new head or merges it with the existing head.
+ * Input            : FreeBlock* Node - A pointer to the block of memory that needs to be freed and placed before the current head.
+ * Output           : None.
+ * Return           : None.
+ * Notes            : The function checks if the block is adjacent to the current head or not, and then either 
+ *                    updates the free list structure accordingly or merges the block with the head.
  */
-void   HeapExtras_FreeOperationBeforeHead(sint32 index, sint32 size);
+void   HeapExtras_FreeOperationBeforeHead(FreeBlock* Node);
 
 /*
  * Name             : HeapExtras_FreeOperationAfterTail
- * Description      : Manages the freeing of memory blocks located after or at the tail of the free list.
- * Input            : sint32 index - The index of the block to be freed.
- *                     sint32 size  - The size of the block to be freed.
- * Output           : None
- * Return           : None
- * Notes            :
- * - If the block to be freed is after the current tail of the free list, it updates the tail to point to the new block.
- * - If the block is adjacent to the tail, it merges the block with the tail and updates pointers accordingly.
+ * Description      : Handles the operation of freeing a block of memory located after the current tail 
+ *                    of the free list. Depending on the position of the block relative to the tail, 
+ *                    the function either appends the block as the new tail or merges it with the existing tail.
+ * Input            : FreeBlock* Node - A pointer to the block of memory that needs to be freed and placed after the current tail.
+ * Output           : None.
+ * Return           : None.
+ * Notes            : The function checks if the block is adjacent to the current tail or not, and then either 
+ *                    updates the free list structure accordingly or merges the block with the tail.
  */
-void   HeapExtras_FreeOperationAfterTail(sint32 index,sint32 size);
+void   HeapExtras_FreeOperationAfterTail(FreeBlock* Node);
 
 /*
  * Name             : HeapExtras_FreeOperationMiddleNode
- * Description      : Handles the freeing of memory blocks located between existing free nodes in the free list.
- * Input            : sint32 index - The index of the block to be freed.
- *                     sint32 size  - The size of the block to be freed.
- * Output           : None
- * Return           : None
- * Notes            :
- * - The function merges the freed block with adjacent free blocks if they exist.
- * - It adjusts the free list pointers to ensure the free list remains contiguous and correctly ordered.
- * - If the freed block connects multiple adjacent free blocks, they are merged into a single larger block.
+ * Description      : Handles the operation of freeing a block of memory located between two existing free blocks 
+ *                    in the middle of the free list. Depending on the position of the block relative to its 
+ *                    neighboring blocks, the function either inserts the block in the correct position or merges 
+ *                    it with adjacent blocks.
+ * Input            : FreeBlock* Node - A pointer to the block of memory that needs to be freed and placed between 
+ *                    two existing free blocks.
+ * Output           : None.
+ * Return           : None.
+ * Notes            : The function checks if the block is adjacent to one or both neighboring blocks and then 
+ *                    either updates the free list structure accordingly or merges the block with the adjacent blocks.
  */
-void   HeapExtras_FreeOperationMiddleNode(sint32 index,sint32 size);
+void   HeapExtras_FreeOperationMiddleNode(FreeBlock* Node);
 
-/*
- * Name             : HeapExtras_BestFit
- * Description      : Finds the best-fit block in the heap that is large enough to accommodate the requested size, 
- *                     choosing the smallest block that fits the requirement. If no suitable block is found, it resizes the heap.
- * Input            : sint32 size - The size of the memory block requested.
- * Output           : sint32 - The index of the allocated memory block, or INVALID if no suitable block is found and resizing is required.
- * Return           : sint32 - The index of the allocated memory block, or INVALID if resizing is needed.
- * Notes            :
- * - The function first searches the free list for the smallest block that fits the requested size.
- * - If no suitable block is found, the heap is resized to accommodate the request.
- * - It takes into account the state of the free list and the heap break pointer to decide if resizing is necessary.
- */
-sint32 HeapExtras_BestFit(sint32 size);
-
-/*
- * Name             : HMM_Init
- * Description      : Initializes the simulated heap by setting up the head, tail, and program 
- *                    break pointer. The heap is prepared with initial values to manage memory 
- *                    allocation and deallocation.
- * Input            : None
- * Output           : None
- * Return           : None
- * Notes            : This function must be called before any memory allocation or deallocation 
- *                    operations to ensure that the simulated heap is properly initialized.
- */
-void HeapExtras_Init();
 
 #endif

@@ -25,29 +25,36 @@
 
 
 /*============================  extern Global Variable ==============================*/
-extern sint32 SimHeap[MAX_HEAPLENGHT];          // simulated heap
-extern sint32 CurBreak;                         // break pointer on simulated heap
-extern sint32 Head;                             // define first index of free space
-extern sint32 Tail;                             // define last index of free spaces
+extern FreeBlock* ptrHead;
+extern FreeBlock* ptrTail;
 
 
 /*=========================  Functions Implementation ===========================*/
-sint32 getIndex(sint32* ptr){
-    sint32 indexOfptr = 0 ;          // to know what is the index in simulated heap for ptr 
-    while ( &SimHeap[indexOfptr++] != (ptr-1) ); // to stop on index of ptr
-    indexOfptr--;  
-    return indexOfptr ;
-}
 
 void HeapTest_PrintBordersState() {
     printf("-----------------------------------------------------------------------------------------\n");
-    printf("Head: %d, Tail: %d\n", Head, Tail);
-    printf("SimHeap[Head]: %d, SimHeap[Head+1]: %d, SimHeap[Head+2]: %d\n",
-        SimHeap[Head], SimHeap[Head+1], SimHeap[Head+2]);
-    printf("SimHeap[Tail]: %d, SimHeap[Tail+1]: %d, SimHeap[Tail+2]: %d\n",
-        SimHeap[Tail], SimHeap[Tail+1], SimHeap[Tail+2]);
+    
+    // Print information about ptrHead
+    if (ptrHead != NULL) {
+        printf("ptrHead: %p\n", (void*)ptrHead);
+        printf("ptrHead BlockSize: %5ld\n", ptrHead->BlockSize);
+        printf("ptrHead NextFreeBlock: %p\n", (void*)ptrHead->NextFreeBlock);
+        printf("ptrHead PreviousFreeBlock: %p\n", (void*)ptrHead->PreviousFreeBlock);
+    } else {
+        printf("ptrHead is NULL\n");
+    }
+    
+    // Print information about ptrTail
+    if (ptrTail != NULL) {
+        printf("ptrTail: %p\n", (void*)ptrTail);
+        printf("ptrTail BlockSize: %5ld\n", ptrTail->BlockSize);
+        printf("ptrTail NextFreeBlock: %p\n", (void*)ptrTail->NextFreeBlock);
+        printf("ptrTail PreviousFreeBlock: %p\n", (void*)ptrTail->PreviousFreeBlock);
+    } else {
+        printf("ptrTail is NULL\n");
+    }
+    
     printf("-----------------------------------------------------------------------------------------\n");
-
 }
 
 void HeapTest_RandomAllocateFreeTest() {
@@ -59,47 +66,29 @@ void HeapTest_RandomAllocateFreeTest() {
         int index = rand() % NUM_ALLOCS;
         if (pointers[index] == NULL) {
             // Allocate memory
-            sint32 size = (sint32)(rand() % MAX_SIZE) + 1;
+            size_t size = (sint32)(rand() % MAX_SIZE) + 1;
 #if DEBUGGING == ENABLE
-            printf("\n\n\nBefore Malloc function\n");
+            printf("\n\nFree List Before\n");
             HeapTest_PrintBordersState();
 #endif
             pointers[index] = HeapManager_Malloc(size);
-            if (pointers[index] != NULL) {
-                printf("Allocated memory of size %5d at address %p\n", size, pointers[index]);
-                
-            /* to allocate random data into memory that you reserved */
-            for (sint32 j = 0; j < (sint32)(size / sizeof(sint32)); j++) {
-                ((sint32*)pointers[index])[j] = 3;
-            }
-
 #if DEBUGGING == ENABLE
-                printf("size = %5d\n",size);
-                printf("After Malloc function Allcoate at : %5d\n", getIndex(pointers[index]) );
-                HeapTest_PrintBordersState();
-                printf("\n\n\n");
+            printf("\n\nFree List After\n");
+            HeapTest_PrintBordersState();
 #endif
+            if (pointers[index] != NULL) {
+                printf("Allocated memory of size %5ld at address %p\n", size, pointers[index]);
+                
+                // Fill the allocated memory with a specific value, e.g., 3
+                memset(pointers[index], 3, size);
+                
             } else {
-                fprintf(stderr, "Allocation failed for size %5d\n", size);
+                fprintf(stderr, "Allocation failed for size %5ld\n", size);
             }
         } else {
             // Free memory
             printf("Freeing memory at address %p\n", pointers[index]);
             HeapManager_Free(pointers[index]);
-#if DEBUGGING == ENABLE
-            // Calculate the target index
-            sint32 targetIndex = (sint32)(((sint32*)((uint8*)pointers[index] - sizeof(sint32))) - SimHeap);
-    
-            // Print the relevant information for the current free node
-            printf("\n-------------------  Free Memory in this index only  ----------------------------\n");
-            printf("| Index | Block Size | Prev Free Block | Next Free Block |\n");
-            printf("----------------------------------------------------\n");
-            printf("| %5d | %10d | %15d | %15d |\n", 
-                   targetIndex, 
-                   SimHeap[targetIndex], 
-                   SimHeap[targetIndex + PREVIOUS_FREE_BLOCK_SHIFT], 
-                   SimHeap[targetIndex + NEXT_FREE_BLOCK_SHIFT]);
-#endif
             pointers[index] = NULL;
         }
     }
@@ -109,77 +98,9 @@ void HeapTest_RandomAllocateFreeTest() {
         if (pointers[i] != NULL) {
             // Free memory
             printf("Freeing remaining memory at address %p\n", pointers[i]);
-            HeapManager_Free(pointers[i]);
-            
-#if DEBUGGING == ENABLE
-            // Calculate the target index
-            sint32 targetIndex = (sint32)(((sint32*)((uint8*)pointers[i] - sizeof(sint32))) - SimHeap);
-
-            // Print the relevant information for the current free node
-            printf("\n-------------------------  Free Remaining Memory   ---------------------------\n");
-            printf("| Index | Block Size | Prev Free Block | Next Free Block |\n");
-            printf("----------------------------------------------------\n");
-            printf("| %5d | %10d | %15d | %15d |\n", 
-                   targetIndex, 
-                   SimHeap[targetIndex], 
-                   SimHeap[targetIndex + PREVIOUS_FREE_BLOCK_SHIFT], 
-                   SimHeap[targetIndex + NEXT_FREE_BLOCK_SHIFT]);
-#endif
+            HeapManager_Free(pointers[i]);            
             // Clear the pointer
             pointers[i] = NULL;
         }
     }
-}
-
-void HeapTest_PrintFreeListFromHead() {
-    sint32 current = Head;
-
-    printf("Free List From Head:\n");
-    printf("----------------------------------------------------\n");
-    printf("| Index | Block Size | Prev Free Block | Next Free Block |\n");
-    printf("----------------------------------------------------\n");
-
-    sint32 size = SimHeap[current];
-    sint32 prev = SimHeap[current + PREVIOUS_FREE_BLOCK_SHIFT];
-    sint32 next = SimHeap[current + NEXT_FREE_BLOCK_SHIFT];
-
-    while (current != SYMBOL_OF_HEAP_NULL && current != prev) {
-        size = SimHeap[current];
-        prev = SimHeap[current + PREVIOUS_FREE_BLOCK_SHIFT];
-        next = SimHeap[current + NEXT_FREE_BLOCK_SHIFT];
-
-        printf("| %5d | %10d | %15d | %15d |\n", current, size, prev, next);
-
-        current = next;
-    }
-
-    printf("----------------------------------------------------\n");
-}
-
-
-
-
-void HeapTest_PrintFreeListFromTail() {
-    sint32 current = Tail;
-
-    printf("Free List From Tail:\n");
-    printf("----------------------------------------------------\n");
-    printf("| Index | Block Size | Prev Free Block | Next Free Block |\n");
-    printf("----------------------------------------------------\n");
-
-    sint32 size = SimHeap[current];
-    sint32 prev = SimHeap[current + PREVIOUS_FREE_BLOCK_SHIFT];
-    sint32 next = SimHeap[current + NEXT_FREE_BLOCK_SHIFT];
-
-    while (current != SYMBOL_OF_HEAP_NULL && current != next) {
-        size = SimHeap[current];
-        prev = SimHeap[current + PREVIOUS_FREE_BLOCK_SHIFT];
-        next = SimHeap[current + NEXT_FREE_BLOCK_SHIFT];
-
-        printf("| %5d | %10d | %15d | %15d |\n", current, size, prev, next);
-
-        current = prev;
-    }
-
-    printf("----------------------------------------------------\n");
 }

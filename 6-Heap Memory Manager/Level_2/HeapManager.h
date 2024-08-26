@@ -40,7 +40,6 @@
 #define FIRSTFIT         ENABLE
 
 
-
 /*==========================  Function Prototypes ===========================*/
 /*
  * Name             : HeapManager_Malloc
@@ -54,8 +53,8 @@
  *                    strategy defined by the user. If FIRSTFIT is enabled, the allocation uses 
  *                    the First Fit strategy; otherwise, it uses the Best Fit strategy.
  */
-sint32* HeapManager_Malloc(sint32 size);
-
+void* HeapManager_Malloc(size_t size);
+ 
 /*
  * Name             : HeapManager_Free
  * Description      : Frees a previously allocated block of memory, identified by the pointer 
@@ -67,6 +66,6 @@ sint32* HeapManager_Malloc(sint32 size);
  *                    the block to be freed relative to the head and tail nodes. It ensures 
  *                    optimal memory usage by merging adjacent free blocks when possible.
  */
-void HeapManager_Free(sint32* ptr);
+void HeapManager_Free(void* ptr);
 
 #endif

@@ -30,9 +30,9 @@
 
 
 /*==================================  Definitions =============================*/
-#define NUM_ALLOCS 1000
+#define NUM_ALLOCS 10000
 #define MAX_SIZE 10240
-#define MAX_ITERATIONS 10000
+#define MAX_ITERATIONS 1000000
 
 /*==========================  Function Prototypes ===========================*/
 /*
@@ -60,32 +60,5 @@ void HeapTest_PrintBordersState(void);
  *                    repeatedly allocating and freeing memory.
  */
 void HeapTest_RandomAllocateFreeTest(void);
-
-/*
- * Name             : HeapTest_PrintFreeListFromHead
- * Description      : Prints the free list starting from the head of the heap, including 
- *                    the index, block size, previous free block, and next free block for 
- *                    each free block.
- * Input            : None
- * Output           : None
- * Return           : None
- * Notes            : This function helps to visualize the free list from the head and 
- *                    verify the correctness of the free list implementation.
- */
-void HeapTest_PrintFreeListFromHead(void);
-
-/*
- * Name             : HeapTest_PrintFreeListFromTail
- * Description      : Prints the free list starting from the tail of the heap, including 
- *                    the index, block size, previous free block, and next free block for 
- *                    each free block.
- * Input            : None
- * Output           : None
- * Return           : None
- * Notes            : This function helps to visualize the free list from the tail and 
- *                    verify the correctness of the free list implementation.
- */
-void HeapTest_PrintFreeListFromTail(void);
-
-sint32 getIndex(sint32* ptr);
+ 
 #endif
