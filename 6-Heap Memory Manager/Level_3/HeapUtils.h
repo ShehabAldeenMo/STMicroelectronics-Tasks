@@ -34,15 +34,9 @@
 
 /*==================================  Definitions ===========================*/
 #define ONE_K                                   1024
-#define MAX_HEAPLENGHT                         200*ONE_K*ONE_K  // Maximum length for static array used to simulated heap
+#define MAX_HEAPLENGHT                         25*ONE_K*ONE_K  // Maximum length for static array used to simulated heap
 #define INVALID                                  -2
 #define VALID                                    -1
-#define PREVIOUS_FREE_BLOCK_SHIFT                 1
-#define NEXT_FREE_BLOCK_SHIFT                     2
-#define SYMBOL_OF_HEAP_NULL                      -1
-#define BEGIN_DATA_SHIFTER                        1
-#define METADATA_CELL                             1
-#define NUMBER_OF_FREE_NODE_ELEMENTS              3
 #define NOT_ENTER                                 1
 #define ENTERED                                   0
 #define BREAK_STEP_SIZE                          ONE_K
@@ -72,101 +66,112 @@ typedef unsigned long long int uint64 ;
 typedef float float32                 ;
 typedef double float64                ;
 
+typedef struct FreeBlock {
+    size_t BlockSize;
+    struct FreeBlock* NextFreeBlock;
+    struct FreeBlock* PreviousFreeBlock;
+} FreeBlock;
 
 /*==============================  Functions Prototypes   ==========================*/
 /*
  * Name             : HeapUtils_AllocationCoreLoop
- * Description      : Core function for memory allocation within the simulated heap. It handles
- *                    the allocation process by managing padding and updating the simulated heap.
- * Input            : index - The starting index in the heap where allocation is to be attempted.
- *                    size - The size of memory to be allocated.
- * Output           : None
- * Return           : Returns the index of the allocated memory if successful, or `INVALID` if 
- *                    allocation fails.
- * Notes            : This function considers padding and handles cases where the requested size
- *                    fits partially or exactly in the available space. It calls helper functions 
- *                    to manage memory allocation and node adjustments.
+ * Description      : Handles the core loop for allocating memory from a free block. Depending on the 
+ *                    size of the free block and the requested size, the function either splits the block, 
+ *                    removes it from the free list, or returns an invalid pointer if allocation fails.
+ * Input            : FreeBlock* ptrBlock - A pointer to the free block from which memory is to be allocated.
+ *                    size_t ReqSize - The size of memory requested for allocation.
+ * Output           : None.
+ * Return           : sint8* - A pointer to the allocated memory or NULL if allocation fails.
+ * Notes            : The function handles cases where padding is required and adjusts the requested size 
+ *                    accordingly. It then attempts to allocate memory by either splitting the block or 
+ *                    removing it from the free list.
  */
-sint32 HeapUtils_AllocationCoreLoop(sint32 index, sint32 size);
+sint8* HeapUtils_AllocationCoreLoop(FreeBlock* ptrBlock,size_t size);
 
 /*
  * Name             : HeapUtils_sbrk
- * Description      : Adjusts the simulated program break (heap end) by the specified size. It
- *                    checks if the new break position is within valid heap boundaries and updates
- *                    the `CurBreak` pointer accordingly.
- * Input            : size - The size to adjust the program break by (can be positive or negative).
- * Output           : None
- * Return           : Returns the previous value of `CurBreak` if the adjustment is successful,
- *                    or returns `INVALID` if the requested size exceeds the heap boundaries.
- * Notes            : This function is used to manage the dynamic allocation of memory within
- *                    the simulated heap by effectively controlling the size of the heap.
+ * Description      : Simulates the behavior of the sbrk system call, which increments the program's 
+ *                    data space by a specified size. The function ensures that the new program break 
+ *                    is within the simulated heap limits.
+ * Input            : size_t size - The amount of memory to extend the program's data space.
+ * Output           : None.
+ * Return           : sint8* - A pointer to the previous program break or NULL if the requested size is invalid.
+ * Notes            : The function checks if the requested size would cause the program break to exceed 
+ *                    the simulated heap's boundaries, returning NULL if the request is invalid.
  */
-sint32 HeapUtils_sbrk (sint32 size);
+sint8* HeapUtils_sbrk (size_t size);
 
 /*
  * Name             : HeapUtils_sbrkResize
- * Description      : Extends the heap by adjusting the program break and resizing the heap if 
- *                    necessary. It ensures that there is enough space for the requested size 
- *                    and manages heap expansion if required.
- * Input            : size - The size to allocate within the heap.
- *                    flag - A flag indicating the state or mode for resizing.
- * Output           : None
- * Return           : Returns the index of the allocated memory if successful, or `INVALID` if 
- *                    resizing fails.
- * Notes            : This function may extend the heap in steps and handle different states 
- *                    to ensure the heap has sufficient space for allocation. It calls helper 
- *                    functions to manage heap resizing and memory allocation.
+ * Description      : Extends the heap by a specified size using the sbrk function and attempts to 
+ *                    allocate memory from the newly extended space. Depending on the provided flag, 
+ *                    the function either creates a new free block or extends the size of the current block.
+ * Input            : size_t ReqSize - The size of memory requested for allocation.
+ *                    sint8 flag - A flag indicating the state of the heap (e.g., STATE1 for creating a new block, 
+ *                    STATE2 for resizing the existing block).
+ * Output           : None.
+ * Return           : sint8* - A pointer to the allocated memory or NULL if allocation fails.
+ * Notes            : The function loops until memory is successfully allocated, extending the heap 
+ *                    as necessary. It handles cases where no suitable free space exists, creating 
+ *                    or resizing blocks based on the provided flag.
  */
-sint32 HeapUtils_sbrkResize(sint32 size,sint8 flag);
+sint8* HeapUtils_sbrkResize(size_t ReqSize,sint8 flag);
 
 /*
  * Name             : HeapUtils_SplitFreeBlock
- * Description      : Splits a free block of memory in the simulated heap to allocate a specific 
- *                    size. It updates the metadata of the free blocks and adjusts pointers 
- *                    to maintain the integrity of the free list.
- * Input            : Node - The starting index of the free block to split.
- *                    spliting_size - The size of memory to allocate from the free block.
- * Output           : None
- * Return           : Returns the index of the newly allocated memory.
- * Notes            : This function handles different scenarios for splitting free blocks, 
- *                    including cases where the block is at the head or tail of the free list. 
- *                    It updates the metadata and pointers to reflect the split.
+ * Description      : Splits a free block into two parts: one for allocation and the other as a smaller free block. 
+ *                    Depending on the block's position in the free list (head, tail, or middle), the function 
+ *                    updates the free list accordingly and returns a pointer to the allocated memory.
+ * Input            : FreeBlock* Node - A pointer to the free block to be split.
+ *                    size_t spliting_size - The size of the memory to be allocated from the block.
+ * Output           : None.
+ * Return           : sint8* - A pointer to the allocated memory.
+ * Notes            : The function handles different cases for head, tail, and middle nodes, ensuring 
+ *                    that the free list is correctly updated. It also manages the remaining free space 
+ *                    after allocation and adjusts the free list pointers as needed.
  */
-sint32 HeapUtils_SplitFreeBlock (sint32 Node, sint32 spliting_size);
+sint8* HeapUtils_SplitFreeBlock (FreeBlock* Node, size_t spliting_size);
 
 /*
  * Name             : HeapUtils_RemoveFreeBlock
- * Description      : Removes a free block of memory from the simulated heap. It updates 
- *                    the free list and adjusts pointers to maintain the integrity of the heap 
- *                    after the block has been removed.
- * Input            : index - The starting index of the free block to remove.
- *                    size - The size of the block to remove.
- * Output           : None
- * Return           : Returns the index of the newly allocated memory after removal.
- * Notes            : This function handles different cases for removing free blocks, including 
- *                    updates to the head and tail of the free list and adjusting pointers to 
- *                    maintain the heap's free list structure.
+ * Description      : Removes a free block from the free list after allocating memory from it. 
+ *                    The function adjusts the head and tail pointers of the free list as necessary 
+ *                    and updates the free list structure to maintain consistency.
+ * Input            : FreeBlock* Node - A pointer to the free block to be removed.
+ *                    size_t spliting_size - The size of memory that was allocated from the block.
+ * Output           : None.
+ * Return           : sint8* - A pointer to the allocated memory within the removed block.
+ * Notes            : The function handles different cases for the head, tail, and middle nodes of 
+ *                    the free list, ensuring that the list remains properly linked. It also checks if 
+ *                    the block is in the free list and updates the list pointers accordingly.
  */
-sint32 HeapUtils_RemoveFreeBlock (sint32 index, sint32 size);
+sint8* HeapUtils_RemoveFreeBlock (FreeBlock* Node, size_t spliting_size);
+
+/*
+ * Name             : HeapUtils_SearchOnIndexInFreeList
+ * Description      : Searches for a specific free block within the free list. The function iterates 
+ *                    through the list to check if the given block is present.
+ * Input            : FreeBlock* block - A pointer to the block to be searched for in the free list.
+ * Output           : None.
+ * Return           : sint8 - Returns VALID (non-zero) if the block is found in the free list, INVALID (zero) otherwise.
+ * Notes            : The function traverses the free list starting from the head node, comparing 
+ *                    each block with the provided block to determine if it exists in the list.
+ */
+void   HeapUtils_SetFreeNodeInfo(FreeBlock* Node, size_t metadata, FreeBlock* previous_content, FreeBlock* next_content);
 
 /*
  * Name             : HeapUtils_SetFreeNodeInfo
- * Description      : Sets the metadata and pointers for a free node in the simulated heap.
- *                    This function updates the free block's metadata and the pointers to 
- *                    previous and next free blocks.
- * Input            : index - The index of the free block to update.
- *                    metadata - The metadata value to set for the free block.
- *                    previous_content - The index of the previous free block.
- *                    next_content - The index of the next free block.
- * Output           : None
- * Return           : None
- * Notes            : This function helps in maintaining the free list structure by setting 
- *                    appropriate metadata and pointers for free blocks.
+ * Description      : Sets the metadata and linkage information for a free block. This includes updating 
+ *                    the block size, previous block pointer, and next block pointer.
+ * Input            : FreeBlock* Node - A pointer to the free block to be updated.
+ *                    size_t metadata - The new block size to be set for the free block.
+ *                    FreeBlock* previous_content - Pointer to the previous free block in the list.
+ *                    FreeBlock* next_content - Pointer to the next free block in the list.
+ * Output           : None.
+ * Return           : None.
+ * Notes            : The function updates the block's metadata and pointers to maintain the correct 
+ *                    structure of the free list.
  */
-void   HeapUtils_SetFreeNodeInfo(sint32 index, sint32 metadata, sint32 previous_content, sint32 next_content);
+sint8  HeapUtils_SearchOnIndexInFreeList(FreeBlock* block);
 
-
-sint8 HeapUtils_SearchOnIndexInFreeList(sint32 index);
-
-
-#endif
+#endif 

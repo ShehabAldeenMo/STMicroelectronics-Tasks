@@ -13,3 +13,4 @@ Level_3/*.o
 *.o
 heap_manager
 Abstraction Layer
+logs.txt
