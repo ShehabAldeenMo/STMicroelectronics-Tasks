@@ -317,3 +317,28 @@ void   HeapUtils_SetFreeNodeInfo(FreeBlock* Node, size_t metadata, FreeBlock* pr
     Node->NextFreeBlock = next_content ;
     Node->BlockSize =  metadata;
 }
+
+void Shrink_Break(sint8 flag){
+    if (flag == STATE2){
+        size_t Tail_Size = ptrTail->BlockSize ;
+
+        while (Tail_Size > BREAK_STEP_SIZE){
+            sint8* result = CurBreak - BREAK_STEP_SIZE ; // to use it in check size condition
+
+            /*to ensure that the new current break in heap limitions*/
+            if ( result < (sint8*)SimHeap ){
+                printf("Invalid passing negative size parameter\n");
+                return;
+            }
+            else if (result > ((sint8*) &SimHeap[MAX_HEAPLENGHT]) ){
+                printf("Invalid passing positive size parameter\n");
+                return ;
+            } // else continue work to extend pointer of break counter
+
+            /*update heap break*/
+            CurBreak -= BREAK_STEP_SIZE ; 
+            ptrTail->BlockSize -= BREAK_STEP_SIZE ; 
+            Tail_Size = ptrTail->BlockSize ;
+        }
+    }
+}

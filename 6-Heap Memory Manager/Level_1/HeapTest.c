@@ -28,6 +28,7 @@
 extern FreeBlock* ptrHead;
 extern FreeBlock* ptrTail;
 
+uint32 Fail = 0 ;
 
 /*=========================  Functions Implementation ===========================*/
 
@@ -77,17 +78,23 @@ void HeapTest_RandomAllocateFreeTest() {
             HeapTest_PrintBordersState();
 #endif
             if (pointers[index] != NULL) {
+                /*********** */
+                size = HeapManager_GetSize(pointers[index]);
+                /*************** */
                 printf("Allocated memory of size %5ld at address %p\n", size, pointers[index]);
-                
                 // Fill the allocated memory with a specific value, e.g., 3
                 memset(pointers[index], 3, size);
                 
             } else {
                 fprintf(stderr, "Allocation failed for size %5ld\n", size);
+                Fail++;
             }
         } else {
             // Free memory
             printf("Freeing memory at address %p\n", pointers[index]);
+            /*********** */
+            VerifyData(pointers[index]);
+            /************* */
             HeapManager_Free(pointers[index]);
             pointers[index] = NULL;
         }
@@ -98,9 +105,28 @@ void HeapTest_RandomAllocateFreeTest() {
         if (pointers[i] != NULL) {
             // Free memory
             printf("Freeing remaining memory at address %p\n", pointers[i]);
+            /*********** */
+            VerifyData(pointers[i]);
+            /************* */
             HeapManager_Free(pointers[i]);            
             // Clear the pointer
             pointers[i] = NULL;
+        }
+    }
+}
+
+void VerifyData(sint8* ptr) {
+    // Assuming that the metadata (FreeBlock structure) precedes the data
+    FreeBlock* block = (FreeBlock*)(ptr - sizeof(size_t));
+    size_t size = block->BlockSize;
+#if DEBUGGING == ENABLE
+    printf("size = %5ld\n",size);
+#endif
+    for (size_t j = 0; j < size; j++) {
+        if (ptr[j] != 3) {
+            fprintf(stderr, "Memory verification failed at address %p, Expected 3 but found %d\n",
+                    ptr + j, ptr[j]);
+            while(1);  // Halt execution for debugging purposes
         }
     }
 }

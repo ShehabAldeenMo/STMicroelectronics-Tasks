@@ -77,3 +77,11 @@ void HeapManager_Free(void* ptr){
         exit(INVALID);
     }
 }
+
+size_t HeapManager_GetSize(void* ptr){
+    // Assuming that the metadata (FreeBlock structure) precedes the data
+    FreeBlock* block = (FreeBlock*)(ptr - sizeof(size_t));
+    size_t size = block->BlockSize;
+
+    return size ;
+}

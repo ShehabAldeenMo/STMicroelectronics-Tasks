@@ -93,5 +93,6 @@ void   HeapExtras_FreeOperationAfterTail(FreeBlock* Node);
  */
 void   HeapExtras_FreeOperationMiddleNode(FreeBlock* Node);
 
+void TailBreakStatus();
 
 #endif

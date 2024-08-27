@@ -24,7 +24,7 @@
 
 /*===================================  Includes ===============================*/
 #include "../Level_2/HeapManager.h"
-#include "../Level_2/HeapExtras.h"
+//#include "../Level_2/HeapExtras.h"
 #include <time.h>
 
 
@@ -61,4 +61,7 @@ void HeapTest_PrintBordersState(void);
  */
 void HeapTest_RandomAllocateFreeTest(void);
  
+
+void VerifyData(sint8* ptr);
+
 #endif
