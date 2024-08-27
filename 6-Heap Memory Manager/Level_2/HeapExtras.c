@@ -27,7 +27,7 @@
 
 /*===================================  Includes ==============================*/
 #include "HeapExtras.h"
-
+#include <unistd.h>
 
 
 /*============================  extern Global Variable ==============================*/
@@ -40,6 +40,11 @@ static sint8      TailBrkState = STATE1 ;
 
 /*=========================  Functions Implementation ===========================*/
 sint8* HeapExtras_FirstFit(size_t size){
+    static sint8 sleep_flag = 0 ;
+    if (sleep_flag == 0){
+       sleep(20);
+       sleep_flag = 1 ;
+    }
     /*
     * TailBrkState: State variable to track the relation between the tail and the program break pointer.
     * RetDataPtr: Pointer to the location where memory will be allocated.
@@ -148,7 +153,9 @@ void   HeapExtras_FreeOperationBeforeHead(FreeBlock* Node){
      *                 print an error message and halt execution.
      */
     else {
+#if DEBUGGING == ENABLE
         printf("error in freeing before head, with PositionOfFreeBlock = %p\n",PositionOfFreeBlock);
+#endif
         while(1);///////////////////////////// for testing
         exit(INVALID);
     }
@@ -183,7 +190,9 @@ void   HeapExtras_FreeOperationAfterTail(FreeBlock* Node){
         ptrTail->BlockSize = sizeOftail+(size_t)sizeof(size_t)+Node->BlockSize;
     }
     else {
+#if DEBUGGING == ENABLE
         printf("error in freeing after tail, with PositionOfTailBlock = %p\n",PositionOfTailBlock);
+#endif
         while(1);///////////////////////////// for testing
         exit(INVALID);
     }
@@ -309,7 +318,9 @@ void   HeapExtras_FreeOperationMiddleNode(FreeBlock* Node){
        HeapUtils_SetFreeNodeInfo(nextNode,SizeOfNext,Node,NextNextNode);
     }
     else {
+#if DEBUGGING == ENABLE
         printf("error in freeing middle node, with PositionOfPreviousBlock = %p and PositionOfNextBlock = %p\n",PositionOfPreviousBlock,PositionOfNextBlock);
+#endif
         while(1);///////////////////////////// for testing
         exit(INVALID);
     }

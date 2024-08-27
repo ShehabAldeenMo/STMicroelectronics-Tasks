@@ -67,11 +67,15 @@ sint8* HeapUtils_sbrk (size_t size){
 
     /*to ensure that the new current break in heap limitions*/
     if ( result < (sint8*)SimHeap ){
+#if DEBUGGING == ENABLE  
         printf("Invalid passing negative size parameter\n");
+#endif
         return temp ;
     }
     else if (result > ((sint8*) &SimHeap[MAX_HEAPLENGHT]) ){
+#if DEBUGGING == ENABLE 
         printf("Invalid passing positive size parameter\n");
+#endif
         return temp ;
     } // else continue work to extend pointer of break counter
 
@@ -95,7 +99,9 @@ sint8* HeapUtils_sbrkResize(size_t ReqSize,sint8 flag){
 
         /* if there is no space */
         if (New == NULL){
+#if DEBUGGING == ENABLE 
             printf("Invalid state from Helper_sbrk function\n");
+#endif
             while(1);///////////////////////////// for testing
             exit(INVALID);
         }
@@ -199,8 +205,10 @@ sint8* HeapUtils_SplitFreeBlock (FreeBlock* Node, size_t spliting_size){
         NextNode->PreviousFreeBlock = NewNode ;
     }
     else {
+#if DEBUGGING == ENABLE 
         printf("allocate size with %5ld\n",spliting_size);
         printf("Not Exist In Free List, from split function with index size\n");
+#endif
         while(1);///////////////////////////// for testing
         exit(INVALID);
     }
@@ -249,7 +257,9 @@ sint8* HeapUtils_RemoveFreeBlock (FreeBlock* Node, size_t spliting_size){
         else if (HeadAndTail == VALID ){
             FreeBlock* New = (FreeBlock*)HeapUtils_sbrk(BREAK_STEP_SIZE); 
             if (New == NULL){
+#if DEBUGGING == ENABLE 
                 printf("Invalid state from Helper_sbrk function\n");
+#endif
                 while(1);///////////////////////////// for testing
                 exit(INVALID);
             }
@@ -280,7 +290,9 @@ sint8* HeapUtils_RemoveFreeBlock (FreeBlock* Node, size_t spliting_size){
         PreTemp->NextFreeBlock = NextTemp ; 
     }
     else {
+#if DEBUGGING == ENABLE 
         printf("Not Exist In Free List index, from remove function with index size\n");
+#endif
         while(1);///////////////////////////// for testing
         exit(INVALID);
     }
@@ -327,11 +339,15 @@ void Shrink_Break(sint8 flag){
 
             /*to ensure that the new current break in heap limitions*/
             if ( result < (sint8*)SimHeap ){
+#if DEBUGGING == ENABLE 
                 printf("Invalid passing negative size parameter\n");
+#endif
                 return;
             }
             else if (result > ((sint8*) &SimHeap[MAX_HEAPLENGHT]) ){
+#if DEBUGGING == ENABLE 
                 printf("Invalid passing positive size parameter\n");
+#endif
                 return ;
             } // else continue work to extend pointer of break counter
 

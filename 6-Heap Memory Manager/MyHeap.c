@@ -24,7 +24,6 @@
 
 /*===============================  Includes ==============================*/
 #include "MyHeap.h"
-
 void* malloc(size_t size) {
     return HeapManager_Malloc(size); // Call the original malloc
 }
@@ -40,15 +39,12 @@ void* realloc(void* ptr, size_t new_size) {
     // This example assumes you have a way to get the old size; in practice, this may be handled differently.
     size_t old_size = HeapManager_GetSize(ptr);
 
-    if (ptr == NULL && new_size == 0) {
-    	return malloc(MIN_SIZE);
+    if (ptr == NULL) {
+        return malloc(new_size);
     }
     else if (new_size == 0){
         free(ptr);
         return NULL;
-    }
-    else if (ptr == NULL) {
-        return malloc(new_size);
     }
     else {
         // Allocate new memory
@@ -60,7 +56,7 @@ void* realloc(void* ptr, size_t new_size) {
         new_size = HeapManager_GetSize(new_ptr);
 
         // Copy data from old memory block to new memory block
-        memcpy(new_ptr, ptr,old_size);
+        memcpy(new_ptr, ptr, (old_size < new_size) ? old_size : new_size);
 
         // Free old memory block
         free(ptr);

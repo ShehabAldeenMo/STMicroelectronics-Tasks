@@ -52,8 +52,11 @@ void* HeapManager_Malloc(size_t size) {
 
 void HeapManager_Free(void* ptr){
     if (ptr == NULL) {
+#if DEBUGGING == ENABLE
         printf("Passing NULL to free function\n");
         exit(INVALID);
+#endif
+        return ;
     }
 
     // Calculate the address of the FreeBlock metadata
@@ -72,7 +75,9 @@ void HeapManager_Free(void* ptr){
         HeapExtras_FreeOperationMiddleNode(deletedBlock);
     }
     else {
+#if DEBUGGING == ENABLE
         printf("Error: deletedBlock is not within valid heap limits \n");
+#endif
         while (1); // For testing purposes
         exit(INVALID);
     }
