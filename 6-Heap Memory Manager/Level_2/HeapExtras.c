@@ -36,6 +36,8 @@ extern FreeBlock* ptrHead;
 extern FreeBlock* ptrTail;
 extern sint8*     CurBreak;                         // break pointer on simulated heap
 
+static sint8      TailBrkState = STATE1 ; 
+
 /*=========================  Functions Implementation ===========================*/
 sint8* HeapExtras_FirstFit(size_t size){
     /*
@@ -44,34 +46,18 @@ sint8* HeapExtras_FirstFit(size_t size){
     * CurBlock: Pointer to the current block in the free list being examined.
     * size: Requested size for memory allocation.
     */
-    static sint8      TailBrkState = STATE1 ; 
     sint8*            RetDataPtr   = NULL ;  
     FreeBlock*        CurBlock     = ptrHead ; 
 
     // to ensure when free this pointer the new node will not overwrite on the next node
     if (size < sizeof(FreeBlock) ){
-        size = sizeof(FreeBlock) ;
+        size = sizeof(FreeBlock);
     }
 
     // to align data on 8
     size = ((size + 7 ) / 8) * 8;
 
-    /* Check if the head and tail are pointing to the same index before the break pointer in the heap.
-    *  This ensures that there is no allocated memory between them (related to issue #46).
-    * - STATE1: Tail points to a node but not directly before the break pointer.
-    * - STATE2: Tail points to a node and is directly before the break pointer.
-    */
-    sint8* AdjecentNode = (sint8*)ptrTail + sizeof(size_t) + ptrTail->BlockSize ;
-    if (AdjecentNode == CurBreak){
-        TailBrkState = STATE2 ; // used to call Helper_sbrk if it is needed.
-    } // rather that will be continue on state 1
-    else {
-#if DEBUGGING == ENABLE
-        printf("AdjecentNode = %p and CurBreak = %p",AdjecentNode,CurBreak);
-        getchar();
-#endif
-        TailBrkState = STATE1 ;
-    }
+    TailBreakStatus();
 
     /*
     * Iterate through the free list to find a suitable block for the required size.
@@ -95,6 +81,7 @@ sint8* HeapExtras_FirstFit(size_t size){
         RetDataPtr = HeapUtils_sbrkResize(size, TailBrkState);
     } // rather that will be continue on state 1
 
+    Shrink_Break(TailBrkState);
 
     /* return index of allocation new space -> data */
     return RetDataPtr ;
@@ -106,7 +93,7 @@ void HeapExtras_Init() {
     FreeBlock* initialBlock = (FreeBlock*)SimHeap;
     
     // Set the block size to the total size of the simulated heap
-    initialBlock->BlockSize = ( ONE_K - sizeof(size_t) ); // - sizeof(size_t) because the first size_t use for metadata representation
+    initialBlock->BlockSize = ( BREAK_STEP_SIZE - sizeof(size_t) ); // - sizeof(size_t) because the first size_t use for metadata representation
 
     // No other free blocks, so Next and Previous pointers are NULL
     initialBlock->NextFreeBlock = NULL;
@@ -117,7 +104,7 @@ void HeapExtras_Init() {
     ptrTail = initialBlock;
 
     //set ptrCurBreak 
-    CurBreak = ((sint8*) (&SimHeap[ONE_K/sizeof(sint64)]) ) ;
+    CurBreak = ((sint8*) (&SimHeap[BREAK_STEP_SIZE/sizeof(sint64)]) ) ;
 }
 
 
@@ -200,6 +187,9 @@ void   HeapExtras_FreeOperationAfterTail(FreeBlock* Node){
         while(1);///////////////////////////// for testing
         exit(INVALID);
     }
+
+    TailBreakStatus();
+    Shrink_Break(TailBrkState);
 }
 
 
@@ -325,3 +315,21 @@ void   HeapExtras_FreeOperationMiddleNode(FreeBlock* Node){
     }
 }
 
+void TailBreakStatus(){
+    /* Check if the head and tail are pointing to the same index before the break pointer in the heap.
+    *  This ensures that there is no allocated memory between them (related to issue #46).
+    * - STATE1: Tail points to a node but not directly before the break pointer.
+    * - STATE2: Tail points to a node and is directly before the break pointer.
+    */
+    sint8* AdjecentNode = (sint8*)ptrTail + sizeof(size_t) + ptrTail->BlockSize ;
+    if (AdjecentNode == CurBreak){
+        TailBrkState = STATE2 ; // used to call Helper_sbrk if it is needed.
+    } // rather that will be continue on state 1
+    else {
+#if DEBUGGING == ENABLE
+        printf("AdjecentNode = %p and CurBreak = %p",AdjecentNode,CurBreak);
+        getchar();
+#endif
+        TailBrkState = STATE1 ;
+    }
+}

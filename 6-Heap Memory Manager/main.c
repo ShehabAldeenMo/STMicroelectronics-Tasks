@@ -24,11 +24,13 @@
 /*===================================  Includes ===============================*/
 #include "Level_1/HeapTest.h"
 
+extern uint32 Fail ;
 
 /*==================================  main =====================================*/
 int main (){
     printf("Starting random allocation and deallocation test...\n");
     HeapTest_RandomAllocateFreeTest();
     printf("Test complete.\n");
+    printf("Fails = %f\n", ((float)Fail/MAX_ITERATIONS)*100 );
     return 0 ;
 }

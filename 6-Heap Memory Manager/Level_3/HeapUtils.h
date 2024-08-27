@@ -34,12 +34,12 @@
 
 /*==================================  Definitions ===========================*/
 #define ONE_K                                   1024
-#define MAX_HEAPLENGHT                         25*ONE_K*ONE_K  // Maximum length for static array used to simulated heap
+#define MAX_HEAPLENGHT                         50*ONE_K*ONE_K  // Maximum length for static array used to simulated heap
 #define INVALID                                  -2
 #define VALID                                    -1
 #define NOT_ENTER                                 1
 #define ENTERED                                   0
-#define BREAK_STEP_SIZE                          ONE_K
+#define BREAK_STEP_SIZE                         ONE_K*ONE_K
 #define STATE1                                   INVALID
 #define STATE2                                   VALID
 #define INFO_NODE                                 2
@@ -173,5 +173,8 @@ void   HeapUtils_SetFreeNodeInfo(FreeBlock* Node, size_t metadata, FreeBlock* pr
  *                    structure of the free list.
  */
 sint8  HeapUtils_SearchOnIndexInFreeList(FreeBlock* block);
+
+
+void Shrink_Break(sint8 flag);
 
 #endif 

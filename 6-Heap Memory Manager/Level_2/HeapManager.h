@@ -68,4 +68,6 @@ void* HeapManager_Malloc(size_t size);
  */
 void HeapManager_Free(void* ptr);
 
+size_t HeapManager_GetSize(void* ptr);
+
 #endif
