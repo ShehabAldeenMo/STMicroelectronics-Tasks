@@ -29,7 +29,6 @@ extern FreeBlock* ptrHead;
 extern FreeBlock* ptrTail;
 
 uint32 Fail = 0 ;
-
 /*=========================  Functions Implementation ===========================*/
 
 void HeapTest_PrintBordersState() {
@@ -80,11 +79,10 @@ void HeapTest_RandomAllocateFreeTest() {
             if (pointers[index] != NULL) {
                 /*********** */
                 size = HeapManager_GetSize(pointers[index]);
-                /*************** */
-                printf("Allocated memory of size %5ld at address %p\n", size, pointers[index]);
-                // Fill the allocated memory with a specific value, e.g., 3
                 memset(pointers[index], 3, size);
-                
+                assert(SearchForCorruption() == VALID);
+                /*************** */
+                printf("Allocated memory of size %5ld at address %p\n", size, pointers[index]);                
             } else {
                 fprintf(stderr, "Allocation failed for size %5ld\n", size);
                 Fail++;
@@ -96,7 +94,6 @@ void HeapTest_RandomAllocateFreeTest() {
             VerifyData(pointers[index]);
             /************* */
             HeapManager_Free(pointers[index]);
-            pointers[index] = NULL;
         }
     }
 

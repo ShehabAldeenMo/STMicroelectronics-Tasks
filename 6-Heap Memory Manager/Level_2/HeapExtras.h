@@ -63,7 +63,7 @@ void   HeapExtras_Init();
  * Notes            : The function checks if the block is adjacent to the current head or not, and then either 
  *                    updates the free list structure accordingly or merges the block with the head.
  */
-void   HeapExtras_FreeOperationBeforeHead(FreeBlock* Node);
+void   HeapExtras_FreeOperationBeforeHead(FreeBlock** Node);
 
 /*
  * Name             : HeapExtras_FreeOperationAfterTail
@@ -76,7 +76,7 @@ void   HeapExtras_FreeOperationBeforeHead(FreeBlock* Node);
  * Notes            : The function checks if the block is adjacent to the current tail or not, and then either 
  *                    updates the free list structure accordingly or merges the block with the tail.
  */
-void   HeapExtras_FreeOperationAfterTail(FreeBlock* Node);
+void   HeapExtras_FreeOperationAfterTail(FreeBlock** Node);
 
 /*
  * Name             : HeapExtras_FreeOperationMiddleNode
@@ -91,8 +91,6 @@ void   HeapExtras_FreeOperationAfterTail(FreeBlock* Node);
  * Notes            : The function checks if the block is adjacent to one or both neighboring blocks and then 
  *                    either updates the free list structure accordingly or merges the block with the adjacent blocks.
  */
-void   HeapExtras_FreeOperationMiddleNode(FreeBlock* Node);
-
-void TailBreakStatus();
+void   HeapExtras_FreeOperationMiddleNode(FreeBlock** Node);
 
 #endif

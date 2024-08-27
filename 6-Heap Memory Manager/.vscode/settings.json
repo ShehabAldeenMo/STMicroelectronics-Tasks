@@ -6,6 +6,7 @@
         "heaptest.h": "c",
         "heapmanager.h": "c",
         "heapextras.h": "c",
-        "heaputils.h": "c"
+        "heaputils.h": "c",
+        "myheap.h": "c"
     }
 }
