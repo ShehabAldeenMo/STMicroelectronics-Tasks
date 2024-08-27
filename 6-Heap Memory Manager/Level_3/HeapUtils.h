@@ -30,7 +30,7 @@
 #include <stdio.h>          // Standard I/O functions
 #include <stdlib.h>         // Standard library functions: memory management, program utilities, etc.
 #include <string.h>         // String manipulation functions
-
+#include <assert.h>
 
 /*==================================  Definitions ===========================*/
 #define ONE_K                                   1024
@@ -39,7 +39,7 @@
 #define VALID                                    -1
 #define NOT_ENTER                                 1
 #define ENTERED                                   0
-#define BREAK_STEP_SIZE                         ONE_K*ONE_K
+#define BREAK_STEP_SIZE                          ONE_K
 #define STATE1                                   INVALID
 #define STATE2                                   VALID
 #define INFO_NODE                                 2
@@ -86,7 +86,7 @@ typedef struct FreeBlock {
  *                    accordingly. It then attempts to allocate memory by either splitting the block or 
  *                    removing it from the free list.
  */
-sint8* HeapUtils_AllocationCoreLoop(FreeBlock* ptrBlock,size_t size);
+sint8* HeapUtils_AllocationCoreLoop(FreeBlock** ptrBlock,size_t size);
 
 /*
  * Name             : HeapUtils_sbrk
@@ -130,7 +130,7 @@ sint8* HeapUtils_sbrkResize(size_t ReqSize,sint8 flag);
  *                    that the free list is correctly updated. It also manages the remaining free space 
  *                    after allocation and adjusts the free list pointers as needed.
  */
-sint8* HeapUtils_SplitFreeBlock (FreeBlock* Node, size_t spliting_size);
+sint8* HeapUtils_SplitFreeBlock (FreeBlock** Node, size_t spliting_size);
 
 /*
  * Name             : HeapUtils_RemoveFreeBlock
@@ -145,7 +145,7 @@ sint8* HeapUtils_SplitFreeBlock (FreeBlock* Node, size_t spliting_size);
  *                    the free list, ensuring that the list remains properly linked. It also checks if 
  *                    the block is in the free list and updates the list pointers accordingly.
  */
-sint8* HeapUtils_RemoveFreeBlock (FreeBlock* Node, size_t spliting_size);
+sint8* HeapUtils_RemoveFreeBlock (FreeBlock** Node, size_t spliting_size);
 
 /*
  * Name             : HeapUtils_SearchOnIndexInFreeList
@@ -157,7 +157,7 @@ sint8* HeapUtils_RemoveFreeBlock (FreeBlock* Node, size_t spliting_size);
  * Notes            : The function traverses the free list starting from the head node, comparing 
  *                    each block with the provided block to determine if it exists in the list.
  */
-void   HeapUtils_SetFreeNodeInfo(FreeBlock* Node, size_t metadata, FreeBlock* previous_content, FreeBlock* next_content);
+void   HeapUtils_SetFreeNodeInfo(FreeBlock** Node, size_t metadata, FreeBlock* previous_content, FreeBlock* next_content);
 
 /*
  * Name             : HeapUtils_SetFreeNodeInfo
@@ -172,9 +172,8 @@ void   HeapUtils_SetFreeNodeInfo(FreeBlock* Node, size_t metadata, FreeBlock* pr
  * Notes            : The function updates the block's metadata and pointers to maintain the correct 
  *                    structure of the free list.
  */
-sint8  HeapUtils_SearchOnIndexInFreeList(FreeBlock* block);
+sint8  HeapUtils_SearchOnIndexInFreeList(FreeBlock** block);
 
 
-void Shrink_Break(sint8 flag);
-
+int SearchForCorruption();
 #endif 

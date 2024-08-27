@@ -30,7 +30,7 @@
 
 
 /*==================================  Definitions =============================*/
-#define NUM_ALLOCS 10000
+#define NUM_ALLOCS 100000
 #define MAX_SIZE 10240
 #define MAX_ITERATIONS 1000000
 

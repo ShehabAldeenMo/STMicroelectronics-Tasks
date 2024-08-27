@@ -27,7 +27,7 @@
 
 /*===================================  Includes ==============================*/
 #include "HeapExtras.h"
-
+#include <unistd.h>
 
 
 /*============================  extern Global Variable ==============================*/
@@ -36,10 +36,16 @@ extern FreeBlock* ptrHead;
 extern FreeBlock* ptrTail;
 extern sint8*     CurBreak;                         // break pointer on simulated heap
 
-static sint8      TailBrkState = STATE1 ; 
-
+sint8 sleep_flag = 0 ;
 /*=========================  Functions Implementation ===========================*/
 sint8* HeapExtras_FirstFit(size_t size){
+    static sint8      TailBrkState = STATE1 ; 
+
+    if (sleep_flag == 0){
+     	//sleep(20);
+     	sleep_flag = 1 ;
+    }
+
     /*
     * TailBrkState: State variable to track the relation between the tail and the program break pointer.
     * RetDataPtr: Pointer to the location where memory will be allocated.
@@ -57,13 +63,28 @@ sint8* HeapExtras_FirstFit(size_t size){
     // to align data on 8
     size = ((size + 7 ) / 8) * 8;
 
-    TailBreakStatus();
+    /* Check if the head and tail are pointing to the same index before the break pointer in the heap.
+    *  This ensures that there is no allocated memory between them (related to issue #46).
+    * - STATE1: Tail points to a node but not directly before the break pointer.
+    * - STATE2: Tail points to a node and is directly before the break pointer.
+    */
+    sint8* AdjecentNode = (sint8*)ptrTail + sizeof(size_t) + ptrTail->BlockSize ;
+    if (AdjecentNode == CurBreak){
+        TailBrkState = STATE2 ; // used to call Helper_sbrk if it is needed.
+    } // rather that will be continue on state 1
+    else {
+#if DEBUGGING == ENABLE
+        printf("AdjecentNode = %p and CurBreak = %p",AdjecentNode,CurBreak);
+        getchar();
+#endif
+        TailBrkState = STATE1 ;
+    }
 
     /*
     * Iterate through the free list to find a suitable block for the required size.
     * */
     while( CurBlock != NULL){ // while its next node is not jump over break
-        RetDataPtr = HeapUtils_AllocationCoreLoop(CurBlock,size);
+        RetDataPtr = HeapUtils_AllocationCoreLoop(&CurBlock,size);
 
         if (RetDataPtr == NULL){
             /* make next index point to the next node
@@ -81,7 +102,7 @@ sint8* HeapExtras_FirstFit(size_t size){
         RetDataPtr = HeapUtils_sbrkResize(size, TailBrkState);
     } // rather that will be continue on state 1
 
-    Shrink_Break(TailBrkState);
+    assert(SearchForCorruption() == VALID);
 
     /* return index of allocation new space -> data */
     return RetDataPtr ;
@@ -108,13 +129,13 @@ void HeapExtras_Init() {
 }
 
 
-void   HeapExtras_FreeOperationBeforeHead(FreeBlock* Node){
+void   HeapExtras_FreeOperationBeforeHead(FreeBlock** Node){
 #if DEBUGGING == ENABLE
-    printf("Free before head and node Size = %5ld\n",Node->BlockSize);
+    printf("Free before head and node Size = %5ld\n",(*Node)->BlockSize);
     getchar();
 #endif
 
-    sint8* PositionOfFreeBlock = (sint8*)Node + sizeof(size_t) + Node->BlockSize ; // to check that the target free block is adjecent for head or away from.
+    sint8* PositionOfFreeBlock = (sint8*)(*Node) + sizeof(size_t) + (*Node)->BlockSize ; // to check that the target free block is adjecent for head or away from.
 
     /*
      * Case 1: The block is before the head and not adjacent.
@@ -125,9 +146,9 @@ void   HeapExtras_FreeOperationBeforeHead(FreeBlock* Node){
      *         - Update the head to point to the new node.
      */
     if (PositionOfFreeBlock < (sint8*)ptrHead ){
-        HeapUtils_SetFreeNodeInfo(Node,Node->BlockSize,NULL,ptrHead);
-        ptrHead->PreviousFreeBlock = Node ;
-        ptrHead = Node ;
+        HeapUtils_SetFreeNodeInfo(&(*Node),(*Node)->BlockSize,NULL,ptrHead);
+        ptrHead->PreviousFreeBlock = (*Node);
+        ptrHead = (*Node) ;
     }
     /*
      * Case 2: The block is just before the head and adjacent to it.
@@ -139,8 +160,8 @@ void   HeapExtras_FreeOperationBeforeHead(FreeBlock* Node){
     else if (PositionOfFreeBlock == (sint8*)ptrHead ){
         size_t sizeOfhead = ptrHead->BlockSize;
         FreeBlock* nextNode = ptrHead->NextFreeBlock;
-        ptrHead = Node ;
-        HeapUtils_SetFreeNodeInfo(ptrHead, Node->BlockSize+sizeOfhead+(size_t)sizeof(size_t),NULL,nextNode);
+        ptrHead = (*Node) ;
+        HeapUtils_SetFreeNodeInfo(&ptrHead, (*Node)->BlockSize+sizeOfhead+(size_t)sizeof(size_t),NULL,nextNode);
         nextNode->PreviousFreeBlock = ptrHead ;
     }
     /*
@@ -148,7 +169,9 @@ void   HeapExtras_FreeOperationBeforeHead(FreeBlock* Node){
      *                 print an error message and halt execution.
      */
     else {
+#if DEBUGGING == ENABLE
         printf("error in freeing before head, with PositionOfFreeBlock = %p\n",PositionOfFreeBlock);
+#endif
         while(1);///////////////////////////// for testing
         exit(INVALID);
     }
@@ -156,9 +179,9 @@ void   HeapExtras_FreeOperationBeforeHead(FreeBlock* Node){
 
 
 
-void   HeapExtras_FreeOperationAfterTail(FreeBlock* Node){
+void   HeapExtras_FreeOperationAfterTail(FreeBlock** Node){
 #if DEBUGGING == ENABLE
-    printf("Free after tail and node Size = %5ld\n",Node->BlockSize);
+    printf("Free after tail and node Size = %5ld\n",(*Node)->BlockSize);
     getchar();
 #endif
     sint8* PositionOfTailBlock = (sint8*)ptrTail + ptrTail->BlockSize + sizeof(size_t) ; // to check that the target free block is adjecent for tail or away from.
@@ -170,40 +193,39 @@ void   HeapExtras_FreeOperationAfterTail(FreeBlock* Node){
     *         4- old tail -> next free space = index
     *         5- update tail to point to index
     * */
-    if (PositionOfTailBlock < (sint8*)Node ){
-        HeapUtils_SetFreeNodeInfo(Node,Node->BlockSize,ptrTail,NULL);
-        ptrTail->NextFreeBlock = Node;
-        ptrTail = Node ;
+    if (PositionOfTailBlock < (sint8*)(*Node) ){
+        HeapUtils_SetFreeNodeInfo(&(*Node),(*Node)->BlockSize,ptrTail,NULL);
+        ptrTail->NextFreeBlock = (*Node);
+        ptrTail = (*Node) ;
     }
      /* if ptr is pointing to node just after tail node and adjecent for it
      *  redefine new metdata for free space to be equal the margin of new free space and tail space
      * */
-    else if (PositionOfTailBlock == (sint8*)Node){
+    else if (PositionOfTailBlock == (sint8*)(*Node)){
         size_t sizeOftail = ptrTail->BlockSize;
-        ptrTail->BlockSize = sizeOftail+(size_t)sizeof(size_t)+Node->BlockSize;
+        ptrTail->BlockSize = sizeOftail+(size_t)sizeof(size_t)+(*Node)->BlockSize;
     }
     else {
+#if DEBUGGING == ENABLE
         printf("error in freeing after tail, with PositionOfTailBlock = %p\n",PositionOfTailBlock);
+#endif
         while(1);///////////////////////////// for testing
         exit(INVALID);
     }
-
-    TailBreakStatus();
-    Shrink_Break(TailBrkState);
 }
 
 
-void   HeapExtras_FreeOperationMiddleNode(FreeBlock* Node){
+void   HeapExtras_FreeOperationMiddleNode(FreeBlock** Node){
 #if DEBUGGING == ENABLE
-    printf("Free in middle from free list and node Size = %5ld\n",Node->BlockSize);
+    printf("Free in middle from free list and node Size = %5ld\n",(*Node)->BlockSize);
     getchar();
 #endif
     FreeBlock* nextNode = ptrHead ; // to store the next free slot after index
     FreeBlock* PreNode = NULL ;     // to store the previous free slot before index
-    size_t size = Node->BlockSize ;
+    size_t size = (*Node)->BlockSize ;
 
     // till reach to the strict next free slot after index  
-    while (nextNode < Node){
+    while (nextNode < (*Node)){
         nextNode = nextNode->NextFreeBlock;
     }
     PreNode = nextNode->PreviousFreeBlock; // to store the previous free slot before index
@@ -216,14 +238,14 @@ void   HeapExtras_FreeOperationMiddleNode(FreeBlock* Node){
 
     /*
     * define free block position for :
-    * 1) index point to node just after free node(x) from right so we will extend x node to join two adjecent free spaces.
-    * 2) index point to node just before free node(y) from left so we will extend y node to join two adjecent free spaces
+    * 1) index point to (*Node) just after free (*Node)(x) from right so we will extend x (*Node) to join two adjecent free spaces.
+    * 2) index point to (*Node) just before free (*Node)(y) from left so we will extend y (*Node) to join two adjecent free spaces
     */
     sint8* PositionOfPreviousBlock = (sint8*)PreNode + SizeOfPrev + sizeof(size_t) ; // deallcated block in right
-    sint8* PositionOfNextBlock = (sint8*)Node + Node->BlockSize + sizeof(size_t) ; // deallcated block in left
+    sint8* PositionOfNextBlock = (sint8*)(*Node) + (*Node)->BlockSize + sizeof(size_t) ; // deallcated block in left
 
     // index point to node just after free node(x) from right so we will extend x node to join two adjecent free spaces.
-    if (PositionOfPreviousBlock == (sint8*)Node && PositionOfNextBlock < (sint8*)nextNode){
+    if (PositionOfPreviousBlock == (sint8*)(*Node) && PositionOfNextBlock < (sint8*)nextNode){
 #if DEBUGGING == ENABLE
         printf("\n Free from right \n");
 #endif
@@ -233,11 +255,11 @@ void   HeapExtras_FreeOperationMiddleNode(FreeBlock* Node){
         * 1- redefine new size for previous node because we extend it .
         * 2- previous node previousIndex and nextIndex stay the same 
         * */
-       HeapUtils_SetFreeNodeInfo(PreNode,NewSize,PrevPrevNode,nextNode);
-       HeapUtils_SetFreeNodeInfo(nextNode,SizeOfNext,PreNode,NextNextNode);
+       HeapUtils_SetFreeNodeInfo(&PreNode,NewSize,PrevPrevNode,nextNode);
+       HeapUtils_SetFreeNodeInfo(&nextNode,SizeOfNext,PreNode,NextNextNode);
     }
     // index point to node just before free node(y) from left so we will extend y node to join two adjecent free spaces
-    else if (PositionOfPreviousBlock < (sint8*)Node && PositionOfNextBlock == (sint8*)nextNode){
+    else if (PositionOfPreviousBlock < (sint8*)(*Node) && PositionOfNextBlock == (sint8*)nextNode){
 #if DEBUGGING == ENABLE
         printf("\n Free from left \n");
 #endif
@@ -250,30 +272,30 @@ void   HeapExtras_FreeOperationMiddleNode(FreeBlock* Node){
         * 4- update previous index -> next free node
         * 5- update next index -> previous free node  
         * */
-        HeapUtils_SetFreeNodeInfo(Node,NewSize,PreNode,NextNextNode);
-        HeapUtils_SetFreeNodeInfo(PreNode,SizeOfPrev,PrevPrevNode,Node);
+        HeapUtils_SetFreeNodeInfo(&(*Node),NewSize,PreNode,NextNextNode);
+        HeapUtils_SetFreeNodeInfo(&PreNode,SizeOfPrev,PrevPrevNode,(*Node));
 
         /* update Tail to point on new update node */
         if (nextNode == ptrTail){
 #if DEBUGGING == ENABLE
             printf("\n Free from left with Tail \n");
 #endif
-            ptrTail = Node ;
+            ptrTail = (*Node) ;
         }
         else{
 #if DEBUGGING == ENABLE
             printf("\n Free from left without Tail \n");
 #endif
-            HeapUtils_SetFreeNodeInfo(NextNextNode,NextNextNode->BlockSize,Node,NextNextNode->NextFreeBlock);
+            HeapUtils_SetFreeNodeInfo(&NextNextNode,NextNextNode->BlockSize,(*Node),NextNextNode->NextFreeBlock);
         }
     }
     // indexOfptr point to node just after free node(x) and before free node(y) from right so we will extend x,y node to join three adjecent free spaces    
-    else if (PositionOfPreviousBlock == (sint8*)Node && PositionOfNextBlock == (sint8*)nextNode){
+    else if (PositionOfPreviousBlock == (sint8*)(*Node) && PositionOfNextBlock == (sint8*)nextNode){
 #if DEBUGGING == ENABLE
         printf("\n Free between two free slots \n");
 #endif
         sint32 NewSize = SizeOfPrev+size+SizeOfNext+2*sizeof(size_t) ;
-        HeapUtils_SetFreeNodeInfo(PreNode,NewSize,PrevPrevNode,NextNextNode);
+        HeapUtils_SetFreeNodeInfo(&PreNode,NewSize,PrevPrevNode,NextNextNode);
 
         /* update Tail to point on new update node */
         if (nextNode == ptrTail){
@@ -286,12 +308,12 @@ void   HeapExtras_FreeOperationMiddleNode(FreeBlock* Node){
 #if DEBUGGING == ENABLE
             printf("\n Free between two free slots without Tail \n");
 #endif
-            HeapUtils_SetFreeNodeInfo(NextNextNode,NextNextNode->BlockSize,PreNode,NextNextNode->NextFreeBlock);
+            HeapUtils_SetFreeNodeInfo(&NextNextNode,NextNextNode->BlockSize,PreNode,NextNextNode->NextFreeBlock);
         }
 
     }
     // indexOfptr point to node away not adjecent for any free node so we willn't extend and free node
-    else if (PositionOfPreviousBlock < (sint8*)Node && PositionOfNextBlock < (sint8*)nextNode){
+    else if (PositionOfPreviousBlock < (sint8*)(*Node) && PositionOfNextBlock < (sint8*)nextNode){
         /*
         * operation will be :
         * 1- define new node 
@@ -304,32 +326,15 @@ void   HeapExtras_FreeOperationMiddleNode(FreeBlock* Node){
 #if DEBUGGING == ENABLE
        printf("\n Free between two reserved slots \n");
 #endif
-       HeapUtils_SetFreeNodeInfo(Node,size,PreNode,nextNode);
-       HeapUtils_SetFreeNodeInfo(PreNode,SizeOfPrev,PrevPrevNode,Node);
-       HeapUtils_SetFreeNodeInfo(nextNode,SizeOfNext,Node,NextNextNode);
+       HeapUtils_SetFreeNodeInfo(&(*Node),size,PreNode,nextNode);
+       HeapUtils_SetFreeNodeInfo(&PreNode,SizeOfPrev,PrevPrevNode,(*Node));
+       HeapUtils_SetFreeNodeInfo(&nextNode,SizeOfNext,(*Node),NextNextNode);
     }
-    else {
-        printf("error in freeing middle node, with PositionOfPreviousBlock = %p and PositionOfNextBlock = %p\n",PositionOfPreviousBlock,PositionOfNextBlock);
-        while(1);///////////////////////////// for testing
-        exit(INVALID);
-    }
-}
-
-void TailBreakStatus(){
-    /* Check if the head and tail are pointing to the same index before the break pointer in the heap.
-    *  This ensures that there is no allocated memory between them (related to issue #46).
-    * - STATE1: Tail points to a node but not directly before the break pointer.
-    * - STATE2: Tail points to a node and is directly before the break pointer.
-    */
-    sint8* AdjecentNode = (sint8*)ptrTail + sizeof(size_t) + ptrTail->BlockSize ;
-    if (AdjecentNode == CurBreak){
-        TailBrkState = STATE2 ; // used to call Helper_sbrk if it is needed.
-    } // rather that will be continue on state 1
     else {
 #if DEBUGGING == ENABLE
-        printf("AdjecentNode = %p and CurBreak = %p",AdjecentNode,CurBreak);
-        getchar();
+        printf("error in freeing middle node, with PositionOfPreviousBlock = %p and PositionOfNextBlock = %p\n",PositionOfPreviousBlock,PositionOfNextBlock);
 #endif
-        TailBrkState = STATE1 ;
+        while(1);///////////////////////////// for testing
+        exit(INVALID);
     }
 }
