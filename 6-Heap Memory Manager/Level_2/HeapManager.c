@@ -64,15 +64,15 @@ void HeapManager_Free(void* ptr){
     
     // If `deletedBlock` is pointing to a node before the head node
     if (deletedBlock < ptrHead) {
-        HeapExtras_FreeOperationBeforeHead(deletedBlock);
+        HeapExtras_FreeOperationBeforeHead(&deletedBlock);
     }
     // If `deletedBlock` is pointing to a node after the tail node
     else if (deletedBlock > ptrTail) {
-        HeapExtras_FreeOperationAfterTail(deletedBlock);
+        HeapExtras_FreeOperationAfterTail(&deletedBlock);
     }
     // If `deletedBlock` is pointing to a node between head and tail nodes
     else if (deletedBlock > ptrHead && deletedBlock < ptrTail) {
-        HeapExtras_FreeOperationMiddleNode(deletedBlock);
+        HeapExtras_FreeOperationMiddleNode(&deletedBlock);
     }
     else {
 #if DEBUGGING == ENABLE
