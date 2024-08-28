@@ -82,7 +82,4 @@ vim
 
 ## Illustrate Videos
 For more information, refer to the 
-+ [BestFit](https://drive.google.com/file/d/1ouaNFC1mB3zyFYNj4ZnmFE_nSQve8DMU/view?usp=drive_link).
-+ [FirstFit](https://drive.google.com/file/d/1hXbb8YoI0W-jOS7o307Qu74nbWCHRHZM/view?usp=drive_link).
-+ [Free](https://drive.google.com/file/d/1rSVcubXRlauPS18s_mWOQZF-WEHjgn69/view?usp=drive_link).
 + [Real Heap Memory Manager Test](https://drive.google.com/file/d/1lglKd0d4FeEehzm6C-AfnNrfoloNP52O/view?usp=drive_link)
