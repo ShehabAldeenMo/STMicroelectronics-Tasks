@@ -39,9 +39,9 @@ extern FreeBlock* ptrTail;
 extern sint8* CurBreak;                         // break pointer on simulated heap
  
 /*=========================  Functions Implementation ===========================*/
-sint8* HeapUtils_AllocationCoreLoop(FreeBlock** ptrBlock,size_t ReqSize){
+sint8* HeapUtils_AllocationCoreLoop(FreeBlock* ptrBlock,size_t ReqSize){
     sint8* RetDataPtr         = NULL ;  
-    size_t sizeOfFreeSpace    = (*ptrBlock)->BlockSize ;
+    size_t sizeOfFreeSpace    = ptrBlock->BlockSize ;
 
     // Handle padding cases
     size_t padding            = sizeOfFreeSpace - ReqSize ;
@@ -51,10 +51,10 @@ sint8* HeapUtils_AllocationCoreLoop(FreeBlock** ptrBlock,size_t ReqSize){
     
     /* memory allocation action */
     if (sizeOfFreeSpace > ReqSize){
-        RetDataPtr = HeapUtils_SplitFreeBlock (&(*ptrBlock),ReqSize);
+        RetDataPtr = HeapUtils_SplitFreeBlock (ptrBlock,ReqSize);
     }
     else if (sizeOfFreeSpace == ReqSize){
-        RetDataPtr = HeapUtils_RemoveFreeBlock (&(*ptrBlock),ReqSize);
+        RetDataPtr = HeapUtils_RemoveFreeBlock (ptrBlock,ReqSize);
     } // else return INVALID as the ibex is not suitable to reserve data
 
     return RetDataPtr ; 
@@ -63,17 +63,17 @@ sint8* HeapUtils_AllocationCoreLoop(FreeBlock** ptrBlock,size_t ReqSize){
 
 sint8* HeapUtils_sbrk (size_t size){
     sint8* result = CurBreak + size ; // to use it in check size condition
-    static sint8* temp = NULL;
+    sint8* temp = NULL;
 
     /*to ensure that the new current break in heap limitions*/
     if ( result < (sint8*)SimHeap ){
-#if DEBUGGING == ENABLE
+#if DEBUGGING == ENABLE  
         printf("Invalid passing negative size parameter\n");
 #endif
         return temp ;
     }
     else if (result > ((sint8*) &SimHeap[MAX_HEAPLENGHT]) ){
-#if DEBUGGING == ENABLE
+#if DEBUGGING == ENABLE 
         printf("Invalid passing positive size parameter\n");
 #endif
         return temp ;
@@ -81,7 +81,7 @@ sint8* HeapUtils_sbrk (size_t size){
 
     /*update heap break*/
     temp = CurBreak ;
-    CurBreak += size ;
+    CurBreak += size ;   
     return temp ;
 }
 
@@ -99,7 +99,7 @@ sint8* HeapUtils_sbrkResize(size_t ReqSize,sint8 flag){
 
         /* if there is no space */
         if (New == NULL){
-#if DEBUGGING == ENABLE
+#if DEBUGGING == ENABLE 
             printf("Invalid state from Helper_sbrk function\n");
 #endif
             while(1);///////////////////////////// for testing
@@ -129,16 +129,16 @@ sint8* HeapUtils_sbrkResize(size_t ReqSize,sint8 flag){
             ptrTail->BlockSize += BREAK_STEP_SIZE;
         } // else continue in loop
         flag = STATE2 ;
-        RetDataPtr = HeapUtils_AllocationCoreLoop(&ptrTail, ReqSize);
+        RetDataPtr = HeapUtils_AllocationCoreLoop(ptrTail, ReqSize);
     }
 
     return RetDataPtr ;
 }
 
 
-sint8* HeapUtils_SplitFreeBlock (FreeBlock** Node, size_t spliting_size){
+sint8* HeapUtils_SplitFreeBlock (FreeBlock* Node, size_t spliting_size){
     sint8* RetDataPtr = NULL; 
-    size_t SizeOfFreeSpace = (*Node)->BlockSize;
+    size_t SizeOfFreeSpace = Node->BlockSize;
 
     /* head and tail point to the same node */
     sint8 HeadAndTail = INVALID ;
@@ -146,15 +146,15 @@ sint8* HeapUtils_SplitFreeBlock (FreeBlock** Node, size_t spliting_size){
         HeadAndTail = VALID ;
     } 
 
-    sint8 InFreeList = HeapUtils_SearchOnIndexInFreeList( &(*Node) );
+    sint8 InFreeList = HeapUtils_SearchOnIndexInFreeList(Node);
     /* handle simulated array if head is suitable to allocate this size so you will cut section from head
     *  that: 1. previous free space pointer will redefine in array and store ! in this cell
     *        2. next free space pointer will redefine in array but still point to the same cell
     *        3. metadata will redefine in array and store remaining size of free space
     */
-   if ((*Node) == ptrHead){
+   if (Node == ptrHead){
 #if DEBUGGING == ENABLE
-        printf("Free Size from Head = %5ld\nRequired Size from user = %5ld\n",(*Node)->BlockSize,spliting_size);
+        printf("Free Size from Head = %5ld\nRequired Size from user = %5ld\n",Node->BlockSize,spliting_size);
         getchar();
 #endif
         /* when don't we need this local variable  `NextIndex`?
@@ -165,18 +165,18 @@ sint8* HeapUtils_SplitFreeBlock (FreeBlock** Node, size_t spliting_size){
         * - we need this local variable if there is a free node after head to make head_next_node-> previous
         * point to the new location of head.  
         * */
-        FreeBlock* NextNode = ptrHead->NextFreeBlock ;
+        FreeBlock* NextNode = Node->NextFreeBlock ;
         
         /* to shift tail with first group calls for maollac*/
         if (HeadAndTail == INVALID){
             ptrHead = (FreeBlock*) ((sint8*)ptrHead + spliting_size + sizeof(size_t));
-            HeapUtils_SetFreeNodeInfo(&ptrHead, (SizeOfFreeSpace-spliting_size-sizeof(size_t)), NULL,NextNode);
+            HeapUtils_SetFreeNodeInfo(ptrHead, (SizeOfFreeSpace-spliting_size-sizeof(size_t)), NULL,NextNode);
             NextNode->PreviousFreeBlock = ptrHead ;
         }
         else if (HeadAndTail == VALID){
             ptrHead = (FreeBlock*) ((sint8*)ptrHead + spliting_size + sizeof(size_t)) ;
             ptrTail = ptrHead ;
-            HeapUtils_SetFreeNodeInfo(&ptrHead,(SizeOfFreeSpace-spliting_size-sizeof(size_t)), NULL,NULL);
+            HeapUtils_SetFreeNodeInfo(ptrHead,(SizeOfFreeSpace-spliting_size-sizeof(size_t)), NULL,NULL);
         }
    }
     /* handle simulated array if tail is suitable to allocate this size
@@ -184,10 +184,10 @@ sint8* HeapUtils_SplitFreeBlock (FreeBlock** Node, size_t spliting_size){
     *        2. next free space pointer will redefine in array and store ! in this cell
     *        3. metadata will redefine in array and store remaining size of free space
     */
-   else if ((*Node) == ptrTail){
-        FreeBlock* PreNode = (*Node)->PreviousFreeBlock;
-        ptrTail = (FreeBlock*) ((sint8*)(*Node) + spliting_size + sizeof(size_t));
-        HeapUtils_SetFreeNodeInfo(&ptrTail,(SizeOfFreeSpace-spliting_size-sizeof(size_t)),PreNode,NULL); 
+   else if (Node == ptrTail){
+        FreeBlock* PreNode = Node->PreviousFreeBlock;
+        ptrTail = (FreeBlock*) ((sint8*)Node + spliting_size + sizeof(size_t));
+        HeapUtils_SetFreeNodeInfo(ptrTail,(SizeOfFreeSpace-spliting_size-sizeof(size_t)),PreNode,NULL); 
         PreNode->NextFreeBlock = ptrTail ;
    }
     /* handle simulated array if neither head or tail is suitable to allocate this size
@@ -197,15 +197,15 @@ sint8* HeapUtils_SplitFreeBlock (FreeBlock** Node, size_t spliting_size){
     *        4. update previous index ->next and Next index -> Pre
     */
     else if (InFreeList == VALID){
-        FreeBlock* NewNode = (FreeBlock*) ((sint8*)(*Node) + spliting_size + sizeof(size_t));
-        FreeBlock* PreNode = (*Node)->PreviousFreeBlock ;
-        FreeBlock* NextNode = (*Node)->NextFreeBlock;
-        HeapUtils_SetFreeNodeInfo(&NewNode,(SizeOfFreeSpace-spliting_size-sizeof(size_t)), PreNode,NextNode);  
+        FreeBlock* NewNode = (FreeBlock*) ((sint8*)Node + spliting_size + sizeof(size_t));
+        FreeBlock* PreNode = Node->PreviousFreeBlock ;
+        FreeBlock* NextNode = Node->NextFreeBlock;
+        HeapUtils_SetFreeNodeInfo(NewNode,(SizeOfFreeSpace-spliting_size-sizeof(size_t)), PreNode,NextNode);  
         PreNode->NextFreeBlock = NewNode ;
         NextNode->PreviousFreeBlock = NewNode ;
     }
     else {
-#if DEBUGGING == ENABLE
+#if DEBUGGING == ENABLE 
         printf("allocate size with %5ld\n",spliting_size);
         printf("Not Exist In Free List, from split function with index size\n");
 #endif
@@ -217,15 +217,15 @@ sint8* HeapUtils_SplitFreeBlock (FreeBlock** Node, size_t spliting_size){
     *  that: 1. return value point to the beginning of data space
     *        2. edit metadata of new allocation to new allocation available space
     */
-    RetDataPtr = (sint8*)(*Node)+sizeof(size_t);
-    (*Node)->BlockSize = spliting_size ;
+    RetDataPtr = (sint8*)Node+sizeof(size_t);
+    Node->BlockSize = spliting_size ;
 
     return RetDataPtr ;
 }
 
 
 
-sint8* HeapUtils_RemoveFreeBlock (FreeBlock** Node, size_t spliting_size){
+sint8* HeapUtils_RemoveFreeBlock (FreeBlock* Node, size_t spliting_size){
     sint8* RetDataPtr = NULL; 
     
     /* head and tail point to the same node */
@@ -234,15 +234,15 @@ sint8* HeapUtils_RemoveFreeBlock (FreeBlock** Node, size_t spliting_size){
         HeadAndTail = VALID ;
     }
 
-    sint8 InFreeList = HeapUtils_SearchOnIndexInFreeList(&(*Node));
+    sint8 InFreeList = HeapUtils_SearchOnIndexInFreeList(Node);
 
     /* handle simulated array if head is suitable to allocate this size and will take whole space
     *  that  1. shift head node to next node
     *        2. make next node -> previous free space equals !
     */
-   if ((*Node) == ptrHead){
+   if (Node == ptrHead){
 #if DEBUGGING == ENABLE
-        printf("Free Size from Head = %5ld\nRequired Size from user = %5ld\n",(*Node)->BlockSize,spliting_size);
+        printf("Free Size from Head = %5ld\nRequired Size from user = %5ld\n",Node->BlockSize,spliting_size);
         getchar();
 #endif
         /* 
@@ -257,14 +257,14 @@ sint8* HeapUtils_RemoveFreeBlock (FreeBlock** Node, size_t spliting_size){
         else if (HeadAndTail == VALID ){
             FreeBlock* New = (FreeBlock*)HeapUtils_sbrk(BREAK_STEP_SIZE); 
             if (New == NULL){
-#if DEBUGGING == ENABLE
+#if DEBUGGING == ENABLE 
                 printf("Invalid state from Helper_sbrk function\n");
 #endif
                 while(1);///////////////////////////// for testing
                 exit(INVALID);
             }
 
-            HeapUtils_SetFreeNodeInfo(&New,BREAK_STEP_SIZE-sizeof(size_t),NULL,NULL);
+            HeapUtils_SetFreeNodeInfo(New,BREAK_STEP_SIZE-sizeof(size_t),NULL,NULL);
             ptrTail = New ;
             ptrHead = New ;
         }
@@ -273,7 +273,7 @@ sint8* HeapUtils_RemoveFreeBlock (FreeBlock** Node, size_t spliting_size){
     *  that: 1. backword tail index to previous free slot 
     *        2. backword tail -> next free space point to !
     * */
-   else if ((*Node) == ptrTail){
+   else if (Node == ptrTail){
         FreeBlock* Backwork_Tail = ptrTail->PreviousFreeBlock ; 
         ptrTail = Backwork_Tail ;
         ptrTail->NextFreeBlock = NULL ;
@@ -284,13 +284,13 @@ sint8* HeapUtils_RemoveFreeBlock (FreeBlock** Node, size_t spliting_size){
     *        3. remove temp node 
     */
    else if (InFreeList == VALID){
-        FreeBlock* PreTemp = (*Node)->PreviousFreeBlock ;
-        FreeBlock* NextTemp = (*Node)->NextFreeBlock;
+        FreeBlock* PreTemp = Node->PreviousFreeBlock ;
+        FreeBlock* NextTemp = Node->NextFreeBlock;
         NextTemp->PreviousFreeBlock = PreTemp ; 
         PreTemp->NextFreeBlock = NextTemp ; 
     }
     else {
-#if DEBUGGING == ENABLE
+#if DEBUGGING == ENABLE 
         printf("Not Exist In Free List index, from remove function with index size\n");
 #endif
         while(1);///////////////////////////// for testing
@@ -301,18 +301,18 @@ sint8* HeapUtils_RemoveFreeBlock (FreeBlock** Node, size_t spliting_size){
     *  that: 1. return value point to the beginning of data space
     *        2. edit metadata of new allocation to new allocation available space
     */
-    RetDataPtr = (sint8*)(*Node)+sizeof(size_t);
-    (*Node)->BlockSize = spliting_size ;
+    RetDataPtr = (sint8*)Node+sizeof(size_t);
+    Node->BlockSize = spliting_size ;
 
     return RetDataPtr ;
 }
 
 
 
-sint8 HeapUtils_SearchOnIndexInFreeList(FreeBlock** block){
+sint8 HeapUtils_SearchOnIndexInFreeList(FreeBlock* block){
     FreeBlock* ptr = ptrHead ;
     while( ptr != NULL ){ // while its next node is not jump over break
-        if ((*block) == ptr ){
+        if (block == ptr ){
             return VALID ;
         }
         else {
@@ -324,28 +324,37 @@ sint8 HeapUtils_SearchOnIndexInFreeList(FreeBlock** block){
 
 
 
-void   HeapUtils_SetFreeNodeInfo(FreeBlock** Node, size_t metadata, FreeBlock* previous_content, FreeBlock* next_content){
-    (*Node)->PreviousFreeBlock = previous_content ; 
-    (*Node)->NextFreeBlock = next_content ;
-    (*Node)->BlockSize =  metadata;
+void   HeapUtils_SetFreeNodeInfo(FreeBlock* Node, size_t metadata, FreeBlock* previous_content, FreeBlock* next_content){
+    Node->PreviousFreeBlock = previous_content ; 
+    Node->NextFreeBlock = next_content ;
+    Node->BlockSize =  metadata;
 }
 
+void Shrink_Break(sint8 flag){
+    if (flag == STATE2){
+        size_t Tail_Size = ptrTail->BlockSize ;
 
-int SearchForCorruption(){
-    FreeBlock* Temp = ptrHead;
-    int count = 1;
-    while( Temp )
-    {
-        /* Check the order of Free Blocks */
-        if( ( Temp->NextFreeBlock == (FreeBlock*)0x303030303030303 ) || ( Temp->PreviousFreeBlock == (FreeBlock*)0x303030303030303 ) )
-        {
-            printf("Block %d is in wrong order\n", count);
-            return INVALID;
+        while (Tail_Size > BREAK_STEP_SIZE){
+            sint8* result = CurBreak - BREAK_STEP_SIZE ; // to use it in check size condition
+
+            /*to ensure that the new current break in heap limitions*/
+            if ( result < (sint8*)SimHeap ){
+#if DEBUGGING == ENABLE 
+                printf("Invalid passing negative size parameter\n");
+#endif
+                return;
+            }
+            else if (result > ((sint8*) &SimHeap[MAX_HEAPLENGHT]) ){
+#if DEBUGGING == ENABLE 
+                printf("Invalid passing positive size parameter\n");
+#endif
+                return ;
+            } // else continue work to extend pointer of break counter
+
+            /*update heap break*/
+            CurBreak -= BREAK_STEP_SIZE ; 
+            ptrTail->BlockSize -= BREAK_STEP_SIZE ; 
+            Tail_Size = ptrTail->BlockSize ;
         }
-
-        count++;
-        Temp = Temp->NextFreeBlock;
     }
-
-    return VALID;
 }
