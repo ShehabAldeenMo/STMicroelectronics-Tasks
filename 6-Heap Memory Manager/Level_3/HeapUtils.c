@@ -232,7 +232,7 @@ sint8* HeapUtils_RemoveFreeBlock (FreeBlock* Node, size_t spliting_size){
     sint8 HeadAndTail = INVALID ;
     if (ptrHead == ptrTail){
         HeadAndTail = VALID ;
-    } 
+    }
 
     sint8 InFreeList = HeapUtils_SearchOnIndexInFreeList(Node);
 

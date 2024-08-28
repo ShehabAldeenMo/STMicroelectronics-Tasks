@@ -39,7 +39,7 @@
 #define VALID                                    -1
 #define NOT_ENTER                                 1
 #define ENTERED                                   0
-#define BREAK_STEP_SIZE                         ONE_K*ONE_K
+#define BREAK_STEP_SIZE                          ONE_K
 #define STATE1                                   INVALID
 #define STATE2                                   VALID
 #define INFO_NODE                                 2

@@ -35,10 +35,6 @@ void free(void* ptr) {
 void* realloc(void* ptr, size_t new_size) {
     void* new_ptr ;
 
-    // Determine the size of the old memory block
-    // This example assumes you have a way to get the old size; in practice, this may be handled differently.
-    size_t old_size = HeapManager_GetSize(ptr);
-
     if (ptr == NULL) {
         return malloc(new_size);
     }
@@ -47,6 +43,8 @@ void* realloc(void* ptr, size_t new_size) {
         return NULL;
     }
     else {
+        size_t old_size = HeapManager_GetSize(ptr);
+
         // Allocate new memory
         new_ptr = malloc(new_size);
         if (new_ptr == NULL) {

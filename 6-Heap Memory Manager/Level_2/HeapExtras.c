@@ -40,7 +40,7 @@ static sint8      TailBrkState = STATE1 ;
 
 /*=========================  Functions Implementation ===========================*/
 sint8* HeapExtras_FirstFit(size_t size){
-    static sint8 sleep_flag = 0 ;
+    static sint8 sleep_flag = 1 ;
     if (sleep_flag == 0){
        sleep(20);
        sleep_flag = 1 ;
@@ -121,6 +121,12 @@ void   HeapExtras_FreeOperationBeforeHead(FreeBlock* Node){
 
     sint8* PositionOfFreeBlock = (sint8*)Node + sizeof(size_t) + Node->BlockSize ; // to check that the target free block is adjecent for head or away from.
 
+    /* head and tail point to the same node */
+    sint8 HeadAndTail = INVALID ;
+    if (ptrHead == ptrTail){
+        HeadAndTail = VALID ;
+    } 
+
     /*
      * Case 1: The block is before the head and not adjacent.
      *         - Define the new node.
@@ -143,10 +149,17 @@ void   HeapExtras_FreeOperationBeforeHead(FreeBlock* Node){
      */
     else if (PositionOfFreeBlock == (sint8*)ptrHead ){
         size_t sizeOfhead = ptrHead->BlockSize;
-        FreeBlock* nextNode = ptrHead->NextFreeBlock;
-        ptrHead = Node ;
-        HeapUtils_SetFreeNodeInfo(ptrHead, Node->BlockSize+sizeOfhead+(size_t)sizeof(size_t),NULL,nextNode);
-        nextNode->PreviousFreeBlock = ptrHead ;
+        if (HeadAndTail == INVALID){
+            FreeBlock* nextNode = ptrHead->NextFreeBlock;
+            ptrHead = Node ;
+            HeapUtils_SetFreeNodeInfo(ptrHead, Node->BlockSize+sizeOfhead+(size_t)sizeof(size_t),NULL,nextNode);
+            nextNode->PreviousFreeBlock = ptrHead ;
+        }
+        else {
+            ptrHead = Node ;
+            ptrTail = ptrHead ;
+            HeapUtils_SetFreeNodeInfo(ptrHead, Node->BlockSize+sizeOfhead+(size_t)sizeof(size_t),NULL,NULL);
+        }
     }
     /*
      * Error Handling: If the block is not before the head or adjacent to it, 
