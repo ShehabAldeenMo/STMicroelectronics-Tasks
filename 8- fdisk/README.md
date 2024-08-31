@@ -10,13 +10,11 @@
 
 ## Description
 
-The `Fdisk` utility manages disk partitions by providing functionalities to manipulate partition tables. This tool supports both MBR and GPT partitioning schemes, allowing users to view, create, delete, and modify disk partitions. It operates on raw disk images or real disks and is useful for managing disk space and organizing storage.
+The `Fdisk` utility manages disk partitions by providing functionalities to manipulate partition tables. This tool supports both MBR and GPT partitioning schemes, allowing users to view disk partitions. It operates on raw disk images or real disks.
 
 ## Features
 
-- **Partition Management**: Create, delete, and modify partitions on a disk.
 - **View Partition Tables**: Display the existing partition tables for both MBR and GPT.
-- **Support for MBR and GPT**: Handles both Master Boot Record and GUID Partition Table partitioning schemes.
 - **Partition Information**: Provides detailed information about partitions, such as type, size, and location.
 
 ## Function Descriptions
@@ -85,9 +83,16 @@ To build the Fdisk project, follow these steps:
 1. Clone the Repository:
    Clone the repository to your local machine using Git:
 ```
-   git clone https://github.com/YourUsername/fdisk.git
-   cd fdisk
+   git clone https://github.com/ShehabAldeenMo/STMicroelectronics-Tasks.git
+   cd 8- fdisk
    make
    sudo ./Fdisk_Partitions /dev/sdb
    sudo ./Fdisk_Partitions /dev/sda
 ```
+
+## Illustrative Examples
++ Our program
+![image](https://github.com/user-attachments/assets/ea58171e-470e-47ac-9472-56993cfba167)
+
++ fdisk command
+![Screenshot from 2024-08-31 22-20-08](https://github.com/user-attachments/assets/4b8c0392-21a7-4d0d-af61-efa2fdb00a52)
