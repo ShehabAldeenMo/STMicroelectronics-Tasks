@@ -5,7 +5,6 @@
 - [Features](#features) ✨
 - [Function Descriptions](#function-descriptions) 🛠️
 - [Build Instruction](#build-instruction) 🏗️
-- [Notes](#notes) 🗒️
 - [Illustrative Examples](#illustrative-examples) 📸
 
 ## Description 📝
@@ -112,7 +111,7 @@ With `Fdisk`, users can:
   + **Notes:**
     + This function is specifically designed for handling extended partitions in an MBR disk.
 
-## Build Instruction
+## Build Instruction 🏗️
 
 To build the Fdisk project, follow these steps:
 
@@ -126,7 +125,7 @@ To build the Fdisk project, follow these steps:
    sudo ./Fdisk_Partitions /dev/sda
 ```
 
-## Illustrative Examples
+## Illustrative Examples 📸
 + Our program
 ![image](https://github.com/user-attachments/assets/ea58171e-470e-47ac-9472-56993cfba167)
 
