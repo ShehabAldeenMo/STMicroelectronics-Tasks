@@ -51,7 +51,42 @@ static MBR_PartitionType MbrPartitionTypes[] = {
 
 
 /*=========================== Functions Implementations ======================*/
-void Gpt_PartitionInfo(char *partition, uint8_t num, GPT_PartitionEntry *entry) {
+void Gpt_ParseInfo(char* path,int fd){
+    // buffer to store the sectors infotrmations
+    char buf[SECTOR_SIZE];
+
+    printf("%-10s%-10s %-10s %-10s %-15s %-40s\n",
+           "Partition", "Start", "End", "Sectors", "Size(MB)", "Type");
+
+    // Move the file descriptor's position by SECTOR_SIZE bytes forward from the current position.
+    lseek(fd,SECTOR_SIZE, SEEK_SET); // first 512 bytes is used as protected MBR
+    if (read(fd, buf, SECTOR_SIZE) != SECTOR_SIZE) {
+        // Fails to read complete sector
+        perror("Failed to read sector");
+        exit(INVALID);
+    }
+
+    // Structure to hold partition entry data
+    GPT_PartitionEntry entry;
+
+    // Partition number counter
+    uint8_t PartitionNum = 1;
+
+    // loop on each parition header
+    for (uint8_t i = 0; i < GPT_ENTRIES_NUM; i++) {
+        lseek(fd,(SECTOR_SIZE*GPT_OFFEST_HEADER + i * GPT_ENTRY_SIZE), SEEK_SET);
+        if (read(fd, &entry, GPT_ENTRY_SIZE) != GPT_ENTRY_SIZE) {
+            // Fails to read complete sector
+            perror("Failed to read sector");
+            exit(INVALID);
+        }
+        // print partition informations
+        Gpt_PrintPartitionInfo(path, PartitionNum++, &entry);
+    }
+}
+
+
+void Gpt_PrintPartitionInfo(char *partition, uint8_t num, GPT_PartitionEntry *entry) {
     if (entry->first_lba == 0 && entry->end_lba == 0) 
         return;  
 
@@ -92,7 +127,43 @@ const char* GPT_GetPartitionTypeName(const char *type) {
 
 
 
-void MBR_PartitionInfo(char *partition, uint8_t num, MBR_PartitionEntry *entry, uint32_t base_lba){
+
+/* Parse MBR informations */
+void MBR_ParseInfo(char* path, int fd,char* buf){
+    // Initialize the partition number to 1
+    uint8_t PartitionNum = 1;
+
+    // Initialize the starting index for logical partitions in the EBR (Extended Boot Record)
+    uint8_t Ebr_StartIndex = 5;
+
+    // Print the header for partition information
+    printf("%-10s%-5s %-10s %-10s %-10s %-10s %-5s %-5s\n", "Partition", "Boot", "Start", "End", "Sectors", "Size(MB)", "Id", "Type");
+
+    // Cast the buffer pointer to an MBR_PartitionEntry pointer, starting at the initial bootloader section
+    MBR_PartitionEntry *entry = ( MBR_PartitionEntry* )&buf[INITIAL_BOOTLOADER];
+
+    // Loop through the four primary partition entries in the MBR
+    for (uint8_t i = 0; i < NUM_OF_MBR_PARRTITIONS ; i++) {
+
+        // Check if the partition has a valid LBA (Logical Block Address) - if not, it's unused
+        if (entry[i].lba != 0) 
+        {
+            // Parse and display partition information
+            MBR_PrintPartitionInfo(path, PartitionNum++, &entry[i], 0);
+
+            // Check if the current partition is an extended partition type
+            if (entry[i].partition_type == CHS_EXTENDED_PARTITION     || 
+                entry[i].partition_type == LBA_EXTENDED_PARTITION     || 
+                entry[i].partition_type == LINUX_EXTENDED_PARTITION)  {
+    
+                    // If it's an extended partition, parse its extended boot record (EBR)
+                    MBR_ParseEbr(fd, path, entry[i].lba, &Ebr_StartIndex);
+            }
+        }
+    }
+}
+
+void MBR_PrintPartitionInfo(char *partition, uint8_t num, MBR_PartitionEntry *entry, uint32_t base_lba){
     if (entry->lba == 0 && entry->sector_count == 0) 
     {
         /* Empty Partition => skip */
@@ -105,7 +176,7 @@ void MBR_PartitionInfo(char *partition, uint8_t num, MBR_PartitionEntry *entry, 
 
     printf("%-10s%-5c %-10u %-10u %-10u %-10u %-5X %-5s\n",
            result, entry->status == 0x80 ? '*' : ' ',
-           base_lba + entry->lba, base_lba + entry->lba + entry->sector_count - 1,
+           (base_lba + entry->lba), (base_lba + entry->lba + entry->sector_count - 1) ,
            entry->sector_count,
            (uint32_t)(((uint64_t)entry->sector_count * SECTOR_SIZE) / _1MB),
            entry->partition_type,
@@ -138,7 +209,7 @@ void MBR_ParseEbr(int fd, char *partition, uint32_t ebr_start, uint8_t *num) {
         entry = (MBR_PartitionEntry *)&buf[INITIAL_BOOTLOADER];
 
         /* Print the information of the current logical partition */
-        MBR_PartitionInfo(partition, *num, entry, current_ebr_block);
+        MBR_PrintPartitionInfo(partition, *num, entry, current_ebr_block);
         (*num)++;
 
         /* The second partition entry points to the next EBR */

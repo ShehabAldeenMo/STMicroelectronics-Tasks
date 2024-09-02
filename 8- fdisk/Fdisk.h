@@ -33,15 +33,15 @@
 #define INVALID                     -1          /* Error indicator */
 #define GPT_ENTRIES_NUM             128         /* Number of GPT entries */
 #define GPT_ENTRY_SIZE              128         /* Size of a single GPT entry */
-#define _1MB                        (1024 * 1024) /* 1 Megabyte in bytes */
+#define _1MB                        (1024 * 1024) /* 1 Megabyte */
 #define GPT_GUID_TYPE_LENGTH        36          /* Length of a GUID in characters */
 #define CHS_EXTENDED_PARTITION      0x05        /* CHS extended partition type code */
 #define LBA_EXTENDED_PARTITION      0x0F        /* LBA extended partition type code */
 #define LINUX_EXTENDED_PARTITION    0x85        /* Linux extended partition type code */
 #define VALID                       0           /* Valid status code */
 #define INITIAL_BOOTLOADER          446         /* Initial bootloader offset in MBR */
-#define NUM_OF_MBR_PARRTITIONS       4           /* Number of MBR partitions */
-#define GPT_OFFEST_HEADER            2           /* GPT header offset in MBR */
+#define NUM_OF_MBR_PARRTITIONS       4          /* Number of MBR partitions */
+#define GPT_OFFEST_HEADER            2          /* GPT header offset in MBR */
 
 /*===================================  Structures ============================*/
 
@@ -78,9 +78,11 @@ typedef struct {
 } MBR_PartitionType;
 
 /*==========================  Function Prototypes ===========================*/
+/* Parse GPT informations */
+void Gpt_ParseInfo(char* path, int fd);
 
 /* Print information about a GPT partition */
-void Gpt_PartitionInfo(char *partition, uint8_t num, GPT_PartitionEntry *entry);
+void Gpt_PrintPartitionInfo(char *partition, uint8_t num, GPT_PartitionEntry *entry);
 
 /* Convert GPT GUID to string format */
 void Gpt_ReverseGUID(const uint8_t *type_guid, char *guid);
@@ -88,13 +90,17 @@ void Gpt_ReverseGUID(const uint8_t *type_guid, char *guid);
 /* Get the partition type name from the GPT type GUID */
 const char* GPT_GetPartitionTypeName(const char *type);
 
+/* Parse MBR informations */
+void MBR_ParseInfo(char* path, int fd,char* buf);
+
 /* Print information about an MBR partition */
-void MBR_PartitionInfo(char *partition, uint8_t num, MBR_PartitionEntry *entry, uint32_t base_lba);
+void MBR_PrintPartitionInfo(char *partition, uint8_t num, MBR_PartitionEntry *entry, uint32_t base_lba);
 
 /* Parse and print information about extended boot records (EBRs) */
 void MBR_ParseEbr(int fd, char *partition, uint32_t block, uint8_t *num);
 
 /* Get the partition type name from the MBR type ID */
 const char* MBR_GetPartitionTypeName(uint8_t type);
+
 
 #endif /* _GPT_H_ */
