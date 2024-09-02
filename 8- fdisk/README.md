@@ -26,7 +26,7 @@ With `Fdisk`, users can:
 
 ## Function Descriptions 🛠️
 
-**`Gpt_ParseInfo`**
+### **Gpt_ParseInfo**
   + **Description:** Parses and displays partition information from a GPT (GUID Partition Table) disk. The function reads partition entries from a specified file descriptor and prints their details.
   + **Input:**
     + `path`: The file path of the disk image or device.
@@ -36,8 +36,8 @@ With `Fdisk`, users can:
   + **Notes:**
     + This function supports GPT partitioning schemes only.
     + The function assumes the first 512 bytes are the protective MBR.
-      
-**`Gpt_PrintPartitionInfo`**
+
+### **Gpt_PrintPartitionInfo**
   + **Description:** Prints detailed information about a specific GPT (GUID Partition Table) partition, including its GUID, size, and type.
   + **Input:**
     + `partition`: The partition label or identifier.
@@ -47,7 +47,8 @@ With `Fdisk`, users can:
       + Displays partition details on the console.
   + **Notes:**
     + The function skips partitions that have `first_lba` and `end_lba` set to 0.
-**`Gpt_ReverseGUID`**
+      
+### **Gpt_ReverseGUID**
   + **Description:** Converts and reverses a binary GUID into a human-readable format.
   + **Input:**
     + `type_guid`: A pointer to the binary GUID.
@@ -57,7 +58,7 @@ With `Fdisk`, users can:
   + **Notes:**
     + The function reverses the byte order for certain segments of the GUID as per GPT specifications.
 
-**`GPT_GetPartitionTypeName`**
+### **GPT_GetPartitionTypeName**
   + **Description:** Retrieves the human-readable name associated with a given GUID for a GPT partition.
   + **Input:**
     + `type`: The GUID of the partition type in string format.
@@ -66,7 +67,7 @@ With `Fdisk`, users can:
   + **Notes:**
     + Returns "Unresolved Type" if the GUID is not recognized.
 
-**`MBR_ParseInfo`**
+### **MBR_ParseInfo**
   + **Description:** Parses and displays partition information from an MBR (Master Boot Record) disk. It handles both primary and extended partitions, including those with logical partitions.
   + **Input:**
     + `path`: The file path of the disk image or device.
@@ -78,7 +79,7 @@ With `Fdisk`, users can:
     + This function supports MBR partitioning schemes only.
     + Extended partitions are handled by recursively parsing the Extended Boot Record (EBR).
 
-**`MBR_PrintPartitionInfo`**
+### **MBR_PrintPartitionInfo**
   + **Description:** Prints detailed information about a specific MBR partition, including its type, size, and status.
   + **Input:**
     + `partition`: The partition label or identifier.
@@ -90,7 +91,7 @@ With `Fdisk`, users can:
   + **Notes:**
     + The function skips partitions that have `lba` and `sector_count` set to 0.
 
-**`MBR_GetPartitionTypeName`**
+### **MBR_GetPartitionTypeName**
   + **Description:** Retrieves the human-readable name associated with a given partition type ID for an MBR partition.
   + **Input:**
     + `type`: The partition type ID in hexadecimal format.
@@ -99,7 +100,7 @@ With `Fdisk`, users can:
   + **Notes:**
     + Returns "Unresolved Type" if the type ID is not recognized.
 
-**`MBR_ParseEbr`**
+### **MBR_ParseEbr**
   + **Description:** Recursively parses and displays partition information from an Extended Boot Record (EBR), handling logical partitions within an extended MBR partition.
   + **Input:**
     + `fd`: The file descriptor for the disk image or device.
