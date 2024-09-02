@@ -120,7 +120,7 @@ To build the Fdisk project, follow these steps:
    Clone the repository to your local machine using Git:
 ```
    git clone https://github.com/ShehabAldeenMo/STMicroelectronics-Tasks.git
-   cd 8- fdisk
+   cd "8- fdisk"
    make
    sudo ./Fdisk_Partitions /dev/sdb
    sudo ./Fdisk_Partitions /dev/sda
