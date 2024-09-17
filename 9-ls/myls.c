@@ -44,7 +44,8 @@ int main (int argc, char* argv[]){
             printf("\n");
         }else{
             // Sort and process directory arguments
-            qsort(&argv[optind], argc - optind, sizeof(char *), cmpstringp);
+            if (Options[OPTION_f] != SUCESS)
+                qsort(&argv[optind], argc - optind, sizeof(char *), cmpstringp);
 
             int i = 0 ;
             for (i = optind; i < argc-1; ++i) {
@@ -141,7 +142,8 @@ void do_ls(const char* dir) {
     }
 
     // Sort the Elements array based on filenames
-    qsort(Elements, ElementNumber, sizeof(char *), cmpstringp);
+    if (Options[OPTION_f] != SUCESS)
+        qsort(Elements, ElementNumber, sizeof(char *), cmpstringp);
 
     // Process and print information for each file
     for (size_t i = 0; i < ElementNumber; ++i) {
