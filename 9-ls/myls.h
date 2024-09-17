@@ -29,6 +29,7 @@
 #include <dirent.h>
 #include <string.h>
 #include <errno.h>
+#include <getopt.h>
 
 /*==================================  Definitions ===========================*/
 #define printable(ch) (isprint((unsigned char) ch) ? ch : '#')
@@ -45,12 +46,22 @@
 #define SUCESS             1
 #define MAX_PATH_LENGTH   255
 #define MAX_ELEMENTS      255
+#define MAX_NUMBER_OPTIONS 9 
+#define OPTION_l           0
+#define OPTION_a           1
+#define OPTION_t           2
+#define OPTION_u           3
+#define OPTION_c           4
+#define OPTION_i           5
+#define OPTION_f           6
+#define OPTION_d           7
+#define OPTION_1           8
+
+
 
 // Custom data types
 typedef unsigned char uint8;                 // 8-bit unsigned integer type
 typedef unsigned int  uint16;                // 16-bit unsigned integer type
-
-
 
 /*========================  myls File Functions Prototypes ===========================*/
 /*
@@ -62,19 +73,12 @@ typedef unsigned int  uint16;                // 16-bit unsigned integer type
  */
 void do_ls(const char* dir);
 
-/*
- * Name             : PrintColoredType
- * Description      : 
- * Parameter In/Out : 
- * Input            : 
- * Return           : 
- */
 void PrintColoredType(mode_t type, const char* text);
-
-
-
 int read_directory(const char* dir, char* Elements[], size_t* elementCount);
 void process_file(const char* dir, const char* filename);
 void cleanup(char* Elements[], size_t elementCount, DIR* dp);
+void print_permissions(mode_t mode);
+void Print_L_OptionInfo(struct stat* buf);
+void CheckOnOptions(int num, char** command);
 
 #endif
