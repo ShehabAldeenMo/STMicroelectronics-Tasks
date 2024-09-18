@@ -129,9 +129,19 @@ void do_ls(const char* dir) {
     }
 
     if (Options[OPTION_d] == SUCESS) {
-        // If -d option is set, just print the directory itself
-        printf("%s%s%s\t", COLOR_DIR, dir, COLOR_RESET); 
-        process_file(dir, dir);
+        struct stat buf;
+
+        // If `-d` is set, we just need to print the directory itself
+        if (lstat(dir, &buf) == -1) {
+            perror("lstat error");
+            return;
+        }
+
+        process_fileHelper(buf,dir);
+        
+        // to prevent printing double new-line in last case
+        if ( (SUCESS == Options[OPTION_1] || SUCESS == Options[OPTION_l]))
+            printf("\n");
     } else {
         // Open the directory specified by the dir argument
         dp = opendir(dir);
@@ -268,10 +278,16 @@ void process_file(const char* dir, const char* filename) {
         FirstEntry = SUCESS;
     }
 
+    process_fileHelper(buf,filename);
+}
+
+void process_fileHelper(struct stat buf, const char* filename){
+    // Print inode number if `-i` is set
     if (SUCESS == Options[OPTION_i]){
         printf("%ld ", buf.st_ino);
     } 
     
+    // Print long listing format if `-l` is set
     if (SUCESS == Options[OPTION_l]){
         Print_L_OptionInfo(&buf);
     }

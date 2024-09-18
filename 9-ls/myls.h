@@ -80,5 +80,6 @@ void cleanup(char* Elements[], size_t elementCount, DIR* dp);
 void print_permissions(mode_t mode);
 void Print_L_OptionInfo(struct stat* buf);
 void CheckOnOptions(int num, char** command);
+void process_fileHelper(struct stat buf, const char* filename);
 
 #endif
