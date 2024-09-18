@@ -43,20 +43,27 @@ int main (int argc, char* argv[]){
             do_ls(argv[optind]);
             printf("\n");
         }else{
-            // Sort and process directory arguments
-            if (Options[OPTION_f] != SUCESS)
-                qsort(&argv[optind], argc - optind, sizeof(char *), cmpstringp);
+            if (Options[OPTION_d] == SUCESS){
+                for (int i = optind; i < argc; ++i) {
+                    do_ls(argv[i]);
+                }
+                printf("\n");
+            }else {
+                // Sort and process directory arguments
+                if (Options[OPTION_f] != SUCESS)
+                    qsort(&argv[optind], argc - optind, sizeof(char *), cmpstringp);
 
-            int i = 0 ;
-            for (i = optind; i < argc-1; ++i) {
-                printf("%s:\n", argv[i]);
+                int i = 0 ;
+                for (i = optind; i < argc-1; ++i) {
+                    printf("%s:\n", argv[i]);
+                    do_ls(argv[i]);
+                    printf("\n\n");
+                }
+                // to prevent printing double new-line in last case
+                printf("'%s':\n",argv[i]);
                 do_ls(argv[i]);
-                printf("\n\n");
+                printf("\n");
             }
-            // to prevent printing double new-line in last case
-            printf("'%s':\n",argv[i]);
-            do_ls(argv[i]);
-            printf("\n");
         }
     }
     return 0 ; 
@@ -109,13 +116,6 @@ void CheckOnOptions(int num, char** command){
 }
 
 
-/*
- * Name             : do_ls
- * Description      : 
- * Parameter In/Out : 
- * Input            : 
- * Return           : 
- */
 void do_ls(const char* dir) {
     DIR *dp;                         // Pointer to a directory stream
     char* Elements[MAX_ELEMENTS];    // Array to store filenames
@@ -128,35 +128,42 @@ void do_ls(const char* dir) {
         Elements[i] = NULL;
     }
 
-    // Open the directory specified by the dir argument
-    dp = opendir(dir);
-    if (dp == NULL) {
-        printf("Cannot open directory: %s\n", dir);
-        return;
+    if (Options[OPTION_d] == SUCESS) {
+        // If -d option is set, just print the directory itself
+        printf("%s%s%s\t", COLOR_DIR, dir, COLOR_RESET); 
+        process_file(dir, dir);
+    } else {
+        // Open the directory specified by the dir argument
+        dp = opendir(dir);
+        if (dp == NULL) {
+            printf("Cannot open directory: %s\n", dir);
+            return;
+        }
+
+        // Read directory entries and store filenames in Elements
+        if (read_directory(dir, Elements, &ElementNumber) != 0) {
+            closedir(dp); // Close the directory stream on error
+            return;
+        }
+
+        // Sort the Elements array based on filenames
+        if (Options[OPTION_f] != SUCESS)
+            qsort(Elements, ElementNumber, sizeof(char *), cmpstringp);
+
+        // Process and print information for each file
+        for (size_t i = 0; i < ElementNumber; ++i) {
+            process_file(dir, Elements[i]);
+
+            // to prevent printing double new-line in last case
+            if ( (SUCESS == Options[OPTION_1] || SUCESS == Options[OPTION_l]) && (i != ElementNumber-1) )
+                printf("\n");
+        }
+
+        // Cleanup
+        cleanup(Elements, ElementNumber, dp);
     }
-
-    // Read directory entries and store filenames in Elements
-    if (read_directory(dir, Elements, &ElementNumber) != 0) {
-        closedir(dp); // Close the directory stream on error
-        return;
-    }
-
-    // Sort the Elements array based on filenames
-    if (Options[OPTION_f] != SUCESS)
-        qsort(Elements, ElementNumber, sizeof(char *), cmpstringp);
-
-    // Process and print information for each file
-    for (size_t i = 0; i < ElementNumber; ++i) {
-        process_file(dir, Elements[i]);
-
-        // to prevent printing double new-line in last case
-        if ( (SUCESS == Options[OPTION_1] || SUCESS == Options[OPTION_l]) && (i != ElementNumber-1) )
-            printf("\n");
-    }
-
-    // Cleanup
-    cleanup(Elements, ElementNumber, dp);
 }
+
 
 /*
  * Name             : PrintColoredType
