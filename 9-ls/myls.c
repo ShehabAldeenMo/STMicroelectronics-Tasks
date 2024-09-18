@@ -23,7 +23,9 @@ static char FirstEntry = FAIL;
 
 /*==============================  local functions ============================*/
 static int cmpstringp(const void *p1, const void *p2);
-
+static int cmpAcecssp(const void *p1, const void *p2);
+static int cmpChangep(const void *p1, const void *p2);
+static int cmpModifip(const void *p1, const void *p2);
 
 /*=================================  main ====================================*/
 int main (int argc, char* argv[]){
@@ -49,9 +51,27 @@ int main (int argc, char* argv[]){
                 }
                 printf("\n");
             }else {
-                // Sort and process directory arguments
-                if (Options[OPTION_f] != SUCESS)
+                // Check the conditions and apply the appropriate sorting function
+                if (Options[OPTION_f] != SUCESS && Options[OPTION_u] != SUCESS && 
+                    Options[OPTION_c] != SUCESS && Options[OPTION_t] != SUCESS) {
+                    // Sort by name
                     qsort(&argv[optind], argc - optind, sizeof(char *), cmpstringp);
+                } 
+                else if (Options[OPTION_f] != SUCESS && Options[OPTION_u] == SUCESS && 
+                         Options[OPTION_c] != SUCESS && Options[OPTION_t] != SUCESS) {
+                    // Sort by access time
+                    qsort(&argv[optind], argc - optind, sizeof(char *), cmpAcecssp);
+                } 
+                else if (Options[OPTION_f] != SUCESS && Options[OPTION_u] != SUCESS && 
+                         Options[OPTION_c] == SUCESS && Options[OPTION_t] != SUCESS) {
+                    // Sort by change time
+                    qsort(&argv[optind], argc - optind, sizeof(char *), cmpChangep);
+                } 
+                else if (Options[OPTION_f] != SUCESS && Options[OPTION_u] != SUCESS && 
+                         Options[OPTION_c] != SUCESS && Options[OPTION_t] == SUCESS) {
+                    // Sort by modification time
+                    qsort(&argv[optind], argc - optind, sizeof(char *), cmpModifip);
+                }
 
                 int i = 0 ;
                 for (i = optind; i < argc-1; ++i) {
@@ -158,7 +178,27 @@ void do_ls(const char* dir) {
 
         // Sort the Elements array based on filenames
         if (Options[OPTION_f] != SUCESS)
-            qsort(Elements, ElementNumber, sizeof(char *), cmpstringp);
+            // Check the conditions and apply the appropriate sorting function
+            if (Options[OPTION_f] != SUCESS && Options[OPTION_u] != SUCESS && 
+                Options[OPTION_c] != SUCESS && Options[OPTION_t] != SUCESS) {
+                // Sort by name
+                qsort(Elements, ElementNumber, sizeof(char *), cmpstringp);
+            } 
+            else if (Options[OPTION_f] != SUCESS && Options[OPTION_u] == SUCESS && 
+                     Options[OPTION_c] != SUCESS && Options[OPTION_t] != SUCESS) {
+                // Sort by access time
+                qsort(Elements, ElementNumber, sizeof(char *), cmpAcecssp);
+            } 
+            else if (Options[OPTION_f] != SUCESS && Options[OPTION_u] != SUCESS && 
+                     Options[OPTION_c] == SUCESS && Options[OPTION_t] != SUCESS) {
+                // Sort by change time
+                qsort(Elements, ElementNumber, sizeof(char *), cmpChangep);
+            } 
+            else if (Options[OPTION_f] != SUCESS && Options[OPTION_u] != SUCESS && 
+                     Options[OPTION_c] != SUCESS && Options[OPTION_t] == SUCESS) {
+                // Sort by modification time
+                qsort(Elements, ElementNumber, sizeof(char *), cmpModifip);
+            }
 
         // Process and print information for each file
         for (size_t i = 0; i < ElementNumber; ++i) {
@@ -208,17 +248,87 @@ void PrintColoredType(mode_t type, const char* text) {
 }
 
 
-/*
- * Name             : cmpstringp
- * Description      : 
- * Parameter In/Out : 
- * Input            : 
- * Return           : 
- */
 static int cmpstringp(const void *p1, const void *p2)
 {
-    static int count = 0;
     return strcmp(*(const char **) p1, *(const char **) p2);
+}
+
+static int cmpAcecssp(const void *p1, const void *p2){
+    struct stat buf1, buf2;
+    const char *file1 = *(const char **) p1;
+    const char *file2 = *(const char **) p2;
+
+    /** Get file stats for each file */
+    if (lstat(file1, &buf1) < 0) {
+        printf("stat error for file1: %s\n", file1);
+        return 0;
+    }
+
+    // Construct the full path of the file
+    if (lstat(file2, &buf2) < 0) {
+        printf("stat error for file2: %s\n", file2);
+        return 0; 
+    }
+
+    /** Compare change times (st_atime) */
+    if (buf1.st_atime > buf2.st_atime)
+        return -1;  
+    else if (buf1.st_atime < buf2.st_atime)
+        return 1; 
+    else
+        return 0;   /** change times are the same */
+}
+
+static int cmpChangep(const void *p1, const void *p2){
+    struct stat buf1, buf2;
+    const char *file1 = *(const char **) p1;
+    const char *file2 = *(const char **) p2;
+
+    /** Get file stats for each file */
+    if (lstat(file1, &buf1) < 0) {
+        printf("stat error for file1: %s\n", file1);
+        return 0;
+    }
+
+    // Construct the full path of the file
+    if (lstat(file2, &buf2) < 0) {
+        printf("stat error for file2: %s\n", file2);
+        return 0; 
+    }
+
+    /** Compare change times (st_atime) */
+    if (buf1.st_ctime > buf2.st_ctime)
+        return -1;  
+    else if (buf1.st_ctime < buf2.st_ctime)
+        return 1; 
+    else
+        return 0;   /** change times are the same */
+}
+
+static int cmpModifip(const void *p1, const void *p2){
+    struct stat buf1, buf2;
+    const char *file1 = *(const char **) p1;
+    const char *file2 = *(const char **) p2;
+
+    /** Get file stats for each file */
+    if (lstat(file1, &buf1) < 0) {
+        printf("stat error for file1: %s\n", file1);
+        return 0;
+    }
+
+    // Construct the full path of the file
+    if (lstat(file2, &buf2) < 0) {
+        printf("stat error for file2: %s\n", file2);
+        return 0; 
+    }
+
+    /** Compare change times (st_atime) */
+    if (buf1.st_mtime > buf2.st_mtime)
+        return -1;  
+    else if (buf1.st_mtime < buf2.st_mtime)
+        return 1; 
+    else
+        return 0;   /** change times are the same */
 }
 
 

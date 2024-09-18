@@ -25,7 +25,7 @@ void print_file_info(const char *path) {
         printf("Type: Directory\n");
     } else if (S_ISLNK(file_info.st_mode)) {
         printf("Type: Symbolic link\n");
-    } else if (S_ISCHR(file_info.st_mode)) {
+    } else if (S_ISCHR(file_info.st_mode)) { 
         printf("Type: Character device\n");
     } else if (S_ISBLK(file_info.st_mode)) {
         printf("Type: Block device\n");
