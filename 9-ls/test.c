@@ -1,95 +1,81 @@
 #include <stdio.h>
+#include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <stdlib.h>
 #include <dirent.h>
+#include <time.h>
 #include <string.h>
-#include <errno.h>
+#include <stdlib.h>
 
-#define MAX_PATH_LENGTH 1024
+#define MAX_FILES 1024
 
-void print_file_info(const char *path) {
-    struct stat file_info;
+// Structure to store file name and access time
+typedef struct {
+    char name[1024];
+    time_t access_time;
+} FileInfo;
 
-    // Use lstat to get file information (including for symbolic links)
-    if (lstat(path, &file_info) == -1) {
-        perror("lstat error");
-        return;
-    }
+// Comparison function for qsort to sort by access time in descending order
+int compareAccessTimeDescending(const void *a, const void *b) {
+    FileInfo *file1 = (FileInfo *)a;
+    FileInfo *file2 = (FileInfo *)b;
 
-    // Check the file type
-    printf("File: %s\n", path);
-    if (S_ISREG(file_info.st_mode)) {
-        printf("Type: Regular file\n");
-    } else if (S_ISDIR(file_info.st_mode)) {
-        printf("Type: Directory\n");
-    } else if (S_ISLNK(file_info.st_mode)) {
-        printf("Type: Symbolic link\n");
-    } else if (S_ISCHR(file_info.st_mode)) { 
-        printf("Type: Character device\n");
-    } else if (S_ISBLK(file_info.st_mode)) {
-        printf("Type: Block device\n");
-    } else if (S_ISFIFO(file_info.st_mode)) {
-        printf("Type: FIFO/pipe\n");
-    } else if (S_ISSOCK(file_info.st_mode)) {
-        printf("Type: Socket\n");
-    } else {
-        printf("Type: Unknown file type\n");
-    }
-
-    // Print file size
-    printf("Size: %lld bytes\n", (long long) file_info.st_size);
-
-    // Print file permissions
-    printf("Permissions: ");
-    printf( (file_info.st_mode & S_IRUSR) ? "r" : "-");
-    printf( (file_info.st_mode & S_IWUSR) ? "w" : "-");
-    printf( (file_info.st_mode & S_IXUSR) ? "x" : "-");
-    printf( (file_info.st_mode & S_IRGRP) ? "r" : "-");
-    printf( (file_info.st_mode & S_IWGRP) ? "w" : "-");
-    printf( (file_info.st_mode & S_IXGRP) ? "x" : "-");
-    printf( (file_info.st_mode & S_IROTH) ? "r" : "-");
-    printf( (file_info.st_mode & S_IWOTH) ? "w" : "-");
-    printf( (file_info.st_mode & S_IXOTH) ? "x" : "-");
-    printf("\n\n");
-}
-
-void list_directory(const char *dir_path) {
-    DIR *dir;
-    struct dirent *entry;
-    char full_path[MAX_PATH_LENGTH];
-
-    // Open the directory
-    if ((dir = opendir(dir_path)) == NULL) {
-        perror("opendir error");
-        return;
-    }
-
-    // Read directory entries
-    while ((entry = readdir(dir)) != NULL) {
-        // Skip "." and ".." entries
-        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
-            continue;
-
-        // Create the full path for the file
-        snprintf(full_path, sizeof(full_path), "%s/%s", dir_path, entry->d_name);
-
-        // Print file information
-        print_file_info(full_path);
-    }
-
-    closedir(dir);
-}
-
-int main(int argc, char *argv[]) {
-    const char *dir_path = ".";  // Default to current directory
-
-    if (argc > 1) {
-        dir_path = argv[1];  // Use the provided directory path
-    }
-
-    list_directory(dir_path);
-
+    if (file1->access_time > file2->access_time) return -1;
+    if (file1->access_time < file2->access_time) return 1;
     return 0;
 }
 
+int main() {
+    struct dirent *entry;
+    struct stat fileStat;
+    DIR *dir;
+    FileInfo files[MAX_FILES];
+    int file_count = 0;
+
+    // Open the current directory
+    dir = opendir(".");
+    if (dir == NULL) {
+        perror("opendir error");
+        return 1;
+    }
+
+    // Read files in the directory
+    while ((entry = readdir(dir)) != NULL) {
+        // Skip "." and ".." entries
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+            continue;
+        }
+
+        // Get the file stats
+        if (lstat(entry->d_name, &fileStat) < 0) {
+            perror("lstat error");
+            continue;
+        }
+
+        // Store the file name and access time
+        if (file_count >= MAX_FILES) {
+            fprintf(stderr, "Maximum file limit reached.\n");
+            break;
+        }
+
+        strncpy(files[file_count].name, entry->d_name, sizeof(files[file_count].name) - 1);
+        files[file_count].name[sizeof(files[file_count].name) - 1] = '\0'; // Ensure null-termination
+        files[file_count].access_time = fileStat.st_atime;
+        file_count++;
+    }
+
+    closedir(dir);
+
+    // Sort files by access time in descending order
+    qsort(files, file_count, sizeof(FileInfo), compareAccessTimeDescending);
+
+    // Print the files and their access times in order
+    printf("Files sorted by access time (descending):\n");
+    for (int i = 0; i < file_count; i++) {
+        printf("File: %s\t", files[i].name);
+        printf("Access time (epoch): %ld\t", files[i].access_time); // Print raw time_t value
+        printf("Access time: %s\n", ctime(&files[i].access_time));
+    }
+
+    return 0;
+}

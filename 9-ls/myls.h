@@ -32,7 +32,6 @@
 #include <getopt.h>
 
 /*==================================  Definitions ===========================*/
-#define printable(ch) (isprint((unsigned char) ch) ? ch : '#')
 #define COLOR_DIR       "\033[1;34m"  // Blue for directories
 #define COLOR_REG       "\033[0m"     // Default for regular files
 #define COLOR_LINK      "\033[1;36m"  // Cyan for symbolic links
@@ -45,7 +44,7 @@
 #define FAIL              -1
 #define SUCESS             1
 #define MAX_PATH_LENGTH   255
-#define MAX_ELEMENTS      255
+#define MAX_ELEMENTS      20
 #define MAX_NUMBER_OPTIONS 9 
 #define OPTION_l           0
 #define OPTION_a           1
@@ -62,6 +61,13 @@
 // Custom data types
 typedef unsigned char uint8;                 // 8-bit unsigned integer type
 typedef unsigned int  uint16;                // 16-bit unsigned integer type
+
+// Structure to store original path and index
+typedef struct {
+    char *original_path;
+    char resolved_path[MAX_PATH_LENGTH];
+    int index;
+} PathInfo;
 
 /*========================  myls File Functions Prototypes ===========================*/
 /*
@@ -83,5 +89,6 @@ void CheckOnOptions(int num, char** command);
 void process_fileHelper(struct stat buf, const char* filename);
 char cmpHelper(const void *p1, const void *p2,struct stat* buf1,struct stat * buf2);
 char* getAbsolutePath(const char* inputPath);
+void sortBuffer(char **argv, int counter, char Options[]);
 
 #endif

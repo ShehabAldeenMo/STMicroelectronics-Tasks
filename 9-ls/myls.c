@@ -20,7 +20,7 @@
 extern int errno;
 static char Options[MAX_NUMBER_OPTIONS] = {FAIL};
 static char FirstEntry = FAIL;
-static char* Global_dir = "";
+static char* Global_dir = ""; // to fix lstat issue of reading files in directory
 
 /*==============================  local functions ============================*/
 static int cmpstringp(const void *p1, const void *p2);
@@ -56,27 +56,21 @@ int main (int argc, char* argv[]){
                 }
                 printf("\n");
             }else {
-                // Check the conditions and apply the appropriate sorting function
-                if (Options[OPTION_f] != SUCESS && Options[OPTION_u] != SUCESS && 
-                    Options[OPTION_c] != SUCESS && Options[OPTION_t] != SUCESS) {
-                    // Sort by name
-                    qsort(&argv[optind], argc - optind, sizeof(char *), cmpstringp);
-                } 
-                else if (Options[OPTION_f] != SUCESS && Options[OPTION_u] == SUCESS && 
-                         Options[OPTION_c] != SUCESS && Options[OPTION_t] != SUCESS) {
-                    // Sort by access time
-                    qsort(&argv[optind], argc - optind, sizeof(char *), cmpAcecssp);
-                } 
-                else if (Options[OPTION_f] != SUCESS && Options[OPTION_u] != SUCESS && 
-                         Options[OPTION_c] == SUCESS && Options[OPTION_t] != SUCESS) {
-                    // Sort by change time
-                    qsort(&argv[optind], argc - optind, sizeof(char *), cmpChangep);
-                } 
-                else if (Options[OPTION_f] != SUCESS && Options[OPTION_u] != SUCESS && 
-                         Options[OPTION_c] != SUCESS && Options[OPTION_t] == SUCESS) {
-                    // Sort by modification time
-                    qsort(&argv[optind], argc - optind, sizeof(char *), cmpModifip);
+                PathInfo paths[MAX_ELEMENTS];
+                int path_count = 0;
+
+                for (int i = optind; i < argc; i++) {
+                    paths[path_count].original_path = strdup(argv[i]);
+                    if (realpath(argv[i], paths[path_count].resolved_path) == NULL) {
+                        perror("realpath error");
+                    }
+                    argv[i]=strdup(paths[path_count].resolved_path);
+                    path_count++;
                 }
+
+                // Check the conditions and apply the appropriate sorting function
+                sortBuffer(&argv[optind],argc-optind,Options);
+
 
                 // will operate on our each input
                 int i = 0 ;
@@ -182,26 +176,7 @@ void do_ls(const char* dir) {
         // Sort the Elements array based on filenames
         if (Options[OPTION_f] != SUCESS)
             // Check the conditions and apply the appropriate sorting function
-            if (Options[OPTION_f] != SUCESS && Options[OPTION_u] != SUCESS && 
-                Options[OPTION_c] != SUCESS && Options[OPTION_t] != SUCESS) {
-                // Sort by name
-                qsort(Elements, ElementNumber, sizeof(char *), cmpstringp);
-            } 
-            else if (Options[OPTION_f] != SUCESS && Options[OPTION_u] == SUCESS && 
-                     Options[OPTION_c] != SUCESS && Options[OPTION_t] != SUCESS) {
-                // Sort by access time
-                qsort(Elements, ElementNumber, sizeof(char *), cmpAcecssp);
-            } 
-            else if (Options[OPTION_f] != SUCESS && Options[OPTION_u] != SUCESS && 
-                     Options[OPTION_c] == SUCESS && Options[OPTION_t] != SUCESS) {
-                // Sort by change time
-                qsort(Elements, ElementNumber, sizeof(char *), cmpChangep);
-            } 
-            else if (Options[OPTION_f] != SUCESS && Options[OPTION_u] != SUCESS && 
-                     Options[OPTION_c] != SUCESS && Options[OPTION_t] == SUCESS) {
-                // Sort by modification time
-                qsort(Elements, ElementNumber, sizeof(char *), cmpModifip);
-            }
+            sortBuffer(Elements,ElementNumber,Options);
 
         // Process and print information for each file
         for (size_t i = 0; i < ElementNumber; ++i) {
@@ -296,12 +271,16 @@ char cmpHelper(const void *p1, const void *p2,struct stat* buf1,struct stat * bu
     /** Get file stats for each file */
     if (lstat(path1, buf1) < 0) {
         printf("stat error for file1: %s\n", file1);
+        free(path1);
+        free(path2);
         return FAIL;
     }
 
     // Construct the full path of the file
     if (lstat(path2, buf2) < 0) {
         printf("stat error for file2: %s\n", file2);
+        free(path1);
+        free(path2);
         return FAIL; 
     }
 
@@ -504,4 +483,29 @@ void Print_L_OptionInfo(struct stat* buf){
     struct tm* timeinfo = localtime(&buf->st_mtime);
     strftime(time_str, sizeof(time_str), "%b %d %H:%M", timeinfo);
     printf("%s ", time_str);
+}
+
+
+void sortBuffer(char **argv, int counter, char Options[]){
+    // Check the conditions and apply the appropriate sorting function
+    if (Options[OPTION_f] != SUCESS && Options[OPTION_u] != SUCESS && 
+        Options[OPTION_c] != SUCESS && Options[OPTION_t] != SUCESS) {
+        // Sort by name
+        qsort(argv, counter, sizeof(char *), cmpstringp);
+    } 
+    else if (Options[OPTION_f] != SUCESS && Options[OPTION_u] == SUCESS && 
+             Options[OPTION_c] != SUCESS && Options[OPTION_t] != SUCESS) {
+        // Sort by access time
+        qsort(argv, counter, sizeof(char *), cmpAcecssp);
+    } 
+    else if (Options[OPTION_f] != SUCESS && Options[OPTION_u] != SUCESS && 
+             Options[OPTION_c] == SUCESS && Options[OPTION_t] != SUCESS) {
+        // Sort by change time
+        qsort(argv, counter, sizeof(char *), cmpChangep);
+    } 
+    else if (Options[OPTION_f] != SUCESS && Options[OPTION_u] != SUCESS && 
+             Options[OPTION_c] != SUCESS && Options[OPTION_t] == SUCESS) {
+        // Sort by modification time
+        qsort(argv, counter, sizeof(char *), cmpModifip);
+    }
 }
