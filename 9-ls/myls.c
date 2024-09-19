@@ -20,6 +20,7 @@
 extern int errno;
 static char Options[MAX_NUMBER_OPTIONS] = {FAIL};
 static char FirstEntry = FAIL;
+static char* Global_dir = "";
 
 /*==============================  local functions ============================*/
 static int cmpstringp(const void *p1, const void *p2);
@@ -32,6 +33,7 @@ int main (int argc, char* argv[]){
     int opt;
 
     if (argc == 1){
+        // in case of enetring ./myls only will operate on the current working space
        do_ls(".");
        printf("\n");
     }else{
@@ -39,12 +41,15 @@ int main (int argc, char* argv[]){
         CheckOnOptions(argc,argv);
 
         if (optind >= argc) {
+            // there is no arguments
             do_ls(".");
             printf("\n");
         }else if (optind == argc-1){
+            // there is one argument will pass it
             do_ls(argv[optind]);
             printf("\n");
         }else{
+            // will work on directories names only
             if (Options[OPTION_d] == SUCESS){
                 for (int i = optind; i < argc; ++i) {
                     do_ls(argv[i]);
@@ -73,6 +78,7 @@ int main (int argc, char* argv[]){
                     qsort(&argv[optind], argc - optind, sizeof(char *), cmpModifip);
                 }
 
+                // will operate on our each input
                 int i = 0 ;
                 for (i = optind; i < argc-1; ++i) {
                     printf("%s:\n", argv[i]);
@@ -138,15 +144,12 @@ void CheckOnOptions(int num, char** command){
 
 void do_ls(const char* dir) {
     DIR *dp;                         // Pointer to a directory stream
-    char* Elements[MAX_ELEMENTS];    // Array to store filenames
+    char* Elements[MAX_ELEMENTS] 
+                       = {NULL};     // Array to store filenames
     size_t ElementNumber = 0;        // Counter for the number of elements
     errno = 0;                       // Set errno to 0 before starting
     FirstEntry = FAIL ;
-
-    // Initialize Elements array
-    for (size_t i = 0; i < MAX_ELEMENTS; ++i) {
-        Elements[i] = NULL;
-    }
+    Global_dir = (char* )dir ;
 
     if (Options[OPTION_d] == SUCESS) {
         struct stat buf;
@@ -159,7 +162,7 @@ void do_ls(const char* dir) {
 
         process_fileHelper(buf,dir);
         
-        // to prevent printing double new-line in last case
+        // to make each element in one line only
         if ( (SUCESS == Options[OPTION_1] || SUCESS == Options[OPTION_l]))
             printf("\n");
     } else {
@@ -253,21 +256,67 @@ static int cmpstringp(const void *p1, const void *p2)
     return strcmp(*(const char **) p1, *(const char **) p2);
 }
 
-static int cmpAcecssp(const void *p1, const void *p2){
-    struct stat buf1, buf2;
+char* getAbsolutePath(const char* inputPath) {
+    // Allocate memory for the absolute path
+    char *absolutePath = malloc(MAX_PATH_LENGTH);
+    char path[MAX_PATH_LENGTH];
+
+    // Construct the full path of the file
+    if (snprintf(path, sizeof(path), "%s/%s", Global_dir,  inputPath) >= sizeof(path)) {
+        fprintf(stderr, "Path truncated: %s/%s\n", Global_dir, inputPath);
+        return NULL;
+    }
+
+    if (absolutePath == NULL) {
+        perror("malloc error");
+        return NULL;
+    }
+
+    // Use realpath to resolve the inputPath and return the absolute path
+    if (realpath(path, absolutePath) == NULL) {
+        printf("realpath error : %s\n",absolutePath);
+        free(absolutePath);
+        return NULL;
+    }
+
+    return absolutePath;
+}
+
+char cmpHelper(const void *p1, const void *p2,struct stat* buf1,struct stat * buf2){
     const char *file1 = *(const char **) p1;
     const char *file2 = *(const char **) p2;
+    char* path1 = getAbsolutePath(file1);
+    char* path2 = getAbsolutePath(file2);
+
+    if (path1 == NULL || path2 == NULL){
+        printf("Error in path1 or path2");
+        exit(FAIL);
+    }
 
     /** Get file stats for each file */
-    if (lstat(file1, &buf1) < 0) {
+    if (lstat(path1, buf1) < 0) {
         printf("stat error for file1: %s\n", file1);
-        return 0;
+        return FAIL;
     }
 
     // Construct the full path of the file
-    if (lstat(file2, &buf2) < 0) {
+    if (lstat(path2, buf2) < 0) {
         printf("stat error for file2: %s\n", file2);
-        return 0; 
+        return FAIL; 
+    }
+
+    free(path1);
+    free(path2);
+
+    return SUCESS ;
+}
+
+static int cmpAcecssp(const void *p1, const void *p2){
+    struct stat buf1, buf2;
+    char status = cmpHelper(p1,p2,&buf1,&buf2);
+
+    if (status == FAIL){
+        return 0 ;
     }
 
     /** Compare change times (st_atime) */
@@ -281,19 +330,10 @@ static int cmpAcecssp(const void *p1, const void *p2){
 
 static int cmpChangep(const void *p1, const void *p2){
     struct stat buf1, buf2;
-    const char *file1 = *(const char **) p1;
-    const char *file2 = *(const char **) p2;
+    char status = cmpHelper(p1,p2,&buf1,&buf2);
 
-    /** Get file stats for each file */
-    if (lstat(file1, &buf1) < 0) {
-        printf("stat error for file1: %s\n", file1);
-        return 0;
-    }
-
-    // Construct the full path of the file
-    if (lstat(file2, &buf2) < 0) {
-        printf("stat error for file2: %s\n", file2);
-        return 0; 
+    if (status == FAIL){
+        return 0 ;
     }
 
     /** Compare change times (st_atime) */
@@ -307,19 +347,10 @@ static int cmpChangep(const void *p1, const void *p2){
 
 static int cmpModifip(const void *p1, const void *p2){
     struct stat buf1, buf2;
-    const char *file1 = *(const char **) p1;
-    const char *file2 = *(const char **) p2;
+    char status = cmpHelper(p1,p2,&buf1,&buf2);
 
-    /** Get file stats for each file */
-    if (lstat(file1, &buf1) < 0) {
-        printf("stat error for file1: %s\n", file1);
-        return 0;
-    }
-
-    // Construct the full path of the file
-    if (lstat(file2, &buf2) < 0) {
-        printf("stat error for file2: %s\n", file2);
-        return 0; 
+    if (status == FAIL){
+        return 0 ;
     }
 
     /** Compare change times (st_atime) */

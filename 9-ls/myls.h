@@ -81,5 +81,7 @@ void print_permissions(mode_t mode);
 void Print_L_OptionInfo(struct stat* buf);
 void CheckOnOptions(int num, char** command);
 void process_fileHelper(struct stat buf, const char* filename);
+char cmpHelper(const void *p1, const void *p2,struct stat* buf1,struct stat * buf2);
+char* getAbsolutePath(const char* inputPath);
 
 #endif
