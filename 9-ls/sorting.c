@@ -50,7 +50,9 @@ void sortBuffer(char **argv, int counter, char Options[]){
 
 static int cmpstringp(const void *p1, const void *p2)
 {
-    return strcmp(*(const char **) p1, *(const char **) p2);
+    const char *file1 = *(const char **) p1;
+    const char *file2 = *(const char **) p2;
+    return strcmp(file1, file2);
 }
 
 

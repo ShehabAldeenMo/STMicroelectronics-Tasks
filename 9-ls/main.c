@@ -59,31 +59,37 @@ int main(int argc, char* argv[]) {
                 PathInfo paths[MAX_ELEMENTS];
                 int path_count = 0;
 
-                // Convert each path to absolute path and store
-                for (int i = optind; i < argc; i++) {
-                    paths[path_count].original_path = strdup(argv[i]);
+                if ( !(Options[OPTION_f] != SUCCESS && Options[OPTION_u] != SUCCESS && 
+                    Options[OPTION_c] != SUCCESS && Options[OPTION_t] != SUCCESS) ){
+                    // Convert each path to absolute path and store
+                    for (int i = optind; i < argc; i++) {
+                        paths[path_count].original_path = strdup(argv[i]);
 
-                    // Resolve the absolute path
-                    if (realpath(argv[i], paths[path_count].resolved_path) == NULL) {
-                        perror("realpath error");
-                        continue; // Skip this path if there's an error
+                        // Resolve the absolute path
+                        if (realpath(argv[i], paths[path_count].resolved_path) == NULL) {
+                            perror("realpath error");
+                            continue; // Skip this path if there's an error
+                        }
+
+                        argv[i] = strdup(paths[path_count].resolved_path);
+                        path_count++;
                     }
-
-                    argv[i] = strdup(paths[path_count].resolved_path);
-                    path_count++;
                 }
 
                 // Sort paths based on options
-                sortBuffer(&argv[optind], path_count, Options);
+                sortBuffer(&argv[optind], argc-optind, Options);
 
-                // Restore original path names after sorting
-                for (int i = 0; i < path_count; i++) {
-                    int index = binarySearch(argv, argc, paths[i].resolved_path);
+                if ( !(Options[OPTION_f] != SUCCESS && Options[OPTION_u] != SUCCESS && 
+                    Options[OPTION_c] != SUCCESS && Options[OPTION_t] != SUCCESS) ){
+                    // Restore original path names after sorting
+                    for (int i = 0; i < path_count; i++) {
+                        int index = linearSearch(argv, argc, paths[i].resolved_path);
 
-                    if (index != -1) {
-                        argv[index] = paths[i].original_path;
-                    } else {
-                        printf("Path not found: %s\n", paths[i].resolved_path);
+                        if (index != -1) {
+                            argv[index] = paths[i].original_path;
+                        } else {
+                            printf("Path not found:%s\n", paths[i].resolved_path);
+                        }
                     }
                 }
 
@@ -94,14 +100,18 @@ int main(int argc, char* argv[]) {
                     do_ls(argv[i]);
                     printf("\n\n");
                 }
+
                 // Prevent extra new-line for the last entry
                 printf("'%s':\n", argv[i]);
                 do_ls(argv[i]);
                 printf("\n");
 
-                // Clean up dynamically allocated memory
-                for (int i = 0; i < (argc - optind); i++) {
-                    free(paths[i].original_path);
+                if ( !(Options[OPTION_f] != SUCCESS && Options[OPTION_u] != SUCCESS && 
+                    Options[OPTION_c] != SUCCESS && Options[OPTION_t] != SUCCESS) ){
+                    // Clean up dynamically allocated memory
+                    for (int i = 0; i < (argc - optind); i++) {
+                        free(paths[i].original_path);
+                    }
                 }
             }
         }
@@ -211,24 +221,13 @@ void do_ls(const char* dir) {
 
 
 
-// Binary search function to find a path
-int binarySearch(char* paths[], int size, const char *target) {
-    int low = 0;
-    int high = size - 1;
-
-    while (low <= high) {
-        int mid = low + (high - low) / 2;
-
-        int cmp = strcmp(paths[mid], target);
-        if (cmp == 0) {
-            return mid; // Found the target
-        } else if (cmp < 0) {
-            low = mid + 1;
-        } else {
-            high = mid - 1;
+// Function to perform a linear search on paths array
+int linearSearch(char* paths[], int size, const char *target) {
+    for (int i = 0; i < size; ++i) {
+        if (strcmp(paths[i], target) == 0) {
+            return i; // Found the target at index i
         }
     }
-
     return -1; // Target not found
 }
 
