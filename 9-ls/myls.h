@@ -49,7 +49,7 @@
 #define FAIL              -1          // Failure return code
 #define SUCCESS           1           // Success return code
 #define MAX_PATH_LENGTH   255         // Maximum path length
-#define MAX_ELEMENTS      20          // Maximum number of elements
+#define MAX_ELEMENTS      30          // Maximum number of elements
 #define MAX_NUMBER_OPTIONS 9          // Maximum number of command-line options
 #define OPTION_l           0          // Option for long listing format
 #define OPTION_a           1          // Option for including hidden files
@@ -206,7 +206,7 @@ char* getAbsolutePath(const char* inputPath);
 void sortBuffer(char **argv, int counter, char Options[]);
 
 /*
- * Name             : binarySearch
+ * Name             : linearSearch
  * Description      : Perform binary search on an array of paths.
  * Parameter In/Out : paths - Array of path strings.
  *                    size - Size of the array.
@@ -216,6 +216,6 @@ void sortBuffer(char **argv, int counter, char Options[]);
  *                    target - Path to search.
  * Return           : int - Index of the target if found, otherwise -1.
  */
-int binarySearch(char* paths[], int size, const char *target);
+int linearSearch(char* paths[], int size, const char *target);
 
 #endif // MYLS_H_
