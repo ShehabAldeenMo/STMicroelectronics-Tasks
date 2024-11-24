@@ -25,7 +25,7 @@ int main(int argc, char **argv)
     for (;;)
     { /* Handle client connections iteratively */
 
-        printf("Waiting for client connection...\n");
+        printf("Waiting for client connection ...\n");
 
         /* Accept a connection. the listening socket ('server_fd') remains open
            and can be used to accept further connections. */
@@ -53,7 +53,7 @@ int main(int argc, char **argv)
         {
             CloseFd(server_fd);         // there's no need to open fd of server in child process
             Handle_Requests(client_fd); // handle requests of client
-            CloseFd(server_fd);         // close fd of cliebt after served
+            CloseFd(client_fd);         // close fd of client after served
             exit(SUCESS);               // exit from child process
         }
         else
