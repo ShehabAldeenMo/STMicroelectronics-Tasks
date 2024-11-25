@@ -3,7 +3,6 @@
  * Description      : Contains constants and configurations used throughout the HTTP server.
  * Constants        :
  *                    - SERVER_PORT: Default port number for the server.
- *                    - ROOT_DIRECTORY: Base directory for serving files.
  *                    - MAX_CONNECTIONS: Maximum number of simultaneous connections.
  * Notes            : Modify these constants as needed to configure the server's behavior.
  */
