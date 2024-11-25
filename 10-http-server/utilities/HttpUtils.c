@@ -81,9 +81,6 @@ void Handle_Requests(int cfd)
         exit(EXIT_FAILURE);
     }
 
-    if (strlen(path) == 0)
-        strcpy(path, ".");
-
     if (S_ISDIR(sb.st_mode))
     {
         ListContent(cfd, path);
@@ -278,7 +275,7 @@ void ExecuteFile(int cfd, char *path)
     // parent
     else
     {
-        close(pipefd[1]); // Close unused write end
+        close(pipefd[1]); // Close unused write end, we will write into cfd
         char buffer[_1K];
         ssize_t bytes_read;
 
@@ -293,7 +290,8 @@ void ExecuteFile(int cfd, char *path)
         }
 
         close(pipefd[0]); // Close read end of pipe
-        wait(NULL);       // Wait for child process to complete
+        int status = 0;
+        wait(&status); // Wait for child process to complete
     }
 }
 
