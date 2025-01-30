@@ -1,0 +1,9 @@
+{
+    "files.associations": {
+        "stdio.h": "c",
+        "unistd.h": "c",
+        "commands.h": "c",
+        "helper.h": "c",
+        "utility.h":"c"
+    }
+}

@@ -1,0 +1,11 @@
+{
+    "C_Cpp.intelliSenseEngineFallback": "enabled",
+    "C_Cpp.default.compilerPath": "/usr/bin/gcc",
+    "files.associations": {
+        "helper.h": "c",
+        "heaptest.h": "c",
+        "heapmanager.h": "c",
+        "heapextras.h": "c",
+        "heaputils.h": "c"
+    }
+}

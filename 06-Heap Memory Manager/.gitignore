@@ -1,0 +1,16 @@
+Free/*.png
+Free/*.mp4
+FirstFitScreenShots/*.png
+FirstFitScreenShots/*.mp4
+BestFit ScreenShots/*.png
+BestFit ScreenShots/*.mp4
+a.out
+HMM
+stress_test.c
+Level_1/*.o
+Level_2/*.o
+Level_3/*.o
+*.o
+heap_manager
+Abstraction Layer
+logs.txt

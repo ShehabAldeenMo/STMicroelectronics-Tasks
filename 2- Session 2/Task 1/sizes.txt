@@ -1,6 +1,0 @@
-   text	   data	    bss	    dec	    hex	filename
-    260	      0	      8	    268	    10c	file1.o
-   text	   data	    bss	    dec	    hex	filename
-    165	      0	      0	    165	     a5	file2.o
-   text	   data	    bss	    dec	    hex	filename
- 911644	  23240	  23016	 957900	  e9dcc	Session2_Task1
