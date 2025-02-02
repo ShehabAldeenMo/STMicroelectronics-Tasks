@@ -15,38 +15,38 @@ public:
 private:
     static void handler_rtmin(int sig, siginfo_t *info, void *context)
     {
-        if (info->si_value.sival_int >= 0 && info->si_value.sival_int <= 3)
-        {
-            Solution::level = info->si_value.sival_int;
-            std::cout << "level: " << Solution::level << "\n";
-        }
+        level = info->si_value.sival_int; // Get the data sent with the signal
+        std::cout << "level: " << Solution::level << "\n";
     }
 
 public:
     Solution(int init = LOG_INFO)
     {
-        Solution::level = init;
+        level = init;
     }
 
     void SetLevel()
     {
         struct sigaction sa;
-        memset(&sa, 0, sizeof(sa));
-        sa.sa_sigaction = handler_rtmin; // Use sa_sigaction instead of sa_handler
-        sigemptyset(&sa.sa_mask);        // non blocking for othewr signals
-        sigaction(SIGRTMIN, &sa, NULL);  // Set the handler for SIGUSR1 -> a custom user signal.
+
+        sa.sa_flags = SA_SIGINFO;        // Use siginfo_t to get signal data
+        sa.sa_sigaction = handler_rtmin; // Handler function
+        sigemptyset(&sa.sa_mask);
+
+        // Register the signal handler for SIGRTMIN
+        if (sigaction(SIGRTMIN, &sa, NULL) == -1)
+        {
+            perror("sigaction");
+        }
     }
 };
-
-// Initialize static variable
-int Solution::level = Solution::LOG_INFO;
 
 int main()
 {
     // print PID of parent process
     std::cout << "My PID: " << getpid() << "\n";
-    Solution Deb;
-    Deb.SetLevel();
+    Solution Debug;
+    Debug.SetLevel();
 
     // stop till set my signal from another process
     pause();
